@@ -91,12 +91,116 @@ tbody tr:hover{background:var(--gray-50)}
 .tree-item:hover{background:var(--gray-50);border-radius:6px}
 details summary{cursor:pointer;color:var(--primary);font-size:13px}
 pre{font-size:11px;max-width:400px;overflow:auto;background:var(--gray-50);padding:8px;border-radius:4px;margin-top:4px}
+/* ============ РОССЕТИ LOADER ============ */
+.rn-loader-overlay{position:fixed;inset:0;background:#070b14;display:flex;align-items:center;justify-content:center;z-index:10000;transition:opacity .5s ease,visibility .5s ease}
+.rn-loader-overlay.hidden{opacity:0;visibility:hidden;pointer-events:none}
+.rn-loader-inline{display:flex;align-items:center;justify-content:center;min-height:200px}
+.rn-loader-svg{width:120px;height:120px}
+.rn-loader-overlay .rn-loader-svg{width:180px;height:180px}
+.rn-seg{fill:transparent}
+.rn-seg.lit{fill:#1d4ed8;filter:url(#rnGlow)}
+.rn-gap{stroke:#070b14;stroke-width:5;stroke-linecap:round}
+.rn-loader-inline .rn-gap{stroke:var(--gray-50)}
 </style>
 </head>
 <body>
+<!-- INITIAL LOADER (hides when React mounts) -->
+<div class="rn-loader-overlay" id="initialLoader">
+  <svg class="rn-loader-svg" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <filter id="rnGlowInit" x="-50%" y="-50%" width="200%" height="200%">
+        <feGaussianBlur stdDeviation="3" result="b1"/><feGaussianBlur stdDeviation="7" result="b2"/>
+        <feMerge><feMergeNode in="b2"/><feMergeNode in="b1"/><feMergeNode in="SourceGraphic"/></feMerge>
+      </filter>
+      <clipPath id="ccInit"><circle cx="100" cy="100" r="88"/></clipPath>
+    </defs>
+    <g clip-path="url(#ccInit)">
+      <path class="rn-seg-init" d="M115,62 L-58,-38 L89,-138 Z"/>
+      <path class="rn-seg-init" d="M115,62 L89,-138 L235,-52 Z"/>
+      <path class="rn-seg-init" d="M115,62 L235,-52 L304,118 Z"/>
+      <path class="rn-seg-init" d="M115,62 L304,118 L167,262 Z"/>
+      <path class="rn-seg-init" d="M115,62 L167,262 L15,242 Z"/>
+      <path class="rn-seg-init" d="M115,62 L15,242 L-78,120 Z"/>
+      <path class="rn-seg-init" d="M115,62 L-78,120 L-58,-38 Z"/>
+    </g>
+    <g clip-path="url(#ccInit)">
+      <line x1="115" y1="62" x2="-58" y2="-38" stroke="#070b14" stroke-width="5"/>
+      <line x1="115" y1="62" x2="89" y2="-138" stroke="#070b14" stroke-width="5"/>
+      <line x1="115" y1="62" x2="235" y2="-52" stroke="#070b14" stroke-width="5"/>
+      <line x1="115" y1="62" x2="304" y2="118" stroke="#070b14" stroke-width="5"/>
+      <line x1="115" y1="62" x2="167" y2="262" stroke="#070b14" stroke-width="5"/>
+      <line x1="115" y1="62" x2="15" y2="242" stroke="#070b14" stroke-width="5"/>
+      <line x1="115" y1="62" x2="-78" y2="120" stroke="#070b14" stroke-width="5"/>
+    </g>
+  </svg>
+</div>
+<script>
+(function(){
+  var segs=document.querySelectorAll('.rn-seg-init'),step=0,phase='appear';
+  function style(s,lit){s.style.fill=lit?'#1d4ed8':'transparent';s.style.filter=lit?'url(#rnGlowInit)':'none'}
+  function tick(){
+    if(phase==='appear'){style(segs[step],true);step++;if(step>=segs.length){phase='disappear';step=0;setTimeout(tick,400)}else setTimeout(tick,250)}
+    else{style(segs[step],false);step++;if(step>=segs.length){phase='appear';step=0;setTimeout(tick,400)}else setTimeout(tick,250)}
+  }
+  setTimeout(tick,300);
+})();
+</script>
 <div id="root"></div>
 <script type="text/babel">
-const { useState, useEffect, useCallback, createContext, useContext } = React;
+const { useState, useEffect, useCallback, createContext, useContext, useRef } = React;
+
+// ============ SVG LOADER COMPONENT ============
+const loaderPaths = [
+  "M115,62 L-58,-38 L89,-138 Z","M115,62 L89,-138 L235,-52 Z","M115,62 L235,-52 L304,118 Z",
+  "M115,62 L304,118 L167,262 Z","M115,62 L167,262 L15,242 Z","M115,62 L15,242 L-78,120 Z","M115,62 L-78,120 L-58,-38 Z"
+];
+const loaderLines = [[-58,-38],[89,-138],[235,-52],[304,118],[167,262],[15,242],[-78,120]];
+
+const RnLoader = ({ overlay, onReady }) => {
+  const [lit, setLit] = useState([false,false,false,false,false,false,false]);
+  const phase = useRef('appear');
+  const step = useRef(0);
+  useEffect(() => {
+    let alive = true;
+    function tick() {
+      if (!alive) return;
+      setLit(prev => {
+        const next = [...prev];
+        if (phase.current === 'appear') { next[step.current] = true; }
+        else { next[step.current] = false; }
+        return next;
+      });
+      step.current++;
+      if (step.current >= 7) {
+        phase.current = phase.current === 'appear' ? 'disappear' : 'appear';
+        step.current = 0;
+        setTimeout(tick, 400);
+      } else { setTimeout(tick, 250); }
+    }
+    setTimeout(tick, 200);
+    return () => { alive = false; };
+  }, []);
+
+  const gapColor = overlay ? '#070b14' : 'var(--gray-50)';
+  const svg = <svg className={`rn-loader-svg`} viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <filter id="rnGlow" x="-50%" y="-50%" width="200%" height="200%">
+        <feGaussianBlur stdDeviation="3" result="b1"/><feGaussianBlur stdDeviation="7" result="b2"/>
+        <feMerge><feMergeNode in="b2"/><feMergeNode in="b1"/><feMergeNode in="SourceGraphic"/></feMerge>
+      </filter>
+      <clipPath id="rnClip"><circle cx="100" cy="100" r="88"/></clipPath>
+    </defs>
+    <g clipPath="url(#rnClip)">
+      {loaderPaths.map((d,i) => <path key={i} d={d} fill={lit[i]?'#1d4ed8':'transparent'} filter={lit[i]?'url(#rnGlow)':'none'} />)}
+    </g>
+    <g clipPath="url(#rnClip)">
+      {loaderLines.map((l,i) => <line key={i} x1="115" y1="62" x2={l[0]} y2={l[1]} stroke={gapColor} strokeWidth="5" />)}
+    </g>
+  </svg>;
+
+  if (overlay) return <div className="rn-loader-overlay">{svg}</div>;
+  return <div className="rn-loader-inline">{svg}</div>;
+};
 
 // ============ API ============
 const API = {
@@ -187,6 +291,7 @@ const LoginPage = () => {
     setLoading(false);
   };
   return <div className="login-page">
+    {loading && <RnLoader overlay />}
     <div className="login-card">
       <div style={{textAlign:'center',fontSize:48,marginBottom:8}}>🦺</div>
       <h1>Учёт СИЗ</h1>
@@ -209,7 +314,7 @@ const Dashboard = () => {
       .then(([e,t,s]) => setStats({ employees:e, transactions:t, summary:s }))
       .catch(console.error).finally(() => setLoading(false));
   }, []);
-  if (loading) return <div className="loading">Загрузка...</div>;
+  if (loading) return <RnLoader />;
   return <div>
     <div className="page-header"><h1>Панель управления</h1></div>
     <div className="stats-grid" style={{marginBottom:16}}>
@@ -251,7 +356,7 @@ const Employees = ({ navigate }) => {
       setShowModal(false); setForm({}); load();
     } catch(e){ alert(e?.response?.data?.error||'Ошибка'); }
   };
-  if (loading) return <div className="loading">Загрузка...</div>;
+  if (loading) return <RnLoader />;
   return <div>
     <div className="page-header"><h1>Сотрудники ({data.employees.length})</h1>
       {hasPerm('can_create') && <button className="btn btn-primary" onClick={()=>{setForm({});setShowModal(true)}}>+ Сотрудник</button>}</div>
@@ -309,7 +414,7 @@ const EmployeeCard = ({ id, navigate }) => {
       setShowTx(false); setTxForm({transaction_type:'issue',quantity:1}); load();
     } catch(e){ alert(e?.response?.data?.error||'Ошибка'); }
   };
-  if (loading) return <div className="loading">Загрузка...</div>;
+  if (loading) return <RnLoader />;
   if (!emp) return <div className="empty-state">Не найден</div>;
   return <div>
     <div className="page-header">
@@ -387,7 +492,7 @@ const Transactions = ({ navigate }) => {
     await API.post('/transactions',{...form,transaction_date:form.transaction_date||new Date().toISOString().split('T')[0]});
     setShowModal(false); setForm({transaction_type:'issue',quantity:1}); load();
   } catch(e){ alert(e?.response?.data?.error||'Ошибка'); }};
-  if(loading) return <div className="loading">Загрузка...</div>;
+  if(loading) return <RnLoader />;
   return <div>
     <div className="page-header"><h1>Движение СИЗ</h1>{hasPerm('can_create')&&<button className="btn btn-primary" onClick={()=>{setForm({transaction_type:'issue',quantity:1});setShowModal(true)}}>+ Операция</button>}</div>
     <div className="tabs">
@@ -439,7 +544,7 @@ const Directories = () => {
   const saveCat = async () => { try { if(form.id) await API.put(`/siz/categories/${form.id}`,form); else await API.post('/siz/categories',form); setShowModal(null);setForm({});load(); } catch(e){alert(e?.response?.data?.error||'Ошибка');} };
   const saveItem = async () => { try { if(form.id) await API.put(`/siz/items/${form.id}`,form); else await API.post('/siz/items',form); setShowModal(null);setForm({});load(); } catch(e){alert(e?.response?.data?.error||'Ошибка');} };
   const filtered = selectedCat ? items.filter(i=>i.category_id===selectedCat) : items;
-  if(loading) return <div className="loading">Загрузка...</div>;
+  if(loading) return <RnLoader />;
   return <div>
     <div className="page-header"><h1>Справочники СИЗ</h1>{hasPerm('can_create')&&<div className="flex gap-2">
       <button className="btn btn-outline" onClick={()=>{setForm({});setShowModal('cat')}}>+ Категория</button>
@@ -482,7 +587,7 @@ const Positions = () => {
   const loadNorms = async id => { setSelected(id); try { setNorms(await API.get(`/positions/${id}/norms`)); } catch(e){console.error(e);} };
   const savePos = async () => { try { if(form.id) await API.put(`/positions/${form.id}`,form); else await API.post('/positions',form); setShowModal(null);setForm({});load(); } catch(e){alert(e?.response?.data?.error||'Ошибка');} };
   const saveNorm = async () => { try { await API.post(`/positions/${selected}/norms`,form); setShowModal(null);setForm({});loadNorms(selected); } catch(e){alert(e?.response?.data?.error||'Ошибка');} };
-  if(loading) return <div className="loading">Загрузка...</div>;
+  if(loading) return <RnLoader />;
   return <div>
     <div className="page-header"><h1>Реестр должностей</h1>{hasPerm('can_create')&&<button className="btn btn-primary" onClick={()=>{setForm({});setShowModal('pos')}}>+ Должность</button>}</div>
     <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:16}}>
@@ -535,7 +640,7 @@ const OrgStructure = () => {
     if(showModal==='res'){if(form.id)await API.put(`/org/res-units/${form.id}`,form);else await API.post('/org/res-units',form);}
     setShowModal(null);setForm({});load();
   } catch(e){alert(e?.response?.data?.error||'Ошибка');} };
-  if(loading) return <div className="loading">Загрузка...</div>;
+  if(loading) return <RnLoader />;
   return <div>
     <div className="page-header"><h1>Оргструктура</h1>{hasPerm('can_create')&&<div className="flex gap-2">
       <button className="btn btn-outline" onClick={()=>{setForm({});setShowModal('org')}}>+ Организация</button>
@@ -587,7 +692,7 @@ const AdminUsers = () => {
   }, []);
   useEffect(()=>{load();},[load]);
   const save = async () => { try { await API.post('/auth/register',form); setShowModal(false);setForm({});load(); } catch(e){alert(e?.response?.data?.error||'Ошибка');} };
-  if(loading) return <div className="loading">Загрузка...</div>;
+  if(loading) return <RnLoader />;
   return <div>
     <div className="page-header"><h1>Пользователи ({users.length})</h1><button className="btn btn-primary" onClick={()=>{setForm({});setShowModal(true)}}>+ Пользователь</button></div>
     <div className="card"><div className="table-container"><table><thead><tr><th>Логин</th><th>ФИО</th><th>Роль</th><th>Уровень</th><th>Привязка</th><th>Последний вход</th><th>Статус</th></tr></thead>
@@ -621,7 +726,7 @@ const AdminAudit = () => {
   const actionLabel = a=>({create:'Создание',update:'Изменение',delete:'Удаление'}[a]||a);
   const actionBadge = a=>({create:'badge badge-success',update:'badge badge-warning',delete:'badge badge-danger'}[a]||'badge');
   const tblLabel = t=>({employees:'Сотрудники',siz_items:'СИЗ',siz_transactions:'Транзакции',positions:'Должности',siz_categories:'Категории'}[t]||t);
-  if(loading) return <div className="loading">Загрузка...</div>;
+  if(loading) return <RnLoader />;
   return <div>
     <div className="page-header"><h1>Журнал аудита</h1><span className="text-muted">Последние 100</span></div>
     <div className="card" style={{marginBottom:16}}><div className="form-row">
@@ -640,6 +745,12 @@ const AdminAudit = () => {
 const App = () => {
   const { user, logout, hasPerm, isLevel } = useAuth();
   const { path, navigate } = useRoute();
+
+  // Hide initial fullscreen loader
+  useEffect(() => {
+    const el = document.getElementById('initialLoader');
+    if (el) { el.classList.add('hidden'); setTimeout(() => el.remove(), 600); }
+  }, []);
 
   if (!user) return <LoginPage />;
   if (path === '/login') { navigate('/'); return null; }
