@@ -410,6 +410,60 @@ app.post('/api/positions/:id/norms', auth, perm('can_create'), async (req, res) 
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
+// ============ ROUTES: TON (Типовые отраслевые нормы) ============
+
+// Получить все нормы с группировкой — плоский список
+app.get('/api/ton', auth, async (req, res) => {
+  try {
+    let sql = `SELECT n.id, n.position_id, n.siz_item_id, n.quantity, n.issue_period_months,
+      p.name as position_name, p.code as position_code,
+      i.name as item_name, i.code as item_code, i.unit, i.wear_period_months,
+      c.name as category_name
+      FROM position_siz_norms n
+      JOIN positions p ON n.position_id = p.id AND p.is_active = true
+      JOIN siz_items i ON n.siz_item_id = i.id AND i.is_active = true
+      LEFT JOIN siz_categories c ON i.category_id = c.id
+      WHERE n.is_active = true`;
+    const params = [];
+    if (req.query.position_id) {
+      params.push(req.query.position_id);
+      sql += ` AND n.position_id = $${params.length}`;
+    }
+    if (req.query.category_id) {
+      params.push(req.query.category_id);
+      sql += ` AND i.category_id = $${params.length}`;
+    }
+    sql += ' ORDER BY p.name, c.name, i.name';
+    res.json((await db(sql, params)).rows);
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// Удалить норму из ТОН
+app.delete('/api/ton/:id', auth, perm('can_delete'), async (req, res) => {
+  try {
+    const r = await db('UPDATE position_siz_norms SET is_active = false WHERE id = $1 RETURNING *', [req.params.id]);
+    if (!r.rows.length) return res.status(404).json({ error: 'Норма не найдена' });
+    await audit(req.user.id, 'position_siz_norms', req.params.id, 'delete', {}, req.ip);
+    res.json(r.rows[0]);
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// Получить разрешённые СИЗ для конкретного сотрудника (по его должности из ТОН)
+app.get('/api/ton/items-for-employee/:employeeId', auth, async (req, res) => {
+  try {
+    const sql = `SELECT i.id, i.name, i.code, i.unit, i.wear_period_months,
+      c.name as category_name, n.quantity as norm_quantity, n.issue_period_months
+      FROM position_siz_norms n
+      JOIN siz_items i ON n.siz_item_id = i.id AND i.is_active = true
+      LEFT JOIN siz_categories c ON i.category_id = c.id
+      JOIN employees e ON e.position_id = n.position_id AND e.id = $1
+      WHERE n.is_active = true
+      ORDER BY c.name, i.name`;
+    res.json((await db(sql, [req.params.employeeId])).rows);
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+
 // ============ ROUTES: EMPLOYEES ============
 
 app.get('/api/employees', auth, async (req, res) => {
