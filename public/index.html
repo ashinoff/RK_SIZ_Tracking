@@ -155,51 +155,54 @@ const loaderPaths = [
   "M115,62 L304,118 L167,262 Z","M115,62 L167,262 L15,242 Z","M115,62 L15,242 L-78,120 Z","M115,62 L-78,120 L-58,-38 Z"
 ];
 const loaderLines = [[-58,-38],[89,-138],[235,-52],[304,118],[167,262],[15,242],[-78,120]];
+let rnGlowId = 0;
 
-const RnLoader = ({ overlay, onReady }) => {
-  const [lit, setLit] = useState([false,false,false,false,false,false,false]);
-  const phase = useRef('appear');
-  const step = useRef(0);
+const RnLoader = ({ overlay }) => {
+  const svgRef = useRef(null);
+  const ids = useRef({ glow: `rnG${++rnGlowId}`, clip: `rnC${rnGlowId}` });
+  const gapColor = overlay ? '#070b14' : 'var(--gray-50)';
+
   useEffect(() => {
-    let alive = true;
+    if (!svgRef.current) return;
+    const segs = svgRef.current.querySelectorAll('.rn-s');
+    let step = 0, phase = 'appear', alive = true;
     function tick() {
       if (!alive) return;
-      setLit(prev => {
-        const next = [...prev];
-        if (phase.current === 'appear') { next[step.current] = true; }
-        else { next[step.current] = false; }
-        return next;
-      });
-      step.current++;
-      if (step.current >= 7) {
-        phase.current = phase.current === 'appear' ? 'disappear' : 'appear';
-        step.current = 0;
-        setTimeout(tick, 400);
-      } else { setTimeout(tick, 250); }
+      if (phase === 'appear') {
+        segs[step].setAttribute('fill', '#1d4ed8');
+        segs[step].setAttribute('filter', `url(#${ids.current.glow})`);
+        step++;
+        if (step >= 7) { phase = 'disappear'; step = 0; setTimeout(tick, 400); }
+        else setTimeout(tick, 250);
+      } else {
+        segs[step].setAttribute('fill', 'transparent');
+        segs[step].setAttribute('filter', 'none');
+        step++;
+        if (step >= 7) { phase = 'appear'; step = 0; setTimeout(tick, 400); }
+        else setTimeout(tick, 250);
+      }
     }
     setTimeout(tick, 200);
     return () => { alive = false; };
   }, []);
 
-  const gapColor = overlay ? '#070b14' : 'var(--gray-50)';
-  const svg = <svg className={`rn-loader-svg`} viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
-    <defs>
-      <filter id="rnGlow" x="-50%" y="-50%" width="200%" height="200%">
-        <feGaussianBlur stdDeviation="3" result="b1"/><feGaussianBlur stdDeviation="7" result="b2"/>
-        <feMerge><feMergeNode in="b2"/><feMergeNode in="b1"/><feMergeNode in="SourceGraphic"/></feMerge>
-      </filter>
-      <clipPath id="rnClip"><circle cx="100" cy="100" r="88"/></clipPath>
-    </defs>
-    <g clipPath="url(#rnClip)">
-      {loaderPaths.map((d,i) => <path key={i} d={d} fill={lit[i]?'#1d4ed8':'transparent'} filter={lit[i]?'url(#rnGlow)':'none'} />)}
-    </g>
-    <g clipPath="url(#rnClip)">
-      {loaderLines.map((l,i) => <line key={i} x1="115" y1="62" x2={l[0]} y2={l[1]} stroke={gapColor} strokeWidth="5" />)}
-    </g>
-  </svg>;
-
-  if (overlay) return <div className="rn-loader-overlay">{svg}</div>;
-  return <div className="rn-loader-inline">{svg}</div>;
+  return <div className={overlay ? "rn-loader-overlay" : "rn-loader-inline"}>
+    <svg ref={svgRef} className="rn-loader-svg" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <filter id={ids.current.glow} x="-50%" y="-50%" width="200%" height="200%">
+          <feGaussianBlur stdDeviation="3" result="b1"/><feGaussianBlur stdDeviation="7" result="b2"/>
+          <feMerge><feMergeNode in="b2"/><feMergeNode in="b1"/><feMergeNode in="SourceGraphic"/></feMerge>
+        </filter>
+        <clipPath id={ids.current.clip}><circle cx="100" cy="100" r="88"/></clipPath>
+      </defs>
+      <g clipPath={`url(#${ids.current.clip})`}>
+        {loaderPaths.map((d,i) => <path key={i} className="rn-s" d={d} fill="transparent" filter="none" />)}
+      </g>
+      <g clipPath={`url(#${ids.current.clip})`}>
+        {loaderLines.map((l,i) => <line key={i} x1="115" y1="62" x2={l[0]} y2={l[1]} stroke={gapColor} strokeWidth="5" />)}
+      </g>
+    </svg>
+  </div>;
 };
 
 // ============ API ============
