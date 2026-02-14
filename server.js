@@ -1,6 +1,6 @@
 // ============================================
-// СИЗ: Учёт и движение — Сервер
-// Иерархия: Организация → Предприятие → РЭС → Служба → Подразделение
+// СИЗ: Учёт и движение — Сервер (всё в одном файле)
+// Node.js + Express + PostgreSQL
 // ============================================
 
 require('dotenv').config();
@@ -15,7 +15,6 @@ const { Pool } = require('pg');
 const app = express();
 const PORT = process.env.PORT || 5000;
 const JWT_SECRET = process.env.JWT_SECRET || 'siz-secret-key-change-me';
-const ADMIN_DELETE_PASSWORD = '2233';
 
 // ============ DATABASE ============
 
@@ -44,7 +43,7 @@ const auth = async (req, res, next) => {
     if (!token) return res.status(401).json({ error: 'Требуется авторизация' });
     const decoded = jwt.verify(token, JWT_SECRET);
     const result = await db(
-      `SELECT u.*, r.name as role_name, r.level as role_level,
+      `SELECT u.*, r.name as role_name, r.level as role_level, 
               r.general_permissions, r.field_permissions, r.display_name as role_display_name
        FROM users u JOIN roles r ON u.role_id = r.id WHERE u.id = $1 AND u.is_active = true`,
       [decoded.userId]
@@ -57,50 +56,28 @@ const auth = async (req, res, next) => {
   }
 };
 
+// Permission check
 const perm = (p) => (req, res, next) => {
   if (!req.user.general_permissions?.[p]) return res.status(403).json({ error: `Нет права: ${p}` });
   next();
 };
 
+// Hierarchy check
 const levelCheck = (levels) => (req, res, next) => {
   if (req.user.role_level === 'ia' || levels.includes(req.user.role_level)) return next();
   return res.status(403).json({ error: 'Недостаточно прав' });
 };
 
+// Token generation
 const genToken = (userId) => jwt.sign({ userId }, JWT_SECRET, { expiresIn: '24h' });
 
+// Audit logging
 const audit = async (userId, table, recordId, action, changes, ip) => {
   try {
     await db(`INSERT INTO audit_log (user_id, table_name, record_id, action, changes, ip_address) VALUES ($1,$2,$3,$4,$5,$6)`,
       [userId, table, recordId, action, JSON.stringify(changes || {}), ip]);
   } catch (e) { console.error('Audit error:', e.message); }
 };
-
-// ============ HIERARCHY VISIBILITY HELPER ============
-// Levels: ia > enterprise > res > service > department
-// Each level sees everything at or below their assigned level
-
-function addHierarchyFilter(sql, params, user, empAlias = 'e') {
-  const lvl = user.role_level;
-  if (lvl === 'ia') return sql;
-  if (lvl === 'enterprise') {
-    params.push(user.enterprise_id);
-    return sql + ` AND ${empAlias}.enterprise_id=$${params.length}`;
-  }
-  if (lvl === 'res') {
-    params.push(user.res_unit_id);
-    return sql + ` AND ${empAlias}.res_unit_id=$${params.length}`;
-  }
-  if (lvl === 'service') {
-    params.push(user.service_id);
-    return sql + ` AND ${empAlias}.service_id=$${params.length}`;
-  }
-  if (lvl === 'department') {
-    params.push(user.department_id);
-    return sql + ` AND ${empAlias}.department_id=$${params.length}`;
-  }
-  return sql;
-}
 
 // ============ FLEX CRUD ============
 
@@ -147,7 +124,7 @@ const empCRUD = new FlexCRUD('employees');
 const orgCRUD = new FlexCRUD('organizations');
 const entCRUD = new FlexCRUD('enterprises');
 const resCRUD = new FlexCRUD('res_units');
-const srvCRUD = new FlexCRUD('services');
+const spbipkCRUD = new FlexCRUD('spbipk');
 const deptCRUD = new FlexCRUD('departments');
 
 // ============ ROUTES: AUTH ============
@@ -168,69 +145,27 @@ app.post('/api/auth/login', async (req, res) => {
       user: { id: user.id, username: user.username, full_name: user.full_name, email: user.email,
         role_name: user.role_name, role_display_name: user.role_display_name, role_level: user.role_level,
         general_permissions: user.general_permissions, organization_id: user.organization_id,
-        enterprise_id: user.enterprise_id, res_unit_id: user.res_unit_id,
-        service_id: user.service_id, department_id: user.department_id }
+        enterprise_id: user.enterprise_id, res_unit_id: user.res_unit_id }
     });
   } catch (err) { console.error(err); res.status(500).json({ error: 'Ошибка сервера' }); }
 });
 
 app.post('/api/auth/register', auth, async (req, res) => {
   try {
-    if (!req.user.general_permissions?.can_create)
+    if (req.user.role_level !== 'ia' || !req.user.general_permissions?.can_create)
       return res.status(403).json({ error: 'Недостаточно прав' });
-    const { username, password, full_name, email, phone, role_id, organization_id, enterprise_id, res_unit_id, service_id, department_id } = req.body;
+    const { username, password, full_name, email, phone, role_id, organization_id, enterprise_id, res_unit_id } = req.body;
     if (!username || !password || !full_name || !role_id)
       return res.status(400).json({ error: 'username, password, full_name, role_id обязательны' });
     const ex = await db('SELECT id FROM users WHERE username=$1', [username]);
     if (ex.rows.length) return res.status(400).json({ error: 'Пользователь уже существует' });
     const hash = await bcrypt.hash(password, 12);
     const r = await db(
-      `INSERT INTO users (username, password_hash, full_name, email, phone, role_id, organization_id, enterprise_id, res_unit_id, service_id, department_id)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11) RETURNING id, username, full_name`,
-      [username, hash, full_name, email, phone, role_id, organization_id || null, enterprise_id || null, res_unit_id || null, service_id || null, department_id || null]);
-    await audit(req.user.id, 'users', r.rows[0].id, 'create', { username, full_name, role_id }, req.ip);
+      `INSERT INTO users (username, password_hash, full_name, email, phone, role_id, organization_id, enterprise_id, res_unit_id)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9) RETURNING id, username, full_name`,
+      [username, hash, full_name, email, phone, role_id, organization_id, enterprise_id, res_unit_id]);
     res.status(201).json(r.rows[0]);
   } catch (err) { console.error(err); res.status(500).json({ error: 'Ошибка сервера' }); }
-});
-
-// Update user
-app.put('/api/admin/users/:id', auth, perm('can_edit'), async (req, res) => {
-  try {
-    const { full_name, email, phone, role_id, organization_id, enterprise_id, res_unit_id, service_id, department_id, is_active, new_password } = req.body;
-    const sets = []; const vals = []; let i = 1;
-    if (full_name !== undefined) { sets.push(`full_name=$${i}`); vals.push(full_name); i++; }
-    if (email !== undefined) { sets.push(`email=$${i}`); vals.push(email); i++; }
-    if (phone !== undefined) { sets.push(`phone=$${i}`); vals.push(phone); i++; }
-    if (role_id !== undefined) { sets.push(`role_id=$${i}`); vals.push(role_id); i++; }
-    if (organization_id !== undefined) { sets.push(`organization_id=$${i}`); vals.push(organization_id || null); i++; }
-    if (enterprise_id !== undefined) { sets.push(`enterprise_id=$${i}`); vals.push(enterprise_id || null); i++; }
-    if (res_unit_id !== undefined) { sets.push(`res_unit_id=$${i}`); vals.push(res_unit_id || null); i++; }
-    if (service_id !== undefined) { sets.push(`service_id=$${i}`); vals.push(service_id || null); i++; }
-    if (department_id !== undefined) { sets.push(`department_id=$${i}`); vals.push(department_id || null); i++; }
-    if (is_active !== undefined) { sets.push(`is_active=$${i}`); vals.push(is_active); i++; }
-    if (new_password) { sets.push(`password_hash=$${i}`); vals.push(await bcrypt.hash(new_password, 12)); i++; }
-    if (!sets.length) return res.status(400).json({ error: 'Нет данных для обновления' });
-    vals.push(req.params.id);
-    const r = await db(`UPDATE users SET ${sets.join(',')} WHERE id=$${i} RETURNING id, username, full_name`, vals);
-    if (!r.rows.length) return res.status(404).json({ error: 'Пользователь не найден' });
-    await audit(req.user.id, 'users', req.params.id, 'update', req.body, req.ip);
-    res.json(r.rows[0]);
-  } catch (err) { console.error(err); res.status(500).json({ error: err.message }); }
-});
-
-// Delete user with confirmation password
-app.delete('/api/admin/users/:id', auth, async (req, res) => {
-  try {
-    const { confirm_password } = req.body;
-    if (confirm_password !== ADMIN_DELETE_PASSWORD)
-      return res.status(403).json({ error: 'Неверный пароль подтверждения' });
-    if (req.params.id == req.user.id)
-      return res.status(400).json({ error: 'Нельзя удалить самого себя' });
-    const r = await db('UPDATE users SET is_active=false WHERE id=$1 RETURNING id, username, full_name', [req.params.id]);
-    if (!r.rows.length) return res.status(404).json({ error: 'Пользователь не найден' });
-    await audit(req.user.id, 'users', req.params.id, 'delete', {}, req.ip);
-    res.json({ message: 'Пользователь деактивирован', user: r.rows[0] });
-  } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
 app.get('/api/auth/me', auth, (req, res) => {
@@ -238,8 +173,7 @@ app.get('/api/auth/me', auth, (req, res) => {
   res.json({ id: u.id, username: u.username, full_name: u.full_name, email: u.email, phone: u.phone,
     role_name: u.role_name, role_display_name: u.role_display_name, role_level: u.role_level,
     general_permissions: u.general_permissions, organization_id: u.organization_id,
-    enterprise_id: u.enterprise_id, res_unit_id: u.res_unit_id,
-    service_id: u.service_id, department_id: u.department_id });
+    enterprise_id: u.enterprise_id, res_unit_id: u.res_unit_id });
 });
 
 app.get('/api/auth/roles', auth, async (req, res) => {
@@ -278,8 +212,9 @@ app.get('/api/org/enterprises', auth, async (req, res) => {
   try {
     let sql = 'SELECT e.*, o.name as organization_name FROM enterprises e LEFT JOIN organizations o ON e.organization_id=o.id WHERE e.is_active=true';
     const p = [];
-    const lvl = req.user.role_level;
-    if (lvl !== 'ia') { p.push(req.user.enterprise_id); sql += ` AND e.id=$${p.length}`; }
+    if (req.user.role_level === 'enterprise' || req.user.role_level === 'res') {
+      p.push(req.user.enterprise_id); sql += ` AND e.id=$${p.length}`;
+    }
     sql += ' ORDER BY e.name';
     res.json((await db(sql, p)).rows);
   } catch (e) { res.status(500).json({ error: e.message }); }
@@ -293,14 +228,37 @@ app.put('/api/org/enterprises/:id', auth, perm('can_edit'), async (req, res) => 
   catch (e) { res.status(500).json({ error: e.message }); }
 });
 
+// --- СПБиПК ---
+app.get('/api/org/spbipk', auth, async (req, res) => {
+  try {
+    let sql = `SELECT s.*, e.name as enterprise_name FROM spbipk s LEFT JOIN enterprises e ON s.enterprise_id=e.id WHERE s.is_active=true`;
+    const p = [];
+    if (req.user.role_level === 'enterprise') { p.push(req.user.enterprise_id); sql += ` AND s.enterprise_id=$${p.length}`; }
+    if (req.query.enterprise_id) { p.push(req.query.enterprise_id); sql += ` AND s.enterprise_id=$${p.length}`; }
+    sql += ' ORDER BY s.name';
+    res.json((await db(sql, p)).rows);
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+app.post('/api/org/spbipk', auth, perm('can_create'), async (req, res) => {
+  try { res.status(201).json(await spbipkCRUD.create(req.body, req.user.id, req.ip)); }
+  catch (e) { res.status(500).json({ error: e.message }); }
+});
+app.put('/api/org/spbipk/:id', auth, perm('can_edit'), async (req, res) => {
+  try { res.json(await spbipkCRUD.update(req.params.id, req.body, req.user.id, req.ip)); }
+  catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// --- РЭС/Служба ---
 app.get('/api/org/res-units', auth, async (req, res) => {
   try {
-    let sql = `SELECT r.*, e.name as enterprise_name FROM res_units r LEFT JOIN enterprises e ON r.enterprise_id=e.id WHERE r.is_active=true`;
+    let sql = `SELECT r.*, e.name as enterprise_name, sp.name as spbipk_name
+      FROM res_units r LEFT JOIN enterprises e ON r.enterprise_id=e.id
+      LEFT JOIN spbipk sp ON r.spbipk_id=sp.id WHERE r.is_active=true`;
     const p = [];
-    const lvl = req.user.role_level;
-    if (lvl === 'enterprise') { p.push(req.user.enterprise_id); sql += ` AND r.enterprise_id=$${p.length}`; }
-    else if (lvl !== 'ia') { p.push(req.user.res_unit_id); sql += ` AND r.id=$${p.length}`; }
+    if (req.user.role_level === 'enterprise') { p.push(req.user.enterprise_id); sql += ` AND r.enterprise_id=$${p.length}`; }
+    else if (req.user.role_level === 'res') { p.push(req.user.res_unit_id); sql += ` AND r.id=$${p.length}`; }
     if (req.query.enterprise_id) { p.push(req.query.enterprise_id); sql += ` AND r.enterprise_id=$${p.length}`; }
+    if (req.query.spbipk_id) { p.push(req.query.spbipk_id); sql += ` AND r.spbipk_id=$${p.length}`; }
     sql += ' ORDER BY r.name';
     res.json((await db(sql, p)).rows);
   } catch (e) { res.status(500).json({ error: e.message }); }
@@ -314,43 +272,12 @@ app.put('/api/org/res-units/:id', auth, perm('can_edit'), async (req, res) => {
   catch (e) { res.status(500).json({ error: e.message }); }
 });
 
-// Services (Службы) — under РЭС
-app.get('/api/org/services', auth, async (req, res) => {
-  try {
-    let sql = `SELECT s.*, r.name as res_unit_name FROM services s LEFT JOIN res_units r ON s.res_unit_id=r.id WHERE s.is_active=true`;
-    const p = [];
-    const lvl = req.user.role_level;
-    if (lvl === 'enterprise') { p.push(req.user.enterprise_id); sql += ` AND r.enterprise_id=$${p.length}`; }
-    else if (lvl === 'res') { p.push(req.user.res_unit_id); sql += ` AND s.res_unit_id=$${p.length}`; }
-    else if (lvl === 'service') { p.push(req.user.service_id); sql += ` AND s.id=$${p.length}`; }
-    else if (lvl === 'department') { p.push(req.user.service_id); sql += ` AND s.id=$${p.length}`; }
-    if (req.query.res_unit_id) { p.push(req.query.res_unit_id); sql += ` AND s.res_unit_id=$${p.length}`; }
-    sql += ' ORDER BY s.name';
-    res.json((await db(sql, p)).rows);
-  } catch (e) { res.status(500).json({ error: e.message }); }
-});
-app.post('/api/org/services', auth, perm('can_create'), async (req, res) => {
-  try { res.status(201).json(await srvCRUD.create(req.body, req.user.id, req.ip)); }
-  catch (e) { res.status(500).json({ error: e.message }); }
-});
-app.put('/api/org/services/:id', auth, perm('can_edit'), async (req, res) => {
-  try { res.json(await srvCRUD.update(req.params.id, req.body, req.user.id, req.ip)); }
-  catch (e) { res.status(500).json({ error: e.message }); }
-});
-
-// Departments (Подразделения) — under Служба
+// --- Подразделения (под РЭС/Служба) ---
 app.get('/api/org/departments', auth, async (req, res) => {
   try {
-    let sql = `SELECT d.*, s.name as service_name FROM departments d LEFT JOIN services s ON d.service_id=s.id WHERE d.is_active=true`;
+    let sql = `SELECT d.*, r.name as res_name FROM departments d LEFT JOIN res_units r ON d.res_unit_id=r.id WHERE d.is_active=true`;
     const p = [];
-    const lvl = req.user.role_level;
-    if (lvl === 'enterprise') {
-      sql += ` AND s.res_unit_id IN (SELECT id FROM res_units WHERE enterprise_id=$1)`;
-      p.push(req.user.enterprise_id);
-    } else if (lvl === 'res') { p.push(req.user.res_unit_id); sql += ` AND s.res_unit_id=$${p.length}`; }
-    else if (lvl === 'service') { p.push(req.user.service_id); sql += ` AND d.service_id=$${p.length}`; }
-    else if (lvl === 'department') { p.push(req.user.department_id); sql += ` AND d.id=$${p.length}`; }
-    if (req.query.service_id) { p.push(req.query.service_id); sql += ` AND d.service_id=$${p.length}`; }
+    if (req.query.res_unit_id) { p.push(req.query.res_unit_id); sql += ` AND d.res_unit_id=$${p.length}`; }
     sql += ' ORDER BY d.name';
     res.json((await db(sql, p)).rows);
   } catch (e) { res.status(500).json({ error: e.message }); }
@@ -364,40 +291,31 @@ app.put('/api/org/departments/:id', auth, perm('can_edit'), async (req, res) => 
   catch (e) { res.status(500).json({ error: e.message }); }
 });
 
-// Full org tree
+// --- Org Tree (full hierarchy) ---
 app.get('/api/org/tree', auth, async (req, res) => {
   try {
     const orgs = (await db('SELECT * FROM organizations WHERE is_active=true')).rows;
-    const ents = (await db('SELECT * FROM enterprises WHERE is_active=true')).rows;
-    const units = (await db('SELECT * FROM res_units WHERE is_active=true')).rows;
-    const srvs = (await db('SELECT * FROM services WHERE is_active=true')).rows;
-    const depts = (await db('SELECT * FROM departments WHERE is_active=true')).rows;
-
-    const lvl = req.user.role_level;
-    const filterEnt = e => lvl === 'ia' ? true : e.id === req.user.enterprise_id;
-    const filterRes = r => {
-      if (lvl === 'ia') return true;
-      if (lvl === 'enterprise') return ents.filter(filterEnt).some(e => e.id === r.enterprise_id);
-      return r.id === req.user.res_unit_id;
-    };
-    const filterSrv = s => {
-      if (lvl === 'ia' || lvl === 'enterprise' || lvl === 'res') return units.filter(filterRes).some(r => r.id === s.res_unit_id);
-      if (lvl === 'service') return s.id === req.user.service_id;
-      if (lvl === 'department') return s.id === req.user.service_id;
-      return false;
-    };
-    const filterDept = d => {
-      if (['ia','enterprise','res','service'].includes(lvl)) return srvs.filter(filterSrv).some(s => s.id === d.service_id);
-      if (lvl === 'department') return d.id === req.user.department_id;
-      return false;
-    };
-
+    let entSql = 'SELECT * FROM enterprises WHERE is_active=true';
+    let spSql = 'SELECT * FROM spbipk WHERE is_active=true';
+    let resSql = 'SELECT * FROM res_units WHERE is_active=true';
+    let deptSql = 'SELECT * FROM departments WHERE is_active=true';
+    const p = [];
+    if (req.user.role_level === 'enterprise') {
+      p.push(req.user.enterprise_id);
+      entSql += ` AND id=$1`; spSql += ` AND enterprise_id=$1`; resSql += ` AND enterprise_id=$1`;
+    } else if (req.user.role_level === 'res') {
+      p.push(req.user.res_unit_id); resSql += ` AND id=$1`;
+    }
+    const ents = (await db(entSql, req.user.role_level !== 'ia' ? p : [])).rows;
+    const sps = (await db(spSql, req.user.role_level === 'enterprise' ? p : [])).rows;
+    const units = (await db(resSql, p)).rows;
+    const depts = (await db(deptSql)).rows;
     res.json(orgs.map(o => ({
-      ...o, enterprises: ents.filter(e => e.organization_id === o.id && filterEnt(e)).map(e => ({
-        ...e, res_units: units.filter(r => r.enterprise_id === e.id && filterRes(r)).map(r => ({
-          ...r, services: srvs.filter(s => s.res_unit_id === r.id && filterSrv(s)).map(s => ({
-            ...s, departments: depts.filter(d => d.service_id === s.id && filterDept(d))
-          }))
+      ...o, enterprises: ents.filter(e => e.organization_id === o.id).map(e => ({
+        ...e,
+        spbipk_list: sps.filter(s => s.enterprise_id === e.id),
+        res_units: units.filter(r => r.enterprise_id === e.id).map(r => ({
+          ...r, departments: depts.filter(d => d.res_unit_id === r.id)
         }))
       }))
     })));
@@ -497,16 +415,16 @@ app.post('/api/positions/:id/norms', auth, perm('can_create'), async (req, res) 
 app.get('/api/employees', auth, async (req, res) => {
   try {
     let sql = `SELECT e.*, p.name as position_name, r.name as res_name, ent.name as enterprise_name,
-      sv.name as service_name, dp.name as department_name
+      d.name as department_name
       FROM employees e LEFT JOIN positions p ON e.position_id=p.id
       LEFT JOIN res_units r ON e.res_unit_id=r.id LEFT JOIN enterprises ent ON e.enterprise_id=ent.id
-      LEFT JOIN services sv ON e.service_id=sv.id LEFT JOIN departments dp ON e.department_id=dp.id
+      LEFT JOIN departments d ON e.department_id=d.id
       WHERE e.is_active=true`;
     const p = [];
-    sql = addHierarchyFilter(sql, p, req.user, 'e');
+    if (req.user.role_level === 'enterprise') { p.push(req.user.enterprise_id); sql += ` AND e.enterprise_id=$${p.length}`; }
+    else if (req.user.role_level === 'res') { p.push(req.user.res_unit_id); sql += ` AND e.res_unit_id=$${p.length}`; }
     if (req.query.res_unit_id) { p.push(req.query.res_unit_id); sql += ` AND e.res_unit_id=$${p.length}`; }
     if (req.query.enterprise_id) { p.push(req.query.enterprise_id); sql += ` AND e.enterprise_id=$${p.length}`; }
-    if (req.query.service_id) { p.push(req.query.service_id); sql += ` AND e.service_id=$${p.length}`; }
     if (req.query.department_id) { p.push(req.query.department_id); sql += ` AND e.department_id=$${p.length}`; }
     if (req.query.position_id) { p.push(req.query.position_id); sql += ` AND e.position_id=$${p.length}`; }
     if (req.query.search) { p.push(`%${req.query.search}%`); sql += ` AND (e.last_name ILIKE $${p.length} OR e.first_name ILIKE $${p.length} OR e.employee_number ILIKE $${p.length})`; }
@@ -518,10 +436,10 @@ app.get('/api/employees', auth, async (req, res) => {
 app.get('/api/employees/:id', auth, async (req, res) => {
   try {
     const emp = (await db(`SELECT e.*, p.name as position_name, r.name as res_name, ent.name as enterprise_name,
-      sv.name as service_name, dp.name as department_name
+      d.name as department_name
       FROM employees e LEFT JOIN positions p ON e.position_id=p.id
       LEFT JOIN res_units r ON e.res_unit_id=r.id LEFT JOIN enterprises ent ON e.enterprise_id=ent.id
-      LEFT JOIN services sv ON e.service_id=sv.id LEFT JOIN departments dp ON e.department_id=dp.id
+      LEFT JOIN departments d ON e.department_id=d.id
       WHERE e.id=$1`, [req.params.id])).rows[0];
     if (!emp) return res.status(404).json({ error: 'Сотрудник не найден' });
 
@@ -570,7 +488,8 @@ app.get('/api/transactions', auth, async (req, res) => {
       JOIN siz_items i ON t.siz_item_id=i.id LEFT JOIN siz_categories c ON i.category_id=c.id
       LEFT JOIN users u ON t.issued_by=u.id WHERE 1=1`;
     const p = [];
-    sql = addHierarchyFilter(sql, p, req.user, 'e');
+    if (req.user.role_level === 'enterprise') { p.push(req.user.enterprise_id); sql += ` AND e.enterprise_id=$${p.length}`; }
+    else if (req.user.role_level === 'res') { p.push(req.user.res_unit_id); sql += ` AND e.res_unit_id=$${p.length}`; }
     if (req.query.employee_id) { p.push(req.query.employee_id); sql += ` AND t.employee_id=$${p.length}`; }
     if (req.query.transaction_type) { p.push(req.query.transaction_type); sql += ` AND t.transaction_type=$${p.length}`; }
     if (req.query.date_from) { p.push(req.query.date_from); sql += ` AND t.transaction_date>=$${p.length}`; }
@@ -605,7 +524,8 @@ app.get('/api/transactions/reports/expired', auth, async (req, res) => {
       LEFT JOIN res_units r ON e.res_unit_id=r.id
       WHERE t.transaction_type='issue' AND t.valid_until < CURRENT_DATE AND t.valid_until IS NOT NULL`;
     const p = [];
-    sql = addHierarchyFilter(sql, p, req.user, 'e');
+    if (req.user.role_level === 'enterprise') { p.push(req.user.enterprise_id); sql += ` AND e.enterprise_id=$${p.length}`; }
+    else if (req.user.role_level === 'res') { p.push(req.user.res_unit_id); sql += ` AND e.res_unit_id=$${p.length}`; }
     sql += ' ORDER BY t.employee_id, t.siz_item_id, t.transaction_date DESC';
     res.json((await db(sql, p)).rows);
   } catch (e) { res.status(500).json({ error: e.message }); }
@@ -620,9 +540,8 @@ app.get('/api/transactions/reports/summary', auth, async (req, res) => {
       FROM res_units r LEFT JOIN employees e ON e.res_unit_id=r.id AND e.is_active=true
       LEFT JOIN siz_transactions t ON t.employee_id=e.id WHERE r.is_active=true`;
     const p = [];
-    const lvl = req.user.role_level;
-    if (lvl === 'enterprise') { p.push(req.user.enterprise_id); sql += ` AND r.enterprise_id=$${p.length}`; }
-    else if (lvl !== 'ia') { p.push(req.user.res_unit_id); sql += ` AND r.id=$${p.length}`; }
+    if (req.user.role_level === 'enterprise') { p.push(req.user.enterprise_id); sql += ` AND r.enterprise_id=$${p.length}`; }
+    else if (req.user.role_level === 'res') { p.push(req.user.res_unit_id); sql += ` AND r.id=$${p.length}`; }
     sql += ' GROUP BY r.id, r.name ORDER BY r.name';
     res.json((await db(sql, p)).rows);
   } catch (e) { res.status(500).json({ error: e.message }); }
@@ -633,14 +552,46 @@ app.get('/api/transactions/reports/summary', auth, async (req, res) => {
 app.get('/api/admin/users', auth, levelCheck(['ia']), async (req, res) => {
   try {
     res.json((await db(`SELECT u.id, u.username, u.full_name, u.email, u.phone, u.is_active, u.last_login,
-      u.role_id, u.organization_id, u.enterprise_id, u.res_unit_id, u.service_id, u.department_id,
+      u.role_id, u.organization_id, u.enterprise_id, u.res_unit_id,
       r.display_name as role_name, r.level as role_level,
-      o.name as organization_name, ent.name as enterprise_name, ru.name as res_name,
-      sv.name as service_name, dp.name as department_name
+      o.name as organization_name, e.name as enterprise_name, ru.name as res_name
       FROM users u LEFT JOIN roles r ON u.role_id=r.id LEFT JOIN organizations o ON u.organization_id=o.id
-      LEFT JOIN enterprises ent ON u.enterprise_id=ent.id LEFT JOIN res_units ru ON u.res_unit_id=ru.id
-      LEFT JOIN services sv ON u.service_id=sv.id LEFT JOIN departments dp ON u.department_id=dp.id
+      LEFT JOIN enterprises e ON u.enterprise_id=e.id LEFT JOIN res_units ru ON u.res_unit_id=ru.id
       ORDER BY u.full_name`)).rows);
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.put('/api/admin/users/:id', auth, levelCheck(['ia']), async (req, res) => {
+  try {
+    const { full_name, email, phone, role_id, organization_id, enterprise_id, res_unit_id, new_password } = req.body;
+    const sets = []; const vals = []; let i = 1;
+    if (full_name !== undefined) { sets.push(`full_name=$${i}`); vals.push(full_name); i++; }
+    if (email !== undefined) { sets.push(`email=$${i}`); vals.push(email); i++; }
+    if (phone !== undefined) { sets.push(`phone=$${i}`); vals.push(phone); i++; }
+    if (role_id !== undefined) { sets.push(`role_id=$${i}`); vals.push(role_id); i++; }
+    if (organization_id !== undefined) { sets.push(`organization_id=$${i}`); vals.push(organization_id || null); i++; }
+    if (enterprise_id !== undefined) { sets.push(`enterprise_id=$${i}`); vals.push(enterprise_id || null); i++; }
+    if (res_unit_id !== undefined) { sets.push(`res_unit_id=$${i}`); vals.push(res_unit_id || null); i++; }
+    if (new_password) { sets.push(`password_hash=$${i}`); vals.push(await bcrypt.hash(new_password, 12)); i++; }
+    if (!sets.length) return res.status(400).json({ error: 'Нет данных для обновления' });
+    vals.push(req.params.id);
+    const r = await db(`UPDATE users SET ${sets.join(',')} WHERE id=$${i} RETURNING id, username, full_name`, vals);
+    if (!r.rows.length) return res.status(404).json({ error: 'Пользователь не найден' });
+    await audit(req.user.id, 'users', req.params.id, 'update', { full_name, email, role_id }, req.ip);
+    res.json(r.rows[0]);
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.delete('/api/admin/users/:id', auth, levelCheck(['ia']), async (req, res) => {
+  try {
+    const { confirm_password } = req.body || {};
+    if (!confirm_password) return res.status(400).json({ error: 'Требуется пароль подтверждения' });
+    if (confirm_password !== (process.env.DELETE_PASSWORD || '2233'))
+      return res.status(403).json({ error: 'Неверный пароль подтверждения' });
+    const r = await db('UPDATE users SET is_active=false WHERE id=$1 RETURNING id, username', [req.params.id]);
+    if (!r.rows.length) return res.status(404).json({ error: 'Пользователь не найден' });
+    await audit(req.user.id, 'users', req.params.id, 'delete', {}, req.ip);
+    res.json({ message: 'Пользователь деактивирован', user: r.rows[0] });
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
@@ -680,7 +631,7 @@ app.get('/api/admin/audit', auth, levelCheck(['ia', 'enterprise']), async (req, 
 app.get('/api/admin/schema-info', auth, levelCheck(['ia']), async (req, res) => {
   try {
     const r = await db(`SELECT table_name, column_name, data_type FROM information_schema.columns
-      WHERE table_schema='public' AND table_name IN ('employees','siz_items','siz_transactions','positions','position_siz_norms','services','departments')
+      WHERE table_schema='public' AND table_name IN ('employees','siz_items','siz_transactions','positions','position_siz_norms')
       ORDER BY table_name, ordinal_position`);
     const schema = {};
     r.rows.forEach(row => {
@@ -708,46 +659,27 @@ async function initDB() {
       console.log('DB schema applied');
     }
 
-    // Ensure new tables exist
+    // Migration: add spbipk table and update hierarchy
     await pool.query(`
-      CREATE TABLE IF NOT EXISTS services (
+      CREATE TABLE IF NOT EXISTS spbipk (
         id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
         name VARCHAR(255) NOT NULL,
         code VARCHAR(50),
-        res_unit_id UUID REFERENCES res_units(id),
+        enterprise_id UUID REFERENCES enterprises(id),
         is_active BOOLEAN DEFAULT true,
         extra JSONB DEFAULT '{}',
         created_at TIMESTAMPTZ DEFAULT NOW()
       );
-      CREATE TABLE IF NOT EXISTS departments (
-        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-        name VARCHAR(255) NOT NULL,
-        code VARCHAR(50),
-        service_id UUID REFERENCES services(id),
-        is_active BOOLEAN DEFAULT true,
-        extra JSONB DEFAULT '{}',
-        created_at TIMESTAMPTZ DEFAULT NOW()
-      );
-      -- Add columns to users if not exist
+      -- Add spbipk_id to res_units if not exists
       DO $$ BEGIN
-        ALTER TABLE users ADD COLUMN IF NOT EXISTS service_id UUID REFERENCES services(id);
-        ALTER TABLE users ADD COLUMN IF NOT EXISTS department_id UUID REFERENCES departments(id);
-        ALTER TABLE employees ADD COLUMN IF NOT EXISTS service_id UUID REFERENCES services(id);
-        ALTER TABLE employees ADD COLUMN IF NOT EXISTS department_id UUID REFERENCES departments(id);
-      EXCEPTION WHEN others THEN NULL;
-      END $$;
+        ALTER TABLE res_units ADD COLUMN spbipk_id UUID REFERENCES spbipk(id);
+      EXCEPTION WHEN duplicate_column THEN NULL; END $$;
+      -- Add res_unit_id to departments if not exists
+      DO $$ BEGIN
+        ALTER TABLE departments ADD COLUMN res_unit_id UUID REFERENCES res_units(id);
+      EXCEPTION WHEN duplicate_column THEN NULL; END $$;
     `);
-    console.log('Extended schema (services, departments) applied');
-
-    // Ensure roles include new levels
-    await pool.query(`
-      INSERT INTO roles (name, display_name, level, description, general_permissions) VALUES
-        ('admin_service', 'Администратор службы', 'service', 'Управление на уровне службы',
-         '{"can_view":true,"can_create":true,"can_edit":true,"can_delete":false}'),
-        ('admin_department', 'Администратор подразделения', 'department', 'Управление на уровне подразделения',
-         '{"can_view":true,"can_create":true,"can_edit":true,"can_delete":false}')
-      ON CONFLICT DO NOTHING;
-    `);
+    console.log('Migration: spbipk + department hierarchy applied');
 
     // Create default admin
     const roleR = await db("SELECT id FROM roles WHERE name='admin_ia'");
