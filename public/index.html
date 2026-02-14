@@ -4,107 +4,141 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>СИЗ — Учёт и движение</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.3.1/umd/react.production.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.3.1/umd/react-dom.production.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.26.2/babel.min.js"></script>
 <style>
-/* ============ RESET & BASE ============ */
 *{margin:0;padding:0;box-sizing:border-box}
-:root{--primary:#2563eb;--primary-dark:#1d4ed8;--primary-light:#eff6ff;--gray-50:#f9fafb;--gray-100:#f3f4f6;--gray-200:#e5e7eb;--gray-300:#d1d5db;--gray-500:#6b7280;--gray-700:#374151;--gray-900:#111827;--success:#22c55e;--warning:#f59e0b;--danger:#ef4444;--info:#3b82f6;--sidebar-bg:#1e293b;--sidebar-width:240px}
-body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:var(--gray-50);color:var(--gray-900);font-size:14px;line-height:1.5}
-a{color:var(--primary);text-decoration:none}
-/* ============ LAYOUT ============ */
+:root{
+  --bg-app:#0B0F19;--bg-content:#121826;--bg-menu:#05070F;
+  --text-primary:#F1F5F9;--text-secondary:#94A3B8;
+  --btn-menu:#1F2937;--btn-menu-hover:#374151;
+  --handler:#38BDF8;--handler-active:#0EA5E9;
+  --btn-content:#22C55E;--btn-content-hover:#4ADE80;
+  --border:#1E293B;
+  --success:#22C55E;--warning:#EAB308;--error:#F43F5E;--info:#38BDF8;
+  --sidebar-width:260px;--radius:10px;--radius-sm:6px;--radius-lg:14px;
+}
+body{font-family:'Plus Jakarta Sans',system-ui,sans-serif;background:var(--bg-app);color:var(--text-primary);font-size:14px;line-height:1.6}
+a{color:var(--handler);text-decoration:none}
+::-webkit-scrollbar{width:6px;height:6px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
+::-webkit-scrollbar-thumb:hover{background:var(--btn-menu-hover)}
 .app-layout{display:flex;min-height:100vh}
-.sidebar{width:var(--sidebar-width);background:var(--sidebar-bg);color:#fff;display:flex;flex-direction:column;position:fixed;top:0;left:0;bottom:0;overflow-y:auto;z-index:100}
-.sidebar-header{padding:20px;border-bottom:1px solid rgba(255,255,255,.1)}
-.sidebar-header h2{font-size:20px}
-.sidebar-user{padding:12px 20px;border-bottom:1px solid rgba(255,255,255,.1);font-size:13px}
-.sidebar-user .role{color:rgba(255,255,255,.5);font-size:11px;margin-top:2px}
-.sidebar nav{flex:1;padding:8px 0}
-.nav-section{color:rgba(255,255,255,.4);font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.5px;padding:12px 20px 4px}
-.nav-link{display:block;padding:8px 20px;color:rgba(255,255,255,.7);font-size:13px;cursor:pointer;transition:all .15s}
-.nav-link:hover{background:rgba(255,255,255,.08);color:#fff}
-.nav-link.active{background:rgba(255,255,255,.12);color:#fff;border-right:3px solid var(--primary)}
-.sidebar-footer{padding:16px 20px;border-top:1px solid rgba(255,255,255,.1)}
-.main-content{margin-left:var(--sidebar-width);flex:1;padding:24px;min-height:100vh}
-/* ============ COMPONENTS ============ */
-.page-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;flex-wrap:wrap;gap:8px}
-.page-header h1{font-size:22px;font-weight:700}
-.card{background:#fff;border-radius:10px;border:1px solid var(--gray-200);padding:16px;margin-bottom:12px}
-.card-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
-.card-header h3{font-size:15px;font-weight:600}
-.stats-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:12px}
-.stat-card{background:#fff;border-radius:10px;border:1px solid var(--gray-200);padding:16px}
-.stat-value{font-size:28px;font-weight:700;color:var(--gray-900)}
-.stat-label{font-size:12px;color:var(--gray-500);margin-top:2px}
-/* ============ TABLE ============ */
+.sidebar{width:var(--sidebar-width);background:var(--bg-menu);display:flex;flex-direction:column;position:fixed;top:0;left:0;bottom:0;overflow-y:auto;z-index:100;border-right:1px solid var(--border)}
+.sidebar-header{padding:24px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:12px}
+.sidebar-header .logo-icon{width:36px;height:36px;background:linear-gradient(135deg,var(--handler),var(--btn-content));border-radius:var(--radius);display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.sidebar-header .logo-text{font-size:17px;font-weight:700;color:var(--text-primary);letter-spacing:-0.3px}
+.sidebar-header .logo-sub{font-size:11px;color:var(--text-secondary);margin-top:1px}
+.sidebar-user{padding:16px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:12px}
+.sidebar-user .avatar{width:36px;height:36px;background:var(--btn-menu);border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.sidebar-user .avatar svg{width:18px;height:18px;color:var(--text-secondary)}
+.sidebar-user .uname{font-size:13px;font-weight:600;color:var(--text-primary)}
+.sidebar-user .role{color:var(--text-secondary);font-size:11px;margin-top:1px}
+.sidebar nav{flex:1;padding:12px 10px}
+.nav-section{color:var(--text-secondary);font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1.2px;padding:16px 12px 6px}
+.nav-link{display:flex;align-items:center;gap:10px;padding:9px 12px;color:var(--text-secondary);font-size:13px;font-weight:500;cursor:pointer;transition:all .2s;border-radius:var(--radius-sm);margin-bottom:2px}
+.nav-link svg{width:18px;height:18px;flex-shrink:0;opacity:.6;transition:opacity .2s}
+.nav-link:hover{background:var(--btn-menu);color:var(--text-primary)}
+.nav-link:hover svg{opacity:.9}
+.nav-link.active{background:var(--btn-menu);color:var(--handler)}
+.nav-link.active svg{opacity:1;color:var(--handler)}
+.sidebar-footer{padding:16px 20px;border-top:1px solid var(--border)}
+.main-content{margin-left:var(--sidebar-width);flex:1;padding:28px 32px;min-height:100vh}
+.page-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:24px;flex-wrap:wrap;gap:12px}
+.page-header h1{font-size:22px;font-weight:700;letter-spacing:-0.3px;color:var(--text-primary)}
+.card{background:var(--bg-content);border-radius:var(--radius-lg);border:1px solid var(--border);padding:20px;margin-bottom:16px;transition:border-color .2s}
+.card:hover{border-color:var(--btn-menu-hover)}
+.card-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px}
+.card-header h3{font-size:15px;font-weight:600;color:var(--text-primary)}
+.stats-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:14px}
+.stat-card{background:var(--bg-content);border-radius:var(--radius-lg);border:1px solid var(--border);padding:20px;position:relative;overflow:hidden;transition:all .25s}
+.stat-card:hover{border-color:var(--btn-menu-hover);transform:translateY(-1px)}
+.stat-card .stat-icon{width:40px;height:40px;border-radius:var(--radius);display:flex;align-items:center;justify-content:center;margin-bottom:12px}
+.stat-card .stat-icon svg{width:20px;height:20px}
+.stat-card .stat-icon.blue{background:rgba(56,189,248,.12);color:var(--handler)}
+.stat-card .stat-icon.green{background:rgba(34,197,94,.12);color:var(--success)}
+.stat-card .stat-icon.yellow{background:rgba(234,179,8,.12);color:var(--warning)}
+.stat-card .stat-icon.red{background:rgba(244,63,94,.12);color:var(--error)}
+.stat-value{font-size:30px;font-weight:700;color:var(--text-primary);font-family:'JetBrains Mono','Plus Jakarta Sans',monospace;letter-spacing:-1px}
+.stat-label{font-size:12px;color:var(--text-secondary);margin-top:4px;font-weight:500}
 .table-container{overflow-x:auto}
 table{width:100%;border-collapse:collapse}
-thead th{background:var(--gray-50);color:var(--gray-500);font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.3px;padding:10px 12px;text-align:left;border-bottom:2px solid var(--gray-200);white-space:nowrap}
-tbody td{padding:10px 12px;border-bottom:1px solid var(--gray-100);font-size:13px}
-tbody tr:hover{background:var(--gray-50)}
-/* ============ FORMS ============ */
-.form-group{margin-bottom:12px;flex:1}
-.form-group label{display:block;font-size:12px;font-weight:600;color:var(--gray-500);margin-bottom:4px}
-.form-control{width:100%;padding:8px 12px;border:1px solid var(--gray-300);border-radius:6px;font-size:13px;background:#fff;transition:border-color .15s}
-.form-control:focus{outline:none;border-color:var(--primary);box-shadow:0 0 0 3px rgba(37,99,235,.1)}
-.form-row{display:flex;gap:12px;flex-wrap:wrap}
+thead th{background:var(--bg-app);color:var(--text-secondary);font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.5px;padding:10px 14px;text-align:left;border-bottom:1px solid var(--border);white-space:nowrap}
+tbody td{padding:11px 14px;border-bottom:1px solid var(--border);font-size:13px;color:var(--text-primary)}
+tbody tr{transition:background .15s}
+tbody tr:hover{background:rgba(255,255,255,.02)}
+tbody tr:last-child td{border-bottom:none}
+.form-group{margin-bottom:14px;flex:1}
+.form-group label{display:block;font-size:11px;font-weight:600;color:var(--text-secondary);margin-bottom:5px;text-transform:uppercase;letter-spacing:.4px}
+.form-control{width:100%;padding:9px 14px;border:1px solid var(--border);border-radius:var(--radius-sm);font-size:13px;background:var(--bg-app);color:var(--text-primary);transition:all .2s;font-family:inherit}
+.form-control:focus{outline:none;border-color:var(--handler);box-shadow:0 0 0 3px rgba(56,189,248,.1)}
+.form-control::placeholder{color:var(--text-secondary);opacity:.6}
+select.form-control{cursor:pointer;appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%2394A3B8' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 10px center;padding-right:32px}
+.form-row{display:flex;gap:14px;flex-wrap:wrap}
 .form-row .form-group{min-width:150px}
-/* ============ BUTTONS ============ */
-.btn{display:inline-flex;align-items:center;gap:6px;padding:8px 16px;border-radius:6px;font-size:13px;font-weight:500;border:1px solid transparent;cursor:pointer;transition:all .15s;white-space:nowrap}
-.btn-primary{background:var(--primary);color:#fff;border-color:var(--primary)}
-.btn-primary:hover{background:var(--primary-dark)}
-.btn-outline{background:transparent;border-color:var(--gray-300);color:var(--gray-700)}
-.btn-outline:hover{background:var(--gray-50);border-color:var(--gray-500)}
-.btn-sm{padding:4px 10px;font-size:12px}
-.btn-danger{background:var(--danger);color:#fff;border-color:var(--danger)}
-/* ============ BADGES ============ */
-.badge{display:inline-block;padding:2px 8px;border-radius:10px;font-size:11px;font-weight:600;background:var(--gray-100);color:var(--gray-700)}
-.badge-success{background:#dcfce7;color:#166534}
-.badge-warning{background:#fef3c7;color:#92400e}
-.badge-danger{background:#fee2e2;color:#991b1b}
-.badge-info{background:#dbeafe;color:#1e40af}
-/* ============ TABS ============ */
-.tabs{display:flex;border-bottom:2px solid var(--gray-200);margin-bottom:16px;gap:0;overflow-x:auto}
-.tab{padding:10px 16px;font-size:13px;font-weight:500;color:var(--gray-500);cursor:pointer;border:none;background:none;border-bottom:2px solid transparent;margin-bottom:-2px;white-space:nowrap}
-.tab.active{color:var(--primary);border-bottom-color:var(--primary)}
-.tab:hover{color:var(--gray-900)}
-/* ============ MODAL ============ */
-.modal-overlay{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.5);display:flex;align-items:center;justify-content:center;z-index:1000;padding:20px}
-.modal{background:#fff;border-radius:12px;width:100%;max-width:540px;max-height:90vh;display:flex;flex-direction:column}
-.modal-header{display:flex;justify-content:space-between;align-items:center;padding:16px 20px;border-bottom:1px solid var(--gray-200)}
-.modal-header h2{font-size:16px;font-weight:600}
-.modal-body{padding:20px;overflow-y:auto;flex:1}
-.modal-footer{padding:12px 20px;border-top:1px solid var(--gray-200);display:flex;justify-content:flex-end;gap:8px}
-/* ============ MISC ============ */
-.text-muted{color:var(--gray-500)}
-.empty-state{text-align:center;padding:40px 20px;color:var(--gray-500)}
-.empty-state .icon{font-size:40px;margin-bottom:8px}
-.loading{display:flex;justify-content:center;align-items:center;min-height:200px;color:var(--gray-500);font-size:15px}
-.login-page{min-height:100vh;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,#1e293b 0%,#334155 100%)}
-.login-card{background:#fff;padding:40px;border-radius:16px;width:100%;max-width:380px;box-shadow:0 25px 50px rgba(0,0,0,.25)}
-.login-card h1{text-align:center;margin-bottom:24px;font-size:24px}
-.login-error{background:#fee2e2;color:#991b1b;padding:10px;border-radius:6px;margin-bottom:12px;font-size:13px}
-.flex{display:flex}.gap-2{gap:8px}.gap-3{gap:12px}
-.tree-branch{margin-left:32px;border-left:2px solid var(--gray-200);padding-left:16px;margin-top:8px}
-.tree-item{display:flex;align-items:center;justify-content:space-between;padding:6px 0;cursor:pointer}
-.tree-item:hover{background:var(--gray-50);border-radius:6px}
-details summary{cursor:pointer;color:var(--primary);font-size:13px}
-pre{font-size:11px;max-width:400px;overflow:auto;background:var(--gray-50);padding:8px;border-radius:4px;margin-top:4px}
-/* ============ РОССЕТИ LOADER ============ */
-.rn-loader-overlay{position:fixed;inset:0;background:#070b14;display:flex;align-items:center;justify-content:center;z-index:10000;transition:opacity .5s ease,visibility .5s ease}
+.btn{display:inline-flex;align-items:center;gap:7px;padding:9px 18px;border-radius:var(--radius-sm);font-size:13px;font-weight:600;border:1px solid transparent;cursor:pointer;transition:all .2s;white-space:nowrap;font-family:inherit}
+.btn svg{width:16px;height:16px}
+.btn-primary{background:var(--btn-content);color:#0B0F19;border-color:var(--btn-content)}
+.btn-primary:hover{background:var(--btn-content-hover);border-color:var(--btn-content-hover)}
+.btn-outline{background:transparent;border-color:var(--border);color:var(--text-secondary)}
+.btn-outline:hover{background:var(--btn-menu);border-color:var(--btn-menu-hover);color:var(--text-primary)}
+.btn-sm{padding:5px 12px;font-size:12px}
+.btn-danger{background:var(--error);color:#fff;border-color:var(--error)}
+.badge{display:inline-flex;align-items:center;gap:4px;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:600;letter-spacing:.2px}
+.badge-default{background:var(--btn-menu);color:var(--text-secondary)}
+.badge-success{background:rgba(34,197,94,.12);color:var(--success)}
+.badge-warning{background:rgba(234,179,8,.12);color:var(--warning)}
+.badge-danger{background:rgba(244,63,94,.12);color:var(--error)}
+.badge-info{background:rgba(56,189,248,.12);color:var(--handler)}
+.tabs{display:flex;border-bottom:1px solid var(--border);margin-bottom:20px;gap:0;overflow-x:auto}
+.tab{padding:11px 18px;font-size:13px;font-weight:500;color:var(--text-secondary);cursor:pointer;border:none;background:none;border-bottom:2px solid transparent;margin-bottom:-1px;white-space:nowrap;font-family:inherit;transition:all .2s}
+.tab.active{color:var(--handler);border-bottom-color:var(--handler)}
+.tab:hover{color:var(--text-primary)}
+.modal-overlay{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(5,7,15,.8);backdrop-filter:blur(4px);display:flex;align-items:center;justify-content:center;z-index:1000;padding:20px}
+.modal{background:var(--bg-content);border-radius:var(--radius-lg);border:1px solid var(--border);width:100%;max-width:560px;max-height:90vh;display:flex;flex-direction:column;box-shadow:0 25px 60px rgba(0,0,0,.5)}
+.modal-header{display:flex;justify-content:space-between;align-items:center;padding:18px 24px;border-bottom:1px solid var(--border)}
+.modal-header h2{font-size:16px;font-weight:700;color:var(--text-primary)}
+.modal-body{padding:24px;overflow-y:auto;flex:1}
+.modal-footer{padding:14px 24px;border-top:1px solid var(--border);display:flex;justify-content:flex-end;gap:10px}
+.text-muted{color:var(--text-secondary)}
+.empty-state{text-align:center;padding:48px 20px;color:var(--text-secondary)}
+.empty-state .icon{margin-bottom:12px;opacity:.4}
+.empty-state .icon svg{width:48px;height:48px}
+.login-page{min-height:100vh;display:flex;align-items:center;justify-content:center;background:var(--bg-app);position:relative;overflow:hidden}
+.login-page::before{content:'';position:absolute;width:600px;height:600px;background:radial-gradient(circle,rgba(56,189,248,.08) 0%,transparent 70%);top:-200px;right:-100px}
+.login-page::after{content:'';position:absolute;width:500px;height:500px;background:radial-gradient(circle,rgba(34,197,94,.06) 0%,transparent 70%);bottom:-150px;left:-50px}
+.login-card{background:var(--bg-content);padding:44px;border-radius:var(--radius-lg);width:100%;max-width:400px;border:1px solid var(--border);position:relative;z-index:1}
+.login-card h1{text-align:center;margin-bottom:8px;font-size:24px;font-weight:700;letter-spacing:-0.5px}
+.login-card .login-sub{text-align:center;color:var(--text-secondary);font-size:13px;margin-bottom:28px}
+.login-error{background:rgba(244,63,94,.1);color:var(--error);padding:10px 14px;border-radius:var(--radius-sm);margin-bottom:14px;font-size:13px;border:1px solid rgba(244,63,94,.2)}
+.flex{display:flex}.gap-2{gap:8px}.gap-3{gap:14px}
+.tree-branch{margin-left:32px;border-left:1px solid var(--border);padding-left:16px;margin-top:8px}
+.tree-item{display:flex;align-items:center;justify-content:space-between;padding:8px 10px;cursor:pointer;border-radius:var(--radius-sm);transition:background .15s}
+.tree-item:hover{background:var(--btn-menu)}
+.tree-item .tree-icon{width:32px;height:32px;border-radius:var(--radius-sm);display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.tree-item .tree-icon svg{width:16px;height:16px}
+.tree-item .tree-icon.org{background:rgba(56,189,248,.12);color:var(--handler)}
+.tree-item .tree-icon.ent{background:rgba(34,197,94,.12);color:var(--success)}
+.tree-item .tree-icon.res{background:rgba(234,179,8,.12);color:var(--warning)}
+details summary{cursor:pointer;color:var(--handler);font-size:13px}
+pre{font-size:11px;max-width:400px;overflow:auto;background:var(--bg-app);padding:10px;border-radius:var(--radius-sm);margin-top:6px;color:var(--text-secondary);border:1px solid var(--border);font-family:'JetBrains Mono',monospace}
+.rn-loader-overlay{position:fixed;inset:0;background:var(--bg-app);display:flex;align-items:center;justify-content:center;z-index:10000;transition:opacity .5s ease,visibility .5s ease}
 .rn-loader-overlay.hidden{opacity:0;visibility:hidden;pointer-events:none}
 .rn-loader-inline{display:flex;align-items:center;justify-content:center;min-height:200px}
 .rn-loader-svg{width:120px;height:120px}
 .rn-loader-overlay .rn-loader-svg{width:180px;height:180px}
-.rn-seg{fill:transparent}
-.rn-seg.lit{fill:#1d4ed8;filter:url(#rnGlow)}
-.rn-gap{stroke:#070b14;stroke-width:5;stroke-linecap:round}
-.rn-loader-inline .rn-gap{stroke:var(--gray-50)}
+.clickable-row{cursor:pointer}
+.clickable-row:hover td{color:var(--text-primary)}
+.close-btn{width:32px;height:32px;display:flex;align-items:center;justify-content:center;border:1px solid var(--border);background:transparent;border-radius:var(--radius-sm);cursor:pointer;color:var(--text-secondary);transition:all .15s}
+.close-btn:hover{background:var(--btn-menu);color:var(--text-primary);border-color:var(--btn-menu-hover)}
+.close-btn svg{width:16px;height:16px}
 </style>
 </head>
 <body>
-<!-- INITIAL LOADER (hides when React mounts) -->
 <div class="rn-loader-overlay" id="initialLoader">
   <svg class="rn-loader-svg" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
     <defs>
@@ -124,20 +158,20 @@ pre{font-size:11px;max-width:400px;overflow:auto;background:var(--gray-50);paddi
       <path class="rn-seg-init" d="M115,62 L-78,120 L-58,-38 Z"/>
     </g>
     <g clip-path="url(#ccInit)">
-      <line x1="115" y1="62" x2="-58" y2="-38" stroke="#070b14" stroke-width="5"/>
-      <line x1="115" y1="62" x2="89" y2="-138" stroke="#070b14" stroke-width="5"/>
-      <line x1="115" y1="62" x2="235" y2="-52" stroke="#070b14" stroke-width="5"/>
-      <line x1="115" y1="62" x2="304" y2="118" stroke="#070b14" stroke-width="5"/>
-      <line x1="115" y1="62" x2="167" y2="262" stroke="#070b14" stroke-width="5"/>
-      <line x1="115" y1="62" x2="15" y2="242" stroke="#070b14" stroke-width="5"/>
-      <line x1="115" y1="62" x2="-78" y2="120" stroke="#070b14" stroke-width="5"/>
+      <line x1="115" y1="62" x2="-58" y2="-38" stroke="#0B0F19" stroke-width="5"/>
+      <line x1="115" y1="62" x2="89" y2="-138" stroke="#0B0F19" stroke-width="5"/>
+      <line x1="115" y1="62" x2="235" y2="-52" stroke="#0B0F19" stroke-width="5"/>
+      <line x1="115" y1="62" x2="304" y2="118" stroke="#0B0F19" stroke-width="5"/>
+      <line x1="115" y1="62" x2="167" y2="262" stroke="#0B0F19" stroke-width="5"/>
+      <line x1="115" y1="62" x2="15" y2="242" stroke="#0B0F19" stroke-width="5"/>
+      <line x1="115" y1="62" x2="-78" y2="120" stroke="#0B0F19" stroke-width="5"/>
     </g>
   </svg>
 </div>
 <script>
 (function(){
   var segs=document.querySelectorAll('.rn-seg-init'),step=0,phase='appear';
-  function style(s,lit){s.style.fill=lit?'#1d4ed8':'transparent';s.style.filter=lit?'url(#rnGlowInit)':'none'}
+  function style(s,lit){s.style.fill=lit?'#38BDF8':'transparent';s.style.filter=lit?'url(#rnGlowInit)':'none'}
   function tick(){
     if(phase==='appear'){style(segs[step],true);step++;if(step>=segs.length){phase='disappear';step=0;setTimeout(tick,400)}else setTimeout(tick,250)}
     else{style(segs[step],false);step++;if(step>=segs.length){phase='appear';step=0;setTimeout(tick,400)}else setTimeout(tick,250)}
@@ -149,662 +183,350 @@ pre{font-size:11px;max-width:400px;overflow:auto;background:var(--gray-50);paddi
 <script type="text/babel">
 const { useState, useEffect, useCallback, createContext, useContext, useRef } = React;
 
-// ============ SVG LOADER COMPONENT ============
-const loaderPaths = [
-  "M115,62 L-58,-38 L89,-138 Z","M115,62 L89,-138 L235,-52 Z","M115,62 L235,-52 L304,118 Z",
-  "M115,62 L304,118 L167,262 Z","M115,62 L167,262 L15,242 Z","M115,62 L15,242 L-78,120 Z","M115,62 L-78,120 L-58,-38 Z"
-];
-const loaderLines = [[-58,-38],[89,-138],[235,-52],[304,118],[167,262],[15,242],[-78,120]];
-let rnGlowId = 0;
+const I = {
+  shield: (p) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/></svg>,
+  dashboard: (p) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}><rect width="7" height="9" x="3" y="3" rx="1"/><rect width="7" height="5" x="14" y="3" rx="1"/><rect width="7" height="9" x="14" y="12" rx="1"/><rect width="7" height="5" x="3" y="16" rx="1"/></svg>,
+  users: (p) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>,
+  user: (p) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>,
+  clipboard: (p) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}><rect width="8" height="4" x="8" y="2" rx="1" ry="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/></svg>,
+  folder: (p) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}><path d="M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z"/></svg>,
+  briefcase: (p) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}><path d="M16 20V4a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/><rect width="20" height="14" x="2" y="6" rx="2"/></svg>,
+  building: (p) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}><rect width="16" height="20" x="4" y="2" rx="2" ry="2"/><path d="M9 22v-4h6v4"/><path d="M8 6h.01"/><path d="M16 6h.01"/><path d="M12 6h.01"/><path d="M12 10h.01"/><path d="M12 14h.01"/><path d="M16 10h.01"/><path d="M16 14h.01"/><path d="M8 10h.01"/><path d="M8 14h.01"/></svg>,
+  building2: (p) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}><path d="M6 22V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v18Z"/><path d="M6 12H4a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h2"/><path d="M18 9h2a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2h-2"/><path d="M10 6h4"/><path d="M10 10h4"/><path d="M10 14h4"/><path d="M10 18h4"/></svg>,
+  scroll: (p) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}><path d="M15 12h-5"/><path d="M15 8h-5"/><path d="M19 17V5a2 2 0 0 0-2-2H4"/><path d="M8 21h12a2 2 0 0 0 2-2v-1a1 1 0 0 0-1-1H11a1 1 0 0 0-1 1v1a2 2 0 1 1-4 0V5a2 2 0 1 0-4 0v2"/></svg>,
+  zap: (p) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}><path d="M4 14a1 1 0 0 1-.78-1.63l9.9-10.2a.5.5 0 0 1 .86.46l-1.92 6.02A1 1 0 0 0 13 10h7a1 1 0 0 1 .78 1.63l-9.9 10.2a.5.5 0 0 1-.86-.46l1.92-6.02A1 1 0 0 0 11 14z"/></svg>,
+  plus: (p) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}><path d="M5 12h14"/><path d="M12 5v14"/></svg>,
+  edit: (p) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}><path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"/></svg>,
+  x: (p) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>,
+  arrowLeft: (p) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}><path d="m12 19-7-7 7-7"/><path d="M19 12H5"/></svg>,
+  logOut: (p) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" x2="9" y1="12" y2="12"/></svg>,
+  package: (p) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}><path d="M16.5 9.4 7.55 4.24"/><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.29 7 12 12 20.71 7"/><line x1="12" x2="12" y1="22" y2="12"/></svg>,
+  alertTriangle: (p) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg>,
+  check: (p) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}><path d="M20 6 9 17l-5-5"/></svg>,
+  arrowUpDown: (p) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}><path d="m21 16-4 4-4-4"/><path d="M17 20V4"/><path d="m3 8 4-4 4 4"/><path d="M7 4v16"/></svg>,
+  fileText: (p) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="M10 9H8"/><path d="M16 13H8"/><path d="M16 17H8"/></svg>,
+  activity: (p) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}><path d="M22 12h-2.48a2 2 0 0 0-1.93 1.46l-2.35 8.36a.25.25 0 0 1-.48 0L9.24 2.18a.25.25 0 0 0-.48 0l-2.35 8.36A2 2 0 0 1 4.49 12H2"/></svg>,
+};
 
-const RnLoader = ({ overlay }) => {
-  const svgRef = useRef(null);
-  const ids = useRef({ glow: `rnG${++rnGlowId}`, clip: `rnC${rnGlowId}` });
-  const gapColor = overlay ? '#070b14' : 'var(--gray-50)';
+const loaderPaths=["M115,62 L-58,-38 L89,-138 Z","M115,62 L89,-138 L235,-52 Z","M115,62 L235,-52 L304,118 Z","M115,62 L304,118 L167,262 Z","M115,62 L167,262 L15,242 Z","M115,62 L15,242 L-78,120 Z","M115,62 L-78,120 L-58,-38 Z"];
+const loaderLines=[[-58,-38],[89,-138],[235,-52],[304,118],[167,262],[15,242],[-78,120]];
+let rnGlowId=0;
 
-  useEffect(() => {
-    if (!svgRef.current) return;
-    const segs = svgRef.current.querySelectorAll('.rn-s');
-    let step = 0, phase = 'appear', alive = true;
-    function tick() {
-      if (!alive) return;
-      if (phase === 'appear') {
-        segs[step].setAttribute('fill', '#1d4ed8');
-        segs[step].setAttribute('filter', `url(#${ids.current.glow})`);
-        step++;
-        if (step >= 7) { phase = 'disappear'; step = 0; setTimeout(tick, 400); }
-        else setTimeout(tick, 250);
-      } else {
-        segs[step].setAttribute('fill', 'transparent');
-        segs[step].setAttribute('filter', 'none');
-        step++;
-        if (step >= 7) { phase = 'appear'; step = 0; setTimeout(tick, 400); }
-        else setTimeout(tick, 250);
-      }
-    }
-    setTimeout(tick, 200);
-    return () => { alive = false; };
-  }, []);
-
-  return <div className={overlay ? "rn-loader-overlay" : "rn-loader-inline"}>
+const RnLoader=({overlay})=>{
+  const svgRef=useRef(null);const ids=useRef({glow:`rnG${++rnGlowId}`,clip:`rnC${rnGlowId}`});
+  useEffect(()=>{if(!svgRef.current)return;const segs=svgRef.current.querySelectorAll('.rn-s');let step=0,phase='appear',alive=true;
+    function tick(){if(!alive)return;if(phase==='appear'){segs[step].setAttribute('fill','#38BDF8');segs[step].setAttribute('filter',`url(#${ids.current.glow})`);step++;if(step>=7){phase='disappear';step=0;setTimeout(tick,400)}else setTimeout(tick,250)}else{segs[step].setAttribute('fill','transparent');segs[step].setAttribute('filter','none');step++;if(step>=7){phase='appear';step=0;setTimeout(tick,400)}else setTimeout(tick,250)}}
+    setTimeout(tick,200);return()=>{alive=false};},[]);
+  return <div className={overlay?"rn-loader-overlay":"rn-loader-inline"}>
     <svg ref={svgRef} className="rn-loader-svg" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
-      <defs>
-        <filter id={ids.current.glow} x="-50%" y="-50%" width="200%" height="200%">
-          <feGaussianBlur stdDeviation="3" result="b1"/><feGaussianBlur stdDeviation="7" result="b2"/>
-          <feMerge><feMergeNode in="b2"/><feMergeNode in="b1"/><feMergeNode in="SourceGraphic"/></feMerge>
-        </filter>
-        <clipPath id={ids.current.clip}><circle cx="100" cy="100" r="88"/></clipPath>
-      </defs>
-      <g clipPath={`url(#${ids.current.clip})`}>
-        {loaderPaths.map((d,i) => <path key={i} className="rn-s" d={d} fill="transparent" filter="none" />)}
-      </g>
-      <g clipPath={`url(#${ids.current.clip})`}>
-        {loaderLines.map((l,i) => <line key={i} x1="115" y1="62" x2={l[0]} y2={l[1]} stroke={gapColor} strokeWidth="5" />)}
-      </g>
-    </svg>
-  </div>;
+      <defs><filter id={ids.current.glow} x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="3" result="b1"/><feGaussianBlur stdDeviation="7" result="b2"/><feMerge><feMergeNode in="b2"/><feMergeNode in="b1"/><feMergeNode in="SourceGraphic"/></feMerge></filter><clipPath id={ids.current.clip}><circle cx="100" cy="100" r="88"/></clipPath></defs>
+      <g clipPath={`url(#${ids.current.clip})`}>{loaderPaths.map((d,i)=><path key={i} className="rn-s" d={d} fill="transparent" filter="none"/>)}</g>
+      <g clipPath={`url(#${ids.current.clip})`}>{loaderLines.map((l,i)=><line key={i} x1="115" y1="62" x2={l[0]} y2={l[1]} stroke="var(--bg-app)" strokeWidth="5"/>)}</g>
+    </svg></div>;
 };
 
-// ============ API ============
-const API = {
-  token: localStorage.getItem('siz_token'),
-  async req(method, url, data) {
-    const opts = {
-      method, headers: { 'Content-Type': 'application/json' },
-    };
-    if (this.token) opts.headers['Authorization'] = `Bearer ${this.token}`;
-    if (data) opts.body = JSON.stringify(data);
-    const res = await fetch(`/api${url}`, opts);
-    if (res.status === 401) { this.token = null; localStorage.removeItem('siz_token'); localStorage.removeItem('siz_user'); window.location.hash = '#/login'; throw new Error('Unauthorized'); }
-    const json = await res.json();
-    if (!res.ok) throw { response: { data: json } };
-    return json;
-  },
-  get(u) { return this.req('GET', u); },
-  post(u, d) { return this.req('POST', u, d); },
-  put(u, d) { return this.req('PUT', u, d); },
-  del(u) { return this.req('DELETE', u); },
-  setToken(t) { this.token = t; localStorage.setItem('siz_token', t); },
-  clearToken() { this.token = null; localStorage.removeItem('siz_token'); localStorage.removeItem('siz_user'); }
-};
+const API={token:localStorage.getItem('siz_token'),
+  async req(method,url,data){const opts={method,headers:{'Content-Type':'application/json'}};if(this.token)opts.headers['Authorization']=`Bearer ${this.token}`;if(data)opts.body=JSON.stringify(data);const res=await fetch(`/api${url}`,opts);if(res.status===401){this.token=null;localStorage.removeItem('siz_token');localStorage.removeItem('siz_user');window.location.hash='#/login';throw new Error('Unauthorized')}const json=await res.json();if(!res.ok)throw{response:{data:json}};return json},
+  get(u){return this.req('GET',u)},post(u,d){return this.req('POST',u,d)},put(u,d){return this.req('PUT',u,d)},del(u){return this.req('DELETE',u)},
+  setToken(t){this.token=t;localStorage.setItem('siz_token',t)},clearToken(){this.token=null;localStorage.removeItem('siz_token');localStorage.removeItem('siz_user')}};
 
-// ============ AUTH CONTEXT ============
-const AuthCtx = createContext(null);
-const useAuth = () => useContext(AuthCtx);
+const AuthCtx=createContext(null);const useAuth=()=>useContext(AuthCtx);
+const AuthProvider=({children})=>{const[user,setUser]=useState(()=>{try{return JSON.parse(localStorage.getItem('siz_user'))}catch{return null}});
+  const login=async(username,password)=>{const data=await API.post('/auth/login',{username,password});API.setToken(data.token);localStorage.setItem('siz_user',JSON.stringify(data.user));setUser(data.user)};
+  const logout=()=>{API.clearToken();setUser(null)};const hasPerm=(p)=>user?.general_permissions?.[p]===true;const isLevel=(levels)=>levels.includes(user?.role_level);
+  return <AuthCtx.Provider value={{user,login,logout,hasPerm,isLevel}}>{children}</AuthCtx.Provider>};
 
-const AuthProvider = ({ children }) => {
-  const [user, setUser] = useState(() => {
-    try { return JSON.parse(localStorage.getItem('siz_user')); } catch { return null; }
-  });
-  const login = async (username, password) => {
-    const data = await API.post('/auth/login', { username, password });
-    API.setToken(data.token);
-    localStorage.setItem('siz_user', JSON.stringify(data.user));
-    setUser(data.user);
-  };
-  const logout = () => { API.clearToken(); setUser(null); };
-  const hasPerm = (p) => user?.general_permissions?.[p] === true;
-  const isLevel = (levels) => levels.includes(user?.role_level);
-  return <AuthCtx.Provider value={{ user, login, logout, hasPerm, isLevel }}>{children}</AuthCtx.Provider>;
-};
+const useRoute=()=>{const[hash,setHash]=useState(window.location.hash||'#/');useEffect(()=>{const h=()=>setHash(window.location.hash||'#/');window.addEventListener('hashchange',h);return()=>window.removeEventListener('hashchange',h)},[]);return{path:hash.replace('#','')||'/',navigate:(to)=>{window.location.hash=to}}};
 
-// ============ ROUTER (hash-based) ============
-const useRoute = () => {
-  const [hash, setHash] = useState(window.location.hash || '#/');
-  useEffect(() => {
-    const handler = () => setHash(window.location.hash || '#/');
-    window.addEventListener('hashchange', handler);
-    return () => window.removeEventListener('hashchange', handler);
-  }, []);
-  const path = hash.replace('#', '') || '/';
-  const navigate = (to) => { window.location.hash = to; };
-  return { path, navigate };
-};
+const Modal=({isOpen,onClose,title,footer,children})=>{if(!isOpen)return null;return <div className="modal-overlay" onClick={onClose}><div className="modal" onClick={e=>e.stopPropagation()}><div className="modal-header"><h2>{title}</h2><button className="close-btn" onClick={onClose}><I.x/></button></div><div className="modal-body">{children}</div>{footer&&<div className="modal-footer">{footer}</div>}</div></div>};
 
-// ============ MODAL ============
-const Modal = ({ isOpen, onClose, title, footer, children }) => {
-  if (!isOpen) return null;
-  return <div className="modal-overlay" onClick={onClose}>
-    <div className="modal" onClick={e => e.stopPropagation()}>
-      <div className="modal-header"><h2>{title}</h2><button className="btn btn-outline btn-sm" onClick={onClose}>✕</button></div>
-      <div className="modal-body">{children}</div>
-      {footer && <div className="modal-footer">{footer}</div>}
-    </div>
-  </div>;
-};
+const fio=e=>[e?.last_name,e?.first_name,e?.middle_name].filter(Boolean).join(' ');
+const fmtDate=d=>d?new Date(d).toLocaleDateString('ru-RU'):'—';
+const fmtDateTime=d=>d?new Date(d).toLocaleString('ru-RU'):'—';
+const txLabel=t=>({issue:'Выдача',return:'Возврат',write_off:'Списание',exchange:'Обмен'}[t]||t);
+const txBadge=t=>({issue:'badge badge-success',return:'badge badge-info',write_off:'badge badge-danger',exchange:'badge badge-warning'}[t]||'badge badge-default');
+const isExpired=d=>d&&new Date(d)<new Date();
 
-// ============ HELPERS ============
-const fio = e => [e?.last_name, e?.first_name, e?.middle_name].filter(Boolean).join(' ');
-const fmtDate = d => d ? new Date(d).toLocaleDateString('ru-RU') : '—';
-const fmtDateTime = d => d ? new Date(d).toLocaleString('ru-RU') : '—';
-const txLabel = t => ({ issue:'Выдача', return:'Возврат', write_off:'Списание', exchange:'Обмен' }[t] || t);
-const txBadge = t => ({ issue:'badge badge-success', return:'badge badge-info', write_off:'badge badge-danger', exchange:'badge badge-warning' }[t] || 'badge');
-const isExpired = d => d && new Date(d) < new Date();
+const LoginPage=()=>{const{login}=useAuth();const[form,setForm]=useState({username:'',password:''});const[error,setError]=useState('');const[loading,setLoading]=useState(false);
+  const handleSubmit=async()=>{setLoading(true);setError('');try{await login(form.username,form.password);window.location.hash='#/'}catch(e){setError(e?.response?.data?.error||'Ошибка входа')}setLoading(false)};
+  return <div className="login-page">{loading&&<RnLoader overlay/>}<div className="login-card">
+    <div style={{textAlign:'center',marginBottom:16}}><div style={{width:56,height:56,background:'linear-gradient(135deg,var(--handler),var(--btn-content))',borderRadius:14,display:'inline-flex',alignItems:'center',justifyContent:'center'}}><I.shield style={{width:28,height:28,color:'#0B0F19'}}/></div></div>
+    <h1>Учёт СИЗ</h1><div className="login-sub">Система учёта средств индивидуальной защиты</div>
+    {error&&<div className="login-error">{error}</div>}
+    <div className="form-group"><label>Логин</label><input className="form-control" placeholder="Введите логин" value={form.username} onChange={e=>setForm({...form,username:e.target.value})} onKeyDown={e=>e.key==='Enter'&&handleSubmit()}/></div>
+    <div className="form-group"><label>Пароль</label><input className="form-control" type="password" placeholder="Введите пароль" value={form.password} onChange={e=>setForm({...form,password:e.target.value})} onKeyDown={e=>e.key==='Enter'&&handleSubmit()}/></div>
+    <button className="btn btn-primary" style={{width:'100%',marginTop:8,justifyContent:'center',padding:'11px 18px'}} onClick={handleSubmit} disabled={loading}>{loading?'Вход...':'Войти в систему'}</button>
+  </div></div>};
 
-// ============ LOGIN PAGE ============
-const LoginPage = () => {
-  const { login } = useAuth();
-  const [form, setForm] = useState({ username: '', password: '' });
-  const [error, setError] = useState('');
-  const [loading, setLoading] = useState(false);
-  const handleSubmit = async () => {
-    setLoading(true); setError('');
-    try { await login(form.username, form.password); window.location.hash = '#/'; }
-    catch (e) { setError(e?.response?.data?.error || 'Ошибка входа'); }
-    setLoading(false);
-  };
-  return <div className="login-page">
-    {loading && <RnLoader overlay />}
-    <div className="login-card">
-      <div style={{textAlign:'center',fontSize:48,marginBottom:8}}>🦺</div>
-      <h1>Учёт СИЗ</h1>
-      {error && <div className="login-error">{error}</div>}
-      <div className="form-group"><label>Логин</label>
-        <input className="form-control" value={form.username} onChange={e=>setForm({...form,username:e.target.value})} onKeyDown={e=>e.key==='Enter'&&handleSubmit()} /></div>
-      <div className="form-group"><label>Пароль</label>
-        <input className="form-control" type="password" value={form.password} onChange={e=>setForm({...form,password:e.target.value})} onKeyDown={e=>e.key==='Enter'&&handleSubmit()} /></div>
-      <button className="btn btn-primary" style={{width:'100%',marginTop:8}} onClick={handleSubmit} disabled={loading}>{loading ? 'Вход...' : 'Войти'}</button>
-    </div>
-  </div>;
-};
-
-// ============ DASHBOARD ============
-const Dashboard = () => {
-  const [stats, setStats] = useState({ employees:[], transactions:[], summary:[] });
-  const [loading, setLoading] = useState(true);
-  useEffect(() => {
-    Promise.all([API.get('/employees'), API.get('/transactions?limit=10'), API.get('/transactions/reports/summary')])
-      .then(([e,t,s]) => setStats({ employees:e, transactions:t, summary:s }))
-      .catch(console.error).finally(() => setLoading(false));
-  }, []);
-  if (loading) return <RnLoader />;
-  return <div>
-    <div className="page-header"><h1>Панель управления</h1></div>
-    <div className="stats-grid" style={{marginBottom:16}}>
-      <div className="stat-card"><div className="stat-value">{stats.employees.length}</div><div className="stat-label">Сотрудников</div></div>
-      <div className="stat-card"><div className="stat-value">{stats.transactions.length}</div><div className="stat-label">Последних операций</div></div>
-      <div className="stat-card"><div className="stat-value">{stats.summary.length}</div><div className="stat-label">РЭС</div></div>
-      <div className="stat-card"><div className="stat-value" style={{color:'var(--danger)'}}>{stats.summary.reduce((a,s)=>a+parseInt(s.expired_count||0),0)}</div><div className="stat-label">Просроченных СИЗ</div></div>
+const Dashboard=()=>{const[stats,setStats]=useState({employees:[],transactions:[],summary:[]});const[loading,setLoading]=useState(true);
+  useEffect(()=>{Promise.all([API.get('/employees'),API.get('/transactions?limit=10'),API.get('/transactions/reports/summary')]).then(([e,t,s])=>setStats({employees:e,transactions:t,summary:s})).catch(console.error).finally(()=>setLoading(false))},[]);
+  if(loading)return <RnLoader/>;
+  return <div><div className="page-header"><h1>Панель управления</h1></div>
+    <div className="stats-grid" style={{marginBottom:20}}>
+      <div className="stat-card"><div className="stat-icon blue"><I.users/></div><div className="stat-value">{stats.employees.length}</div><div className="stat-label">Сотрудников</div></div>
+      <div className="stat-card"><div className="stat-icon green"><I.arrowUpDown/></div><div className="stat-value">{stats.transactions.length}</div><div className="stat-label">Последних операций</div></div>
+      <div className="stat-card"><div className="stat-icon yellow"><I.zap/></div><div className="stat-value">{stats.summary.length}</div><div className="stat-label">РЭС</div></div>
+      <div className="stat-card"><div className="stat-icon red"><I.alertTriangle/></div><div className="stat-value">{stats.summary.reduce((a,s)=>a+parseInt(s.expired_count||0),0)}</div><div className="stat-label">Просроченных СИЗ</div></div>
     </div>
     <div className="card"><div className="card-header"><h3>Последние операции</h3></div>
       <div className="table-container"><table><thead><tr><th>Дата</th><th>Тип</th><th>Сотрудник</th><th>СИЗ</th><th>Кол-во</th></tr></thead>
-        <tbody>{stats.transactions.length===0 ? <tr><td colSpan="5"><div className="empty-state">Нет операций</div></td></tr> :
-          stats.transactions.map(t => <tr key={t.id}>
-            <td>{fmtDate(t.transaction_date)}</td><td><span className={txBadge(t.transaction_type)}>{txLabel(t.transaction_type)}</span></td>
-            <td style={{fontWeight:500}}>{fio(t)}</td><td>{t.item_name}</td><td>{t.quantity} {t.unit}</td>
-          </tr>)}</tbody></table></div>
-    </div>
-  </div>;
-};
+        <tbody>{stats.transactions.length===0?<tr><td colSpan="5"><div className="empty-state"><div className="icon"><I.clipboard/></div>Нет операций</div></td></tr>:
+          stats.transactions.map(t=><tr key={t.id}><td className="text-muted">{fmtDate(t.transaction_date)}</td><td><span className={txBadge(t.transaction_type)}>{txLabel(t.transaction_type)}</span></td><td style={{fontWeight:600}}>{fio(t)}</td><td>{t.item_name}</td><td>{t.quantity} {t.unit}</td></tr>)}</tbody></table></div></div></div>};
 
-// ============ EMPLOYEES ============
-const Employees = ({ navigate }) => {
-  const { hasPerm } = useAuth();
-  const [data, setData] = useState({ employees:[], positions:[], resUnits:[], enterprises:[] });
-  const [filters, setFilters] = useState({ search:'', res_unit_id:'', enterprise_id:'', position_id:'' });
-  const [showModal, setShowModal] = useState(false);
-  const [form, setForm] = useState({});
-  const [loading, setLoading] = useState(true);
-  const load = useCallback(() => {
-    const p = new URLSearchParams();
-    Object.entries(filters).forEach(([k,v]) => { if(v) p.append(k,v); });
-    Promise.all([API.get(`/employees?${p}`), API.get('/positions'), API.get('/org/res-units'), API.get('/org/enterprises')])
-      .then(([e,pos,r,ent]) => setData({employees:e,positions:pos,resUnits:r,enterprises:ent}))
-      .catch(console.error).finally(() => setLoading(false));
-  }, [filters]);
-  useEffect(() => { load(); }, [load]);
-  const save = async () => {
-    try {
-      if(form.id) await API.put(`/employees/${form.id}`,form); else await API.post('/employees',form);
-      setShowModal(false); setForm({}); load();
-    } catch(e){ alert(e?.response?.data?.error||'Ошибка'); }
-  };
-  if (loading) return <RnLoader />;
-  return <div>
-    <div className="page-header"><h1>Сотрудники ({data.employees.length})</h1>
-      {hasPerm('can_create') && <button className="btn btn-primary" onClick={()=>{setForm({});setShowModal(true)}}>+ Сотрудник</button>}</div>
+const Employees=({navigate})=>{const{hasPerm}=useAuth();const[data,setData]=useState({employees:[],positions:[],resUnits:[],enterprises:[]});const[filters,setFilters]=useState({search:'',res_unit_id:'',enterprise_id:'',position_id:''});const[showModal,setShowModal]=useState(false);const[form,setForm]=useState({});const[loading,setLoading]=useState(true);
+  const load=useCallback(()=>{const p=new URLSearchParams();Object.entries(filters).forEach(([k,v])=>{if(v)p.append(k,v)});Promise.all([API.get(`/employees?${p}`),API.get('/positions'),API.get('/org/res-units'),API.get('/org/enterprises')]).then(([e,pos,r,ent])=>setData({employees:e,positions:pos,resUnits:r,enterprises:ent})).catch(console.error).finally(()=>setLoading(false))},[filters]);
+  useEffect(()=>{load()},[load]);
+  const save=async()=>{try{if(form.id)await API.put(`/employees/${form.id}`,form);else await API.post('/employees',form);setShowModal(false);setForm({});load()}catch(e){alert(e?.response?.data?.error||'Ошибка')}};
+  if(loading)return <RnLoader/>;
+  return <div><div className="page-header"><h1>Сотрудники <span className="text-muted" style={{fontWeight:400,fontSize:16}}>({data.employees.length})</span></h1>
+    {hasPerm('can_create')&&<button className="btn btn-primary" onClick={()=>{setForm({});setShowModal(true)}}><I.plus style={{width:16,height:16}}/> Сотрудник</button>}</div>
     <div className="card" style={{marginBottom:16}}><div className="form-row">
-      <div className="form-group" style={{flex:2}}><input className="form-control" placeholder="Поиск по ФИО..." value={filters.search} onChange={e=>setFilters({...filters,search:e.target.value})} /></div>
+      <div className="form-group" style={{flex:2}}><input className="form-control" placeholder="Поиск по ФИО..." value={filters.search} onChange={e=>setFilters({...filters,search:e.target.value})}/></div>
       <div className="form-group"><select className="form-control" value={filters.enterprise_id} onChange={e=>setFilters({...filters,enterprise_id:e.target.value})}><option value="">Все предприятия</option>{data.enterprises.map(e=><option key={e.id} value={e.id}>{e.name}</option>)}</select></div>
-      <div className="form-group"><select className="form-control" value={filters.res_unit_id} onChange={e=>setFilters({...filters,res_unit_id:e.target.value})}><option value="">Все РЭС</option>{data.resUnits.map(r=><option key={r.id} value={r.id}>{r.name}</option>)}</select></div>
-    </div></div>
+      <div className="form-group"><select className="form-control" value={filters.res_unit_id} onChange={e=>setFilters({...filters,res_unit_id:e.target.value})}><option value="">Все РЭС</option>{data.resUnits.map(r=><option key={r.id} value={r.id}>{r.name}</option>)}</select></div></div></div>
     <div className="card"><div className="table-container"><table><thead><tr><th>Таб. №</th><th>ФИО</th><th>Должность</th><th>РЭС</th><th>Предприятие</th><th></th></tr></thead>
-      <tbody>{data.employees.length===0 ? <tr><td colSpan="6"><div className="empty-state"><div className="icon">👥</div>Нет сотрудников</div></td></tr> :
-        data.employees.map(emp=><tr key={emp.id} onClick={()=>navigate(`/employees/${emp.id}`)} style={{cursor:'pointer'}}>
-          <td className="text-muted">{emp.employee_number||'—'}</td><td style={{fontWeight:500}}>{fio(emp)}</td>
-          <td>{emp.position_name||'—'}</td><td>{emp.res_name||'—'}</td><td className="text-muted">{emp.enterprise_name||'—'}</td>
-          <td>{hasPerm('can_edit') && <button className="btn btn-outline btn-sm" onClick={e=>{e.stopPropagation();setForm(emp);setShowModal(true)}}>✏️</button>}</td>
-        </tr>)}</tbody></table></div></div>
-    <Modal isOpen={showModal} onClose={()=>setShowModal(false)} title={form.id?'Редактировать':'Новый сотрудник'}
-      footer={<><button className="btn btn-outline" onClick={()=>setShowModal(false)}>Отмена</button><button className="btn btn-primary" onClick={save}>Сохранить</button></>}>
-      <div className="form-row">
-        <div className="form-group"><label>Фамилия *</label><input className="form-control" value={form.last_name||''} onChange={e=>setForm({...form,last_name:e.target.value})} /></div>
-        <div className="form-group"><label>Имя *</label><input className="form-control" value={form.first_name||''} onChange={e=>setForm({...form,first_name:e.target.value})} /></div>
-        <div className="form-group"><label>Отчество</label><input className="form-control" value={form.middle_name||''} onChange={e=>setForm({...form,middle_name:e.target.value})} /></div>
-      </div>
-      <div className="form-row">
-        <div className="form-group"><label>Табельный №</label><input className="form-control" value={form.employee_number||''} onChange={e=>setForm({...form,employee_number:e.target.value})} /></div>
-        <div className="form-group"><label>Должность</label><select className="form-control" value={form.position_id||''} onChange={e=>setForm({...form,position_id:e.target.value||null})}><option value="">—</option>{data.positions.map(p=><option key={p.id} value={p.id}>{p.name}</option>)}</select></div>
-      </div>
-      <div className="form-row">
-        <div className="form-group"><label>Предприятие</label><select className="form-control" value={form.enterprise_id||''} onChange={e=>setForm({...form,enterprise_id:e.target.value||null})}><option value="">—</option>{data.enterprises.map(e=><option key={e.id} value={e.id}>{e.name}</option>)}</select></div>
-        <div className="form-group"><label>РЭС</label><select className="form-control" value={form.res_unit_id||''} onChange={e=>setForm({...form,res_unit_id:e.target.value||null})}><option value="">—</option>{data.resUnits.filter(r=>!form.enterprise_id||r.enterprise_id===form.enterprise_id).map(r=><option key={r.id} value={r.id}>{r.name}</option>)}</select></div>
-      </div>
-      <div className="form-group"><label>Дата приёма</label><input className="form-control" type="date" value={form.hire_date||''} onChange={e=>setForm({...form,hire_date:e.target.value})} /></div>
-    </Modal>
-  </div>;
-};
+      <tbody>{data.employees.length===0?<tr><td colSpan="6"><div className="empty-state"><div className="icon"><I.users/></div>Нет сотрудников</div></td></tr>:
+        data.employees.map(emp=><tr key={emp.id} className="clickable-row" onClick={()=>navigate(`/employees/${emp.id}`)}>
+          <td className="text-muted" style={{fontFamily:'JetBrains Mono,monospace',fontSize:12}}>{emp.employee_number||'—'}</td><td style={{fontWeight:600}}>{fio(emp)}</td><td>{emp.position_name||'—'}</td><td>{emp.res_name||'—'}</td><td className="text-muted">{emp.enterprise_name||'—'}</td>
+          <td>{hasPerm('can_edit')&&<button className="btn btn-outline btn-sm" onClick={e=>{e.stopPropagation();setForm(emp);setShowModal(true)}}><I.edit style={{width:14,height:14}}/></button>}</td></tr>)}</tbody></table></div></div>
+    <Modal isOpen={showModal} onClose={()=>setShowModal(false)} title={form.id?'Редактировать сотрудника':'Новый сотрудник'} footer={<><button className="btn btn-outline" onClick={()=>setShowModal(false)}>Отмена</button><button className="btn btn-primary" onClick={save}>Сохранить</button></>}>
+      <div className="form-row"><div className="form-group"><label>Фамилия *</label><input className="form-control" value={form.last_name||''} onChange={e=>setForm({...form,last_name:e.target.value})}/></div><div className="form-group"><label>Имя *</label><input className="form-control" value={form.first_name||''} onChange={e=>setForm({...form,first_name:e.target.value})}/></div><div className="form-group"><label>Отчество</label><input className="form-control" value={form.middle_name||''} onChange={e=>setForm({...form,middle_name:e.target.value})}/></div></div>
+      <div className="form-row"><div className="form-group"><label>Табельный №</label><input className="form-control" value={form.employee_number||''} onChange={e=>setForm({...form,employee_number:e.target.value})}/></div><div className="form-group"><label>Должность</label><select className="form-control" value={form.position_id||''} onChange={e=>setForm({...form,position_id:e.target.value||null})}><option value="">—</option>{data.positions.map(p=><option key={p.id} value={p.id}>{p.name}</option>)}</select></div></div>
+      <div className="form-row"><div className="form-group"><label>Предприятие</label><select className="form-control" value={form.enterprise_id||''} onChange={e=>setForm({...form,enterprise_id:e.target.value||null})}><option value="">—</option>{data.enterprises.map(e=><option key={e.id} value={e.id}>{e.name}</option>)}</select></div><div className="form-group"><label>РЭС</label><select className="form-control" value={form.res_unit_id||''} onChange={e=>setForm({...form,res_unit_id:e.target.value||null})}><option value="">—</option>{data.resUnits.filter(r=>!form.enterprise_id||r.enterprise_id===form.enterprise_id).map(r=><option key={r.id} value={r.id}>{r.name}</option>)}</select></div></div>
+      <div className="form-group"><label>Дата приёма</label><input className="form-control" type="date" value={form.hire_date||''} onChange={e=>setForm({...form,hire_date:e.target.value})}/></div>
+    </Modal></div>};
 
-// ============ EMPLOYEE CARD ============
-const EmployeeCard = ({ id, navigate }) => {
-  const { hasPerm } = useAuth();
-  const [emp, setEmp] = useState(null);
-  const [items, setItems] = useState([]);
-  const [tab, setTab] = useState('balance');
-  const [showTx, setShowTx] = useState(false);
-  const [txForm, setTxForm] = useState({ transaction_type:'issue', quantity:1 });
-  const [loading, setLoading] = useState(true);
-  const load = useCallback(() => {
-    Promise.all([API.get(`/employees/${id}`), API.get('/siz/items')])
-      .then(([e,i]) => { setEmp(e); setItems(i); })
-      .catch(e => { console.error(e); if(e?.response?.data?.error) navigate('/employees'); })
-      .finally(() => setLoading(false));
-  }, [id]);
-  useEffect(() => { load(); }, [load]);
-  const saveTx = async () => {
-    try {
-      await API.post('/transactions', { ...txForm, employee_id:id, transaction_date:txForm.transaction_date||new Date().toISOString().split('T')[0] });
-      setShowTx(false); setTxForm({transaction_type:'issue',quantity:1}); load();
-    } catch(e){ alert(e?.response?.data?.error||'Ошибка'); }
-  };
-  if (loading) return <RnLoader />;
-  if (!emp) return <div className="empty-state">Не найден</div>;
-  return <div>
-    <div className="page-header">
-      <div className="flex gap-3" style={{alignItems:'center'}}><button className="btn btn-outline btn-sm" onClick={()=>navigate('/employees')}>← Назад</button><h1>{fio(emp)}</h1></div>
-      {hasPerm('can_create') && <button className="btn btn-primary" onClick={()=>{setTxForm({transaction_type:'issue',quantity:1});setShowTx(true)}}>+ Операция</button>}
-    </div>
-    <div className="card" style={{marginBottom:16}}>
-      <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(180px,1fr))',gap:16}}>
-        <div><div className="text-muted" style={{fontSize:12}}>Табельный №</div><div style={{fontWeight:500}}>{emp.employee_number||'—'}</div></div>
-        <div><div className="text-muted" style={{fontSize:12}}>Должность</div><div style={{fontWeight:500}}>{emp.position_name||'—'}</div></div>
-        <div><div className="text-muted" style={{fontSize:12}}>РЭС</div><div style={{fontWeight:500}}>{emp.res_name||'—'}</div></div>
-        <div><div className="text-muted" style={{fontSize:12}}>Предприятие</div><div style={{fontWeight:500}}>{emp.enterprise_name||'—'}</div></div>
-        <div><div className="text-muted" style={{fontSize:12}}>Дата приёма</div><div style={{fontWeight:500}}>{fmtDate(emp.hire_date)}</div></div>
-      </div>
-    </div>
-    <div className="stats-grid" style={{marginBottom:16}}>
-      <div className="stat-card"><div className="stat-value">{emp.balance?.length||0}</div><div className="stat-label">СИЗ на руках</div></div>
-      <div className="stat-card"><div className="stat-value">{emp.norms?.length||0}</div><div className="stat-label">Норм по должности</div></div>
-      <div className="stat-card"><div className="stat-value">{emp.transactions?.length||0}</div><div className="stat-label">Всего операций</div></div>
-      <div className="stat-card" style={{borderLeft:`3px solid ${emp.balance?.some(b=>isExpired(b.valid_until))?'var(--danger)':'var(--success)'}`}}><div className="stat-value" style={{color:emp.balance?.some(b=>isExpired(b.valid_until))?'var(--danger)':'var(--success)'}}>{emp.balance?.filter(b=>isExpired(b.valid_until)).length||0}</div><div className="stat-label">Просроченных</div></div>
-    </div>
-    <div className="tabs">
-      <button className={`tab ${tab==='balance'?'active':''}`} onClick={()=>setTab('balance')}>На руках ({emp.balance?.length||0})</button>
-      <button className={`tab ${tab==='history'?'active':''}`} onClick={()=>setTab('history')}>История ({emp.transactions?.length||0})</button>
-      <button className={`tab ${tab==='norms'?'active':''}`} onClick={()=>setTab('norms')}>Нормы ({emp.norms?.length||0})</button>
-    </div>
-    <div className="card">
-      {tab==='balance' && <div className="table-container"><table><thead><tr><th>СИЗ</th><th>Категория</th><th>Кол-во</th><th>Последняя выдача</th><th>Срок до</th><th>Статус</th></tr></thead>
-        <tbody>{!emp.balance?.length ? <tr><td colSpan="6"><div className="empty-state"><div className="icon">📦</div>Нет СИЗ</div></td></tr> :
-          emp.balance.map((b,i)=><tr key={i}><td style={{fontWeight:500}}>{b.item_name}</td><td className="text-muted">{b.category_name}</td><td>{b.on_hand} {b.unit}</td><td>{fmtDate(b.last_issued)}</td><td>{fmtDate(b.valid_until)}</td><td>{isExpired(b.valid_until)?<span className="badge badge-danger">Просрочено</span>:<span className="badge badge-success">Действует</span>}</td></tr>)}</tbody></table></div>}
-      {tab==='history' && <div className="table-container"><table><thead><tr><th>Дата</th><th>Тип</th><th>СИЗ</th><th>Кол-во</th><th>Срок до</th><th>Кто выдал</th><th>Документ</th></tr></thead>
-        <tbody>{!emp.transactions?.length ? <tr><td colSpan="7"><div className="empty-state"><div className="icon">📋</div>Нет операций</div></td></tr> :
-          emp.transactions.map(t=><tr key={t.id}><td>{fmtDate(t.transaction_date)}</td><td><span className={txBadge(t.transaction_type)}>{txLabel(t.transaction_type)}</span></td><td style={{fontWeight:500}}>{t.item_name}</td><td>{t.quantity} {t.unit}</td><td>{fmtDate(t.valid_until)}</td><td className="text-muted">{t.issued_by_name||'—'}</td><td className="text-muted">{t.document_reference||'—'}</td></tr>)}</tbody></table></div>}
-      {tab==='norms' && <div className="table-container"><table><thead><tr><th>СИЗ</th><th>Категория</th><th>Норма</th><th>Период</th><th>На руках</th><th>Статус</th></tr></thead>
-        <tbody>{!emp.norms?.length ? <tr><td colSpan="6"><div className="empty-state"><div className="icon">📋</div>Нормы не заданы</div></td></tr> :
-          emp.norms.map(n => { const bal = emp.balance?.find(b=>b.item_id===n.siz_item_id); const oh = bal?parseInt(bal.on_hand):0;
-            return <tr key={n.id}><td style={{fontWeight:500}}>{n.item_name}</td><td className="text-muted">{n.category_name}</td><td>{n.quantity} {n.unit}</td><td>{n.issue_period_months} мес.</td><td>{oh} {n.unit}</td>
-              <td>{oh>=n.quantity?<span className="badge badge-success">Обеспечен</span>:oh>0?<span className="badge badge-warning">Частично</span>:<span className="badge badge-danger">Нет</span>}</td></tr>;
-          })}</tbody></table></div>}
-    </div>
-    <Modal isOpen={showTx} onClose={()=>setShowTx(false)} title="Новая операция"
-      footer={<><button className="btn btn-outline" onClick={()=>setShowTx(false)}>Отмена</button><button className="btn btn-primary" onClick={saveTx}>Сохранить</button></>}>
-      <div className="form-group"><label>Тип</label><select className="form-control" value={txForm.transaction_type} onChange={e=>setTxForm({...txForm,transaction_type:e.target.value})}><option value="issue">Выдача</option><option value="return">Возврат</option><option value="write_off">Списание</option><option value="exchange">Обмен</option></select></div>
-      <div className="form-group"><label>СИЗ *</label><select className="form-control" value={txForm.siz_item_id||''} onChange={e=>setTxForm({...txForm,siz_item_id:e.target.value})}><option value="">Выберите</option>{items.map(i=><option key={i.id} value={i.id}>{i.category_name} → {i.name}</option>)}</select></div>
-      <div className="form-row"><div className="form-group"><label>Кол-во</label><input className="form-control" type="number" min="1" value={txForm.quantity} onChange={e=>setTxForm({...txForm,quantity:parseInt(e.target.value)||1})} /></div>
-        <div className="form-group"><label>Дата</label><input className="form-control" type="date" value={txForm.transaction_date||''} onChange={e=>setTxForm({...txForm,transaction_date:e.target.value})} /></div></div>
-      {txForm.transaction_type==='issue' && <div className="form-group"><label>Срок до</label><input className="form-control" type="date" value={txForm.valid_until||''} onChange={e=>setTxForm({...txForm,valid_until:e.target.value})} /></div>}
-      <div className="form-group"><label>Документ</label><input className="form-control" value={txForm.document_reference||''} onChange={e=>setTxForm({...txForm,document_reference:e.target.value})} /></div>
-      <div className="form-group"><label>Примечание</label><input className="form-control" value={txForm.notes||''} onChange={e=>setTxForm({...txForm,notes:e.target.value})} /></div>
-    </Modal>
-  </div>;
-};
-
-// ============ TRANSACTIONS ============
-const Transactions = ({ navigate }) => {
-  const { hasPerm } = useAuth();
-  const [data, setData] = useState({ tx:[], employees:[], items:[] });
-  const [filters, setFilters] = useState({ transaction_type:'', date_from:'', date_to:'' });
-  const [tab, setTab] = useState('all');
-  const [report, setReport] = useState([]);
-  const [showModal, setShowModal] = useState(false);
-  const [form, setForm] = useState({ transaction_type:'issue', quantity:1 });
-  const [loading, setLoading] = useState(true);
-  const load = useCallback(() => {
-    const p = new URLSearchParams(); Object.entries(filters).forEach(([k,v])=>{if(v)p.append(k,v)});
-    Promise.all([API.get(`/transactions?${p}`), API.get('/employees'), API.get('/siz/items')])
-      .then(([t,e,i]) => setData({tx:t,employees:e,items:i})).catch(console.error).finally(()=>setLoading(false));
-  }, [filters]);
-  useEffect(()=>{load();},[load]);
-  const loadReport = async type => { setTab(type);
-    if(type==='expired') setReport(await API.get('/transactions/reports/expired'));
-    if(type==='summary') setReport(await API.get('/transactions/reports/summary'));
-  };
-  const save = async () => { try {
-    await API.post('/transactions',{...form,transaction_date:form.transaction_date||new Date().toISOString().split('T')[0]});
-    setShowModal(false); setForm({transaction_type:'issue',quantity:1}); load();
-  } catch(e){ alert(e?.response?.data?.error||'Ошибка'); }};
-  if(loading) return <RnLoader />;
-  return <div>
-    <div className="page-header"><h1>Движение СИЗ</h1>{hasPerm('can_create')&&<button className="btn btn-primary" onClick={()=>{setForm({transaction_type:'issue',quantity:1});setShowModal(true)}}>+ Операция</button>}</div>
-    <div className="tabs">
-      <button className={`tab ${tab==='all'?'active':''}`} onClick={()=>setTab('all')}>Все ({data.tx.length})</button>
-      <button className={`tab ${tab==='expired'?'active':''}`} onClick={()=>loadReport('expired')}>Просроченные</button>
-      <button className={`tab ${tab==='summary'?'active':''}`} onClick={()=>loadReport('summary')}>Сводка по РЭС</button>
-    </div>
-    {tab==='all' && <><div className="card" style={{marginBottom:16}}><div className="form-row">
-      <div className="form-group"><select className="form-control" value={filters.transaction_type} onChange={e=>setFilters({...filters,transaction_type:e.target.value})}><option value="">Все типы</option><option value="issue">Выдача</option><option value="return">Возврат</option><option value="write_off">Списание</option></select></div>
-      <div className="form-group"><input className="form-control" type="date" value={filters.date_from} onChange={e=>setFilters({...filters,date_from:e.target.value})} /></div>
-      <div className="form-group"><input className="form-control" type="date" value={filters.date_to} onChange={e=>setFilters({...filters,date_to:e.target.value})} /></div>
+const EmployeeCard=({id,navigate})=>{const{hasPerm}=useAuth();const[emp,setEmp]=useState(null);const[items,setItems]=useState([]);const[tab,setTab]=useState('balance');const[showTx,setShowTx]=useState(false);const[txForm,setTxForm]=useState({transaction_type:'issue',quantity:1});const[loading,setLoading]=useState(true);
+  const load=useCallback(()=>{Promise.all([API.get(`/employees/${id}`),API.get('/siz/items')]).then(([e,i])=>{setEmp(e);setItems(i)}).catch(e=>{console.error(e);if(e?.response?.data?.error)navigate('/employees')}).finally(()=>setLoading(false))},[id]);
+  useEffect(()=>{load()},[load]);
+  const saveTx=async()=>{try{await API.post('/transactions',{...txForm,employee_id:id,transaction_date:txForm.transaction_date||new Date().toISOString().split('T')[0]});setShowTx(false);setTxForm({transaction_type:'issue',quantity:1});load()}catch(e){alert(e?.response?.data?.error||'Ошибка')}};
+  if(loading)return <RnLoader/>;if(!emp)return <div className="empty-state">Не найден</div>;
+  return <div><div className="page-header"><div className="flex gap-3" style={{alignItems:'center'}}><button className="btn btn-outline btn-sm" onClick={()=>navigate('/employees')}><I.arrowLeft style={{width:14,height:14}}/> Назад</button><h1>{fio(emp)}</h1></div>
+    {hasPerm('can_create')&&<button className="btn btn-primary" onClick={()=>{setTxForm({transaction_type:'issue',quantity:1});setShowTx(true)}}><I.plus style={{width:16,height:16}}/> Операция</button>}</div>
+    <div className="card" style={{marginBottom:16}}><div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(180px,1fr))',gap:16}}>
+      {[['Табельный №',emp.employee_number,'mono'],['Должность',emp.position_name],['РЭС',emp.res_name],['Предприятие',emp.enterprise_name],['Дата приёма',fmtDate(emp.hire_date)]].map(([l,v,m],i)=>
+        <div key={i}><div className="text-muted" style={{fontSize:11,textTransform:'uppercase',letterSpacing:'.4px',fontWeight:600,marginBottom:3}}>{l}</div><div style={{fontWeight:600,...(m?{fontFamily:'JetBrains Mono,monospace'}:{})}}>{v||'—'}</div></div>)}
     </div></div>
-    <div className="card"><div className="table-container"><table><thead><tr><th>Дата</th><th>Тип</th><th>Сотрудник</th><th>СИЗ</th><th>Кол-во</th><th>Документ</th></tr></thead>
-      <tbody>{!data.tx.length?<tr><td colSpan="6"><div className="empty-state"><div className="icon">📋</div>Нет операций</div></td></tr>:
-        data.tx.map(t=><tr key={t.id}><td>{fmtDate(t.transaction_date)}</td><td><span className={txBadge(t.transaction_type)}>{txLabel(t.transaction_type)}</span></td>
-        <td><span style={{cursor:'pointer',color:'var(--primary)',fontWeight:500}} onClick={()=>navigate(`/employees/${t.employee_id}`)}>{fio(t)}</span></td>
-        <td>{t.item_name}</td><td>{t.quantity} {t.unit}</td><td className="text-muted">{t.document_reference||'—'}</td></tr>)}</tbody></table></div></div></>}
-    {tab==='expired' && <div className="card"><div className="table-container"><table><thead><tr><th>Сотрудник</th><th>РЭС</th><th>СИЗ</th><th>Просрочен с</th></tr></thead>
-      <tbody>{!report.length?<tr><td colSpan="4"><div className="empty-state"><div className="icon">✅</div>Нет просроченных</div></td></tr>:
-        report.map((r,i)=><tr key={i}><td><span style={{cursor:'pointer',color:'var(--primary)',fontWeight:500}} onClick={()=>navigate(`/employees/${r.employee_id}`)}>{fio(r)}</span></td><td>{r.res_name||'—'}</td><td>{r.item_name}</td><td><span className="badge badge-danger">{fmtDate(r.valid_until)}</span></td></tr>)}</tbody></table></div></div>}
-    {tab==='summary' && <div className="card"><div className="table-container"><table><thead><tr><th>РЭС</th><th>Сотрудников</th><th>Выдач</th><th>Просрочено</th></tr></thead>
-      <tbody>{!report.length?<tr><td colSpan="4"><div className="empty-state">Нет данных</div></td></tr>:
-        report.map((r,i)=><tr key={i}><td style={{fontWeight:500}}>{r.res_name}</td><td>{r.employees_count}</td><td>{r.total_issued}</td><td>{parseInt(r.expired_count)>0?<span className="badge badge-danger">{r.expired_count}</span>:<span className="badge badge-success">0</span>}</td></tr>)}</tbody></table></div></div>}
-    <Modal isOpen={showModal} onClose={()=>setShowModal(false)} title="Новая операция"
-      footer={<><button className="btn btn-outline" onClick={()=>setShowModal(false)}>Отмена</button><button className="btn btn-primary" onClick={save}>Сохранить</button></>}>
-      <div className="form-group"><label>Сотрудник *</label><select className="form-control" value={form.employee_id||''} onChange={e=>setForm({...form,employee_id:e.target.value})}><option value="">Выберите</option>{data.employees.map(e=><option key={e.id} value={e.id}>{fio(e)} — {e.position_name||''}</option>)}</select></div>
-      <div className="form-group"><label>Тип</label><select className="form-control" value={form.transaction_type} onChange={e=>setForm({...form,transaction_type:e.target.value})}><option value="issue">Выдача</option><option value="return">Возврат</option><option value="write_off">Списание</option></select></div>
-      <div className="form-group"><label>СИЗ *</label><select className="form-control" value={form.siz_item_id||''} onChange={e=>setForm({...form,siz_item_id:e.target.value})}><option value="">Выберите</option>{data.items.map(i=><option key={i.id} value={i.id}>{i.category_name} → {i.name}</option>)}</select></div>
-      <div className="form-row"><div className="form-group"><label>Кол-во</label><input className="form-control" type="number" min="1" value={form.quantity} onChange={e=>setForm({...form,quantity:parseInt(e.target.value)||1})} /></div>
-        <div className="form-group"><label>Дата</label><input className="form-control" type="date" value={form.transaction_date||''} onChange={e=>setForm({...form,transaction_date:e.target.value})} /></div></div>
-      {form.transaction_type==='issue'&&<div className="form-group"><label>Срок до</label><input className="form-control" type="date" value={form.valid_until||''} onChange={e=>setForm({...form,valid_until:e.target.value})} /></div>}
-      <div className="form-group"><label>Документ</label><input className="form-control" value={form.document_reference||''} onChange={e=>setForm({...form,document_reference:e.target.value})} /></div>
-    </Modal>
-  </div>;
-};
+    <div className="stats-grid" style={{marginBottom:20}}>
+      <div className="stat-card"><div className="stat-icon blue"><I.package/></div><div className="stat-value">{emp.balance?.length||0}</div><div className="stat-label">СИЗ на руках</div></div>
+      <div className="stat-card"><div className="stat-icon green"><I.fileText/></div><div className="stat-value">{emp.norms?.length||0}</div><div className="stat-label">Норм по должности</div></div>
+      <div className="stat-card"><div className="stat-icon yellow"><I.activity/></div><div className="stat-value">{emp.transactions?.length||0}</div><div className="stat-label">Всего операций</div></div>
+      <div className="stat-card" style={{borderLeft:`3px solid ${emp.balance?.some(b=>isExpired(b.valid_until))?'var(--error)':'var(--success)'}`}}><div className="stat-icon red"><I.alertTriangle/></div><div className="stat-value">{emp.balance?.filter(b=>isExpired(b.valid_until)).length||0}</div><div className="stat-label">Просроченных</div></div>
+    </div>
+    <div className="tabs"><button className={`tab ${tab==='balance'?'active':''}`} onClick={()=>setTab('balance')}>На руках ({emp.balance?.length||0})</button><button className={`tab ${tab==='history'?'active':''}`} onClick={()=>setTab('history')}>История ({emp.transactions?.length||0})</button><button className={`tab ${tab==='norms'?'active':''}`} onClick={()=>setTab('norms')}>Нормы ({emp.norms?.length||0})</button></div>
+    <div className="card">
+      {tab==='balance'&&<div className="table-container"><table><thead><tr><th>СИЗ</th><th>Категория</th><th>Кол-во</th><th>Последняя выдача</th><th>Срок до</th><th>Статус</th></tr></thead><tbody>{!emp.balance?.length?<tr><td colSpan="6"><div className="empty-state"><div className="icon"><I.package/></div>Нет СИЗ</div></td></tr>:emp.balance.map((b,i)=><tr key={i}><td style={{fontWeight:600}}>{b.item_name}</td><td className="text-muted">{b.category_name}</td><td>{b.on_hand} {b.unit}</td><td className="text-muted">{fmtDate(b.last_issued)}</td><td className="text-muted">{fmtDate(b.valid_until)}</td><td>{isExpired(b.valid_until)?<span className="badge badge-danger">Просрочено</span>:<span className="badge badge-success">Действует</span>}</td></tr>)}</tbody></table></div>}
+      {tab==='history'&&<div className="table-container"><table><thead><tr><th>Дата</th><th>Тип</th><th>СИЗ</th><th>Кол-во</th><th>Срок до</th><th>Кто выдал</th><th>Документ</th></tr></thead><tbody>{!emp.transactions?.length?<tr><td colSpan="7"><div className="empty-state"><div className="icon"><I.clipboard/></div>Нет операций</div></td></tr>:emp.transactions.map(t=><tr key={t.id}><td className="text-muted">{fmtDate(t.transaction_date)}</td><td><span className={txBadge(t.transaction_type)}>{txLabel(t.transaction_type)}</span></td><td style={{fontWeight:600}}>{t.item_name}</td><td>{t.quantity} {t.unit}</td><td className="text-muted">{fmtDate(t.valid_until)}</td><td className="text-muted">{t.issued_by_name||'—'}</td><td className="text-muted">{t.document_reference||'—'}</td></tr>)}</tbody></table></div>}
+      {tab==='norms'&&<div className="table-container"><table><thead><tr><th>СИЗ</th><th>Категория</th><th>Норма</th><th>Период</th><th>На руках</th><th>Статус</th></tr></thead><tbody>{!emp.norms?.length?<tr><td colSpan="6"><div className="empty-state"><div className="icon"><I.fileText/></div>Нормы не заданы</div></td></tr>:emp.norms.map(n=>{const bal=emp.balance?.find(b=>b.item_id===n.siz_item_id);const oh=bal?parseInt(bal.on_hand):0;return <tr key={n.id}><td style={{fontWeight:600}}>{n.item_name}</td><td className="text-muted">{n.category_name}</td><td>{n.quantity} {n.unit}</td><td>{n.issue_period_months} мес.</td><td>{oh} {n.unit}</td><td>{oh>=n.quantity?<span className="badge badge-success">Обеспечен</span>:oh>0?<span className="badge badge-warning">Частично</span>:<span className="badge badge-danger">Нет</span>}</td></tr>})}</tbody></table></div>}
+    </div>
+    <Modal isOpen={showTx} onClose={()=>setShowTx(false)} title="Новая операция" footer={<><button className="btn btn-outline" onClick={()=>setShowTx(false)}>Отмена</button><button className="btn btn-primary" onClick={saveTx}>Сохранить</button></>}>
+      <div className="form-group"><label>Тип операции</label><select className="form-control" value={txForm.transaction_type} onChange={e=>setTxForm({...txForm,transaction_type:e.target.value})}><option value="issue">Выдача</option><option value="return">Возврат</option><option value="write_off">Списание</option><option value="exchange">Обмен</option></select></div>
+      <div className="form-group"><label>СИЗ *</label><select className="form-control" value={txForm.siz_item_id||''} onChange={e=>setTxForm({...txForm,siz_item_id:e.target.value})}><option value="">Выберите</option>{items.map(i=><option key={i.id} value={i.id}>{i.category_name} → {i.name}</option>)}</select></div>
+      <div className="form-row"><div className="form-group"><label>Кол-во</label><input className="form-control" type="number" min="1" value={txForm.quantity} onChange={e=>setTxForm({...txForm,quantity:parseInt(e.target.value)||1})}/></div><div className="form-group"><label>Дата</label><input className="form-control" type="date" value={txForm.transaction_date||''} onChange={e=>setTxForm({...txForm,transaction_date:e.target.value})}/></div></div>
+      {txForm.transaction_type==='issue'&&<div className="form-group"><label>Срок до</label><input className="form-control" type="date" value={txForm.valid_until||''} onChange={e=>setTxForm({...txForm,valid_until:e.target.value})}/></div>}
+      <div className="form-group"><label>Документ</label><input className="form-control" value={txForm.document_reference||''} onChange={e=>setTxForm({...txForm,document_reference:e.target.value})}/></div>
+      <div className="form-group"><label>Примечание</label><input className="form-control" value={txForm.notes||''} onChange={e=>setTxForm({...txForm,notes:e.target.value})}/></div>
+    </Modal></div>};
 
-// ============ DIRECTORIES ============
-const Directories = () => {
-  const { hasPerm } = useAuth();
-  const [cats, setCats] = useState([]); const [items, setItems] = useState([]);
-  const [selectedCat, setSelectedCat] = useState(null);
-  const [showModal, setShowModal] = useState(null); const [form, setForm] = useState({});
-  const [loading, setLoading] = useState(true);
-  const load = useCallback(() => {
-    Promise.all([API.get('/siz/categories'), API.get('/siz/items')])
-      .then(([c,i])=>{setCats(c);setItems(i);}).catch(console.error).finally(()=>setLoading(false));
-  }, []);
-  useEffect(()=>{load();},[load]);
-  const saveCat = async () => { try { if(form.id) await API.put(`/siz/categories/${form.id}`,form); else await API.post('/siz/categories',form); setShowModal(null);setForm({});load(); } catch(e){alert(e?.response?.data?.error||'Ошибка');} };
-  const saveItem = async () => { try { if(form.id) await API.put(`/siz/items/${form.id}`,form); else await API.post('/siz/items',form); setShowModal(null);setForm({});load(); } catch(e){alert(e?.response?.data?.error||'Ошибка');} };
-  const filtered = selectedCat ? items.filter(i=>i.category_id===selectedCat) : items;
-  if(loading) return <RnLoader />;
-  return <div>
-    <div className="page-header"><h1>Справочники СИЗ</h1>{hasPerm('can_create')&&<div className="flex gap-2">
-      <button className="btn btn-outline" onClick={()=>{setForm({});setShowModal('cat')}}>+ Категория</button>
-      <button className="btn btn-primary" onClick={()=>{setForm({category_id:selectedCat||''});setShowModal('item')}}>+ Номенклатура</button>
-    </div>}</div>
+const Transactions=({navigate})=>{const{hasPerm}=useAuth();const[data,setData]=useState({tx:[],employees:[],items:[]});const[filters,setFilters]=useState({transaction_type:'',date_from:'',date_to:''});const[tab,setTab]=useState('all');const[report,setReport]=useState([]);const[showModal,setShowModal]=useState(false);const[form,setForm]=useState({transaction_type:'issue',quantity:1});const[loading,setLoading]=useState(true);
+  const load=useCallback(()=>{const p=new URLSearchParams();Object.entries(filters).forEach(([k,v])=>{if(v)p.append(k,v)});Promise.all([API.get(`/transactions?${p}`),API.get('/employees'),API.get('/siz/items')]).then(([t,e,i])=>setData({tx:t,employees:e,items:i})).catch(console.error).finally(()=>setLoading(false))},[filters]);
+  useEffect(()=>{load()},[load]);
+  const loadReport=async type=>{setTab(type);if(type==='expired')setReport(await API.get('/transactions/reports/expired'));if(type==='summary')setReport(await API.get('/transactions/reports/summary'))};
+  const save=async()=>{try{await API.post('/transactions',{...form,transaction_date:form.transaction_date||new Date().toISOString().split('T')[0]});setShowModal(false);setForm({transaction_type:'issue',quantity:1});load()}catch(e){alert(e?.response?.data?.error||'Ошибка')}};
+  if(loading)return <RnLoader/>;
+  return <div><div className="page-header"><h1>Движение СИЗ</h1>{hasPerm('can_create')&&<button className="btn btn-primary" onClick={()=>{setForm({transaction_type:'issue',quantity:1});setShowModal(true)}}><I.plus style={{width:16,height:16}}/> Операция</button>}</div>
+    <div className="tabs"><button className={`tab ${tab==='all'?'active':''}`} onClick={()=>setTab('all')}>Все ({data.tx.length})</button><button className={`tab ${tab==='expired'?'active':''}`} onClick={()=>loadReport('expired')}>Просроченные</button><button className={`tab ${tab==='summary'?'active':''}`} onClick={()=>loadReport('summary')}>Сводка по РЭС</button></div>
+    {tab==='all'&&<><div className="card" style={{marginBottom:16}}><div className="form-row"><div className="form-group"><select className="form-control" value={filters.transaction_type} onChange={e=>setFilters({...filters,transaction_type:e.target.value})}><option value="">Все типы</option><option value="issue">Выдача</option><option value="return">Возврат</option><option value="write_off">Списание</option></select></div><div className="form-group"><input className="form-control" type="date" value={filters.date_from} onChange={e=>setFilters({...filters,date_from:e.target.value})}/></div><div className="form-group"><input className="form-control" type="date" value={filters.date_to} onChange={e=>setFilters({...filters,date_to:e.target.value})}/></div></div></div>
+    <div className="card"><div className="table-container"><table><thead><tr><th>Дата</th><th>Тип</th><th>Сотрудник</th><th>СИЗ</th><th>Кол-во</th><th>Документ</th></tr></thead><tbody>{!data.tx.length?<tr><td colSpan="6"><div className="empty-state"><div className="icon"><I.clipboard/></div>Нет операций</div></td></tr>:data.tx.map(t=><tr key={t.id}><td className="text-muted">{fmtDate(t.transaction_date)}</td><td><span className={txBadge(t.transaction_type)}>{txLabel(t.transaction_type)}</span></td><td><span style={{cursor:'pointer',color:'var(--handler)',fontWeight:600}} onClick={()=>navigate(`/employees/${t.employee_id}`)}>{fio(t)}</span></td><td>{t.item_name}</td><td>{t.quantity} {t.unit}</td><td className="text-muted">{t.document_reference||'—'}</td></tr>)}</tbody></table></div></div></>}
+    {tab==='expired'&&<div className="card"><div className="table-container"><table><thead><tr><th>Сотрудник</th><th>РЭС</th><th>СИЗ</th><th>Просрочен с</th></tr></thead><tbody>{!report.length?<tr><td colSpan="4"><div className="empty-state"><div className="icon"><I.check/></div>Нет просроченных</div></td></tr>:report.map((r,i)=><tr key={i}><td><span style={{cursor:'pointer',color:'var(--handler)',fontWeight:600}} onClick={()=>navigate(`/employees/${r.employee_id}`)}>{fio(r)}</span></td><td>{r.res_name||'—'}</td><td>{r.item_name}</td><td><span className="badge badge-danger">{fmtDate(r.valid_until)}</span></td></tr>)}</tbody></table></div></div>}
+    {tab==='summary'&&<div className="card"><div className="table-container"><table><thead><tr><th>РЭС</th><th>Сотрудников</th><th>Выдач</th><th>Просрочено</th></tr></thead><tbody>{!report.length?<tr><td colSpan="4"><div className="empty-state">Нет данных</div></td></tr>:report.map((r,i)=><tr key={i}><td style={{fontWeight:600}}>{r.res_name}</td><td>{r.employees_count}</td><td>{r.total_issued}</td><td>{parseInt(r.expired_count)>0?<span className="badge badge-danger">{r.expired_count}</span>:<span className="badge badge-success">0</span>}</td></tr>)}</tbody></table></div></div>}
+    <Modal isOpen={showModal} onClose={()=>setShowModal(false)} title="Новая операция" footer={<><button className="btn btn-outline" onClick={()=>setShowModal(false)}>Отмена</button><button className="btn btn-primary" onClick={save}>Сохранить</button></>}>
+      <div className="form-group"><label>Сотрудник *</label><select className="form-control" value={form.employee_id||''} onChange={e=>setForm({...form,employee_id:e.target.value})}><option value="">Выберите</option>{data.employees.map(e=><option key={e.id} value={e.id}>{fio(e)} — {e.position_name||''}</option>)}</select></div>
+      <div className="form-group"><label>Тип операции</label><select className="form-control" value={form.transaction_type} onChange={e=>setForm({...form,transaction_type:e.target.value})}><option value="issue">Выдача</option><option value="return">Возврат</option><option value="write_off">Списание</option></select></div>
+      <div className="form-group"><label>СИЗ *</label><select className="form-control" value={form.siz_item_id||''} onChange={e=>setForm({...form,siz_item_id:e.target.value})}><option value="">Выберите</option>{data.items.map(i=><option key={i.id} value={i.id}>{i.category_name} → {i.name}</option>)}</select></div>
+      <div className="form-row"><div className="form-group"><label>Кол-во</label><input className="form-control" type="number" min="1" value={form.quantity} onChange={e=>setForm({...form,quantity:parseInt(e.target.value)||1})}/></div><div className="form-group"><label>Дата</label><input className="form-control" type="date" value={form.transaction_date||''} onChange={e=>setForm({...form,transaction_date:e.target.value})}/></div></div>
+      {form.transaction_type==='issue'&&<div className="form-group"><label>Срок до</label><input className="form-control" type="date" value={form.valid_until||''} onChange={e=>setForm({...form,valid_until:e.target.value})}/></div>}
+      <div className="form-group"><label>Документ</label><input className="form-control" value={form.document_reference||''} onChange={e=>setForm({...form,document_reference:e.target.value})}/></div>
+    </Modal></div>};
+
+const Directories=()=>{const{hasPerm}=useAuth();const[cats,setCats]=useState([]);const[items,setItems]=useState([]);const[selectedCat,setSelectedCat]=useState(null);const[showModal,setShowModal]=useState(null);const[form,setForm]=useState({});const[loading,setLoading]=useState(true);
+  const load=useCallback(()=>{Promise.all([API.get('/siz/categories'),API.get('/siz/items')]).then(([c,i])=>{setCats(c);setItems(i)}).catch(console.error).finally(()=>setLoading(false))},[]);
+  useEffect(()=>{load()},[load]);
+  const saveCat=async()=>{try{if(form.id)await API.put(`/siz/categories/${form.id}`,form);else await API.post('/siz/categories',form);setShowModal(null);setForm({});load()}catch(e){alert(e?.response?.data?.error||'Ошибка')}};
+  const saveItem=async()=>{try{if(form.id)await API.put(`/siz/items/${form.id}`,form);else await API.post('/siz/items',form);setShowModal(null);setForm({});load()}catch(e){alert(e?.response?.data?.error||'Ошибка')}};
+  const filtered=selectedCat?items.filter(i=>i.category_id===selectedCat):items;
+  if(loading)return <RnLoader/>;
+  return <div><div className="page-header"><h1>Справочники СИЗ</h1>{hasPerm('can_create')&&<div className="flex gap-2">
+    <button className="btn btn-outline" onClick={()=>{setForm({});setShowModal('cat')}}><I.plus style={{width:16,height:16}}/> Категория</button>
+    <button className="btn btn-primary" onClick={()=>{setForm({category_id:selectedCat||''});setShowModal('item')}}><I.plus style={{width:16,height:16}}/> Номенклатура</button></div>}</div>
     <div className="tabs"><button className={`tab ${!selectedCat?'active':''}`} onClick={()=>setSelectedCat(null)}>Все ({items.length})</button>
       {cats.map(c=><button key={c.id} className={`tab ${selectedCat===c.id?'active':''}`} onClick={()=>setSelectedCat(c.id)}>{c.name} ({items.filter(i=>i.category_id===c.id).length})</button>)}</div>
     <div className="card"><div className="table-container"><table><thead><tr><th>Наименование</th><th>Код</th><th>Категория</th><th>Ед. изм.</th><th>Срок носки (мес.)</th><th></th></tr></thead>
-      <tbody>{!filtered.length?<tr><td colSpan="6"><div className="empty-state"><div className="icon">📂</div>Нет номенклатуры</div></td></tr>:
-        filtered.map(item=><tr key={item.id}><td style={{fontWeight:500}}>{item.name}</td><td className="text-muted">{item.code||'—'}</td><td>{item.category_name}</td><td>{item.unit}</td><td>{item.wear_period_months||'—'}</td>
-        <td>{hasPerm('can_edit')&&<button className="btn btn-outline btn-sm" onClick={()=>{setForm(item);setShowModal('item')}}>✏️</button>}</td></tr>)}</tbody></table></div></div>
-    <Modal isOpen={showModal==='cat'} onClose={()=>setShowModal(null)} title={form.id?'Редактировать категорию':'Новая категория'}
-      footer={<><button className="btn btn-outline" onClick={()=>setShowModal(null)}>Отмена</button><button className="btn btn-primary" onClick={saveCat}>Сохранить</button></>}>
-      <div className="form-group"><label>Название</label><input className="form-control" value={form.name||''} onChange={e=>setForm({...form,name:e.target.value})} /></div>
-      <div className="form-row"><div className="form-group"><label>Код</label><input className="form-control" value={form.code||''} onChange={e=>setForm({...form,code:e.target.value})} /></div>
-        <div className="form-group"><label>Описание</label><input className="form-control" value={form.description||''} onChange={e=>setForm({...form,description:e.target.value})} /></div></div>
-    </Modal>
-    <Modal isOpen={showModal==='item'} onClose={()=>setShowModal(null)} title={form.id?'Редактировать':'Новая номенклатура'}
-      footer={<><button className="btn btn-outline" onClick={()=>setShowModal(null)}>Отмена</button><button className="btn btn-primary" onClick={saveItem}>Сохранить</button></>}>
-      <div className="form-group"><label>Название</label><input className="form-control" value={form.name||''} onChange={e=>setForm({...form,name:e.target.value})} /></div>
+      <tbody>{!filtered.length?<tr><td colSpan="6"><div className="empty-state"><div className="icon"><I.folder/></div>Нет номенклатуры</div></td></tr>:
+        filtered.map(item=><tr key={item.id}><td style={{fontWeight:600}}>{item.name}</td><td className="text-muted" style={{fontFamily:'JetBrains Mono,monospace',fontSize:12}}>{item.code||'—'}</td><td>{item.category_name}</td><td>{item.unit}</td><td>{item.wear_period_months||'—'}</td>
+        <td>{hasPerm('can_edit')&&<button className="btn btn-outline btn-sm" onClick={()=>{setForm(item);setShowModal('item')}}><I.edit style={{width:14,height:14}}/></button>}</td></tr>)}</tbody></table></div></div>
+    <Modal isOpen={showModal==='cat'} onClose={()=>setShowModal(null)} title={form.id?'Редактировать категорию':'Новая категория'} footer={<><button className="btn btn-outline" onClick={()=>setShowModal(null)}>Отмена</button><button className="btn btn-primary" onClick={saveCat}>Сохранить</button></>}>
+      <div className="form-group"><label>Название</label><input className="form-control" value={form.name||''} onChange={e=>setForm({...form,name:e.target.value})}/></div>
+      <div className="form-row"><div className="form-group"><label>Код</label><input className="form-control" value={form.code||''} onChange={e=>setForm({...form,code:e.target.value})}/></div>
+        <div className="form-group"><label>Описание</label><input className="form-control" value={form.description||''} onChange={e=>setForm({...form,description:e.target.value})}/></div></div></Modal>
+    <Modal isOpen={showModal==='item'} onClose={()=>setShowModal(null)} title={form.id?'Редактировать':'Новая номенклатура'} footer={<><button className="btn btn-outline" onClick={()=>setShowModal(null)}>Отмена</button><button className="btn btn-primary" onClick={saveItem}>Сохранить</button></>}>
+      <div className="form-group"><label>Название</label><input className="form-control" value={form.name||''} onChange={e=>setForm({...form,name:e.target.value})}/></div>
       <div className="form-row"><div className="form-group"><label>Категория</label><select className="form-control" value={form.category_id||''} onChange={e=>setForm({...form,category_id:e.target.value})}><option value="">Выберите</option>{cats.map(c=><option key={c.id} value={c.id}>{c.name}</option>)}</select></div>
-        <div className="form-group"><label>Код</label><input className="form-control" value={form.code||''} onChange={e=>setForm({...form,code:e.target.value})} /></div></div>
-      <div className="form-row"><div className="form-group"><label>Ед. измерения</label><input className="form-control" value={form.unit||'шт'} onChange={e=>setForm({...form,unit:e.target.value})} /></div>
-        <div className="form-group"><label>Срок носки (мес.)</label><input className="form-control" type="number" value={form.wear_period_months||''} onChange={e=>setForm({...form,wear_period_months:parseInt(e.target.value)||null})} /></div></div>
-    </Modal>
-  </div>;
-};
+        <div className="form-group"><label>Код</label><input className="form-control" value={form.code||''} onChange={e=>setForm({...form,code:e.target.value})}/></div></div>
+      <div className="form-row"><div className="form-group"><label>Ед. измерения</label><input className="form-control" value={form.unit||'шт'} onChange={e=>setForm({...form,unit:e.target.value})}/></div>
+        <div className="form-group"><label>Срок носки (мес.)</label><input className="form-control" type="number" value={form.wear_period_months||''} onChange={e=>setForm({...form,wear_period_months:parseInt(e.target.value)||null})}/></div></div></Modal>
+  </div>};
 
-// ============ POSITIONS ============
-const Positions = () => {
-  const { hasPerm } = useAuth();
-  const [positions, setPositions] = useState([]); const [items, setItems] = useState([]);
-  const [selected, setSelected] = useState(null); const [norms, setNorms] = useState([]);
-  const [showModal, setShowModal] = useState(null); const [form, setForm] = useState({});
-  const [loading, setLoading] = useState(true);
-  const load = useCallback(() => {
-    Promise.all([API.get('/positions'),API.get('/siz/items')]).then(([p,i])=>{setPositions(p);setItems(i);}).catch(console.error).finally(()=>setLoading(false));
-  }, []);
-  useEffect(()=>{load();},[load]);
-  const loadNorms = async id => { setSelected(id); try { setNorms(await API.get(`/positions/${id}/norms`)); } catch(e){console.error(e);} };
-  const savePos = async () => { try { if(form.id) await API.put(`/positions/${form.id}`,form); else await API.post('/positions',form); setShowModal(null);setForm({});load(); } catch(e){alert(e?.response?.data?.error||'Ошибка');} };
-  const saveNorm = async () => { try { await API.post(`/positions/${selected}/norms`,form); setShowModal(null);setForm({});loadNorms(selected); } catch(e){alert(e?.response?.data?.error||'Ошибка');} };
-  if(loading) return <RnLoader />;
-  return <div>
-    <div className="page-header"><h1>Реестр должностей</h1>{hasPerm('can_create')&&<button className="btn btn-primary" onClick={()=>{setForm({});setShowModal('pos')}}>+ Должность</button>}</div>
+const Positions=()=>{const{hasPerm}=useAuth();const[positions,setPositions]=useState([]);const[items,setItems]=useState([]);const[selected,setSelected]=useState(null);const[norms,setNorms]=useState([]);const[showModal,setShowModal]=useState(null);const[form,setForm]=useState({});const[loading,setLoading]=useState(true);
+  const load=useCallback(()=>{Promise.all([API.get('/positions'),API.get('/siz/items')]).then(([p,i])=>{setPositions(p);setItems(i)}).catch(console.error).finally(()=>setLoading(false))},[]);
+  useEffect(()=>{load()},[load]);
+  const loadNorms=async id=>{setSelected(id);try{setNorms(await API.get(`/positions/${id}/norms`))}catch(e){console.error(e)}};
+  const savePos=async()=>{try{if(form.id)await API.put(`/positions/${form.id}`,form);else await API.post('/positions',form);setShowModal(null);setForm({});load()}catch(e){alert(e?.response?.data?.error||'Ошибка')}};
+  const saveNorm=async()=>{try{await API.post(`/positions/${selected}/norms`,form);setShowModal(null);setForm({});loadNorms(selected)}catch(e){alert(e?.response?.data?.error||'Ошибка')}};
+  if(loading)return <RnLoader/>;
+  return <div><div className="page-header"><h1>Реестр должностей</h1>{hasPerm('can_create')&&<button className="btn btn-primary" onClick={()=>{setForm({});setShowModal('pos')}}><I.plus style={{width:16,height:16}}/> Должность</button>}</div>
     <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:16}}>
       <div className="card"><div className="card-header"><h3>Должности</h3></div><div className="table-container"><table><thead><tr><th>Должность</th><th>Уровень</th><th>Нормы</th><th>Сотр.</th><th></th></tr></thead>
-        <tbody>{positions.map(p=><tr key={p.id} onClick={()=>loadNorms(p.id)} style={{cursor:'pointer',background:selected===p.id?'var(--primary-light)':undefined}}>
-          <td style={{fontWeight:500}}>{p.name}</td><td className="text-muted">{p.level||'—'}</td><td>{p.norms_count}</td><td>{p.employees_count}</td>
-          <td>{hasPerm('can_edit')&&<button className="btn btn-outline btn-sm" onClick={e=>{e.stopPropagation();setForm(p);setShowModal('pos')}}>✏️</button>}</td>
-        </tr>)}{!positions.length&&<tr><td colSpan="5"><div className="empty-state">Нет должностей</div></td></tr>}</tbody></table></div></div>
-      <div className="card"><div className="card-header"><h3>Нормы выдачи {selected&&`— ${positions.find(p=>p.id===selected)?.name}`}</h3>
-        {selected&&hasPerm('can_create')&&<button className="btn btn-primary btn-sm" onClick={()=>{setForm({position_id:selected});setShowModal('norm')}}>+ Добавить</button>}</div>
-        {!selected?<div className="empty-state"><div className="icon">👈</div>Выберите должность</div>:
-        !norms.length?<div className="empty-state"><div className="icon">📋</div>Нормы не заданы</div>:
+        <tbody>{positions.map(p=><tr key={p.id} className="clickable-row" onClick={()=>loadNorms(p.id)} style={{background:selected===p.id?'rgba(56,189,248,.06)':undefined}}>
+          <td style={{fontWeight:600}}>{p.name}</td><td><span className="badge badge-default">{p.level||'—'}</span></td><td>{p.norms_count}</td><td>{p.employees_count}</td>
+          <td>{hasPerm('can_edit')&&<button className="btn btn-outline btn-sm" onClick={e=>{e.stopPropagation();setForm(p);setShowModal('pos')}}><I.edit style={{width:14,height:14}}/></button>}</td>
+        </tr>)}{!positions.length&&<tr><td colSpan="5"><div className="empty-state"><div className="icon"><I.briefcase/></div>Нет должностей</div></td></tr>}</tbody></table></div></div>
+      <div className="card"><div className="card-header"><h3>Нормы выдачи {selected&&<span className="text-muted">— {positions.find(p=>p.id===selected)?.name}</span>}</h3>
+        {selected&&hasPerm('can_create')&&<button className="btn btn-primary btn-sm" onClick={()=>{setForm({position_id:selected});setShowModal('norm')}}><I.plus style={{width:14,height:14}}/> Добавить</button>}</div>
+        {!selected?<div className="empty-state"><div className="icon"><I.arrowLeft/></div>Выберите должность</div>:
+        !norms.length?<div className="empty-state"><div className="icon"><I.fileText/></div>Нормы не заданы</div>:
         <div className="table-container"><table><thead><tr><th>СИЗ</th><th>Категория</th><th>Кол-во</th><th>Период (мес.)</th></tr></thead>
-          <tbody>{norms.map(n=><tr key={n.id}><td style={{fontWeight:500}}>{n.item_name}</td><td className="text-muted">{n.category_name}</td><td>{n.quantity} {n.unit}</td><td>{n.issue_period_months}</td></tr>)}</tbody></table></div>}
-      </div>
+          <tbody>{norms.map(n=><tr key={n.id}><td style={{fontWeight:600}}>{n.item_name}</td><td className="text-muted">{n.category_name}</td><td>{n.quantity} {n.unit}</td><td>{n.issue_period_months}</td></tr>)}</tbody></table></div>}</div>
     </div>
-    <Modal isOpen={showModal==='pos'} onClose={()=>setShowModal(null)} title={form.id?'Редактировать':'Новая должность'}
-      footer={<><button className="btn btn-outline" onClick={()=>setShowModal(null)}>Отмена</button><button className="btn btn-primary" onClick={savePos}>Сохранить</button></>}>
-      <div className="form-group"><label>Название</label><input className="form-control" value={form.name||''} onChange={e=>setForm({...form,name:e.target.value})} /></div>
-      <div className="form-row"><div className="form-group"><label>Код</label><input className="form-control" value={form.code||''} onChange={e=>setForm({...form,code:e.target.value})} /></div>
-        <div className="form-group"><label>Уровень</label><select className="form-control" value={form.level||''} onChange={e=>setForm({...form,level:e.target.value})}><option value="">—</option><option value="ia">ИА</option><option value="enterprise">Предприятие</option><option value="res">РЭС</option></select></div></div>
-    </Modal>
-    <Modal isOpen={showModal==='norm'} onClose={()=>setShowModal(null)} title="Добавить норму"
-      footer={<><button className="btn btn-outline" onClick={()=>setShowModal(null)}>Отмена</button><button className="btn btn-primary" onClick={saveNorm}>Сохранить</button></>}>
+    <Modal isOpen={showModal==='pos'} onClose={()=>setShowModal(null)} title={form.id?'Редактировать':'Новая должность'} footer={<><button className="btn btn-outline" onClick={()=>setShowModal(null)}>Отмена</button><button className="btn btn-primary" onClick={savePos}>Сохранить</button></>}>
+      <div className="form-group"><label>Название</label><input className="form-control" value={form.name||''} onChange={e=>setForm({...form,name:e.target.value})}/></div>
+      <div className="form-row"><div className="form-group"><label>Код</label><input className="form-control" value={form.code||''} onChange={e=>setForm({...form,code:e.target.value})}/></div>
+        <div className="form-group"><label>Уровень</label><select className="form-control" value={form.level||''} onChange={e=>setForm({...form,level:e.target.value})}><option value="">—</option><option value="ia">ИА</option><option value="enterprise">Предприятие</option><option value="res">РЭС</option></select></div></div></Modal>
+    <Modal isOpen={showModal==='norm'} onClose={()=>setShowModal(null)} title="Добавить норму" footer={<><button className="btn btn-outline" onClick={()=>setShowModal(null)}>Отмена</button><button className="btn btn-primary" onClick={saveNorm}>Сохранить</button></>}>
       <div className="form-group"><label>СИЗ</label><select className="form-control" value={form.siz_item_id||''} onChange={e=>setForm({...form,siz_item_id:e.target.value})}><option value="">Выберите</option>{items.map(i=><option key={i.id} value={i.id}>{i.category_name} → {i.name}</option>)}</select></div>
-      <div className="form-row"><div className="form-group"><label>Количество</label><input className="form-control" type="number" value={form.quantity||1} onChange={e=>setForm({...form,quantity:parseInt(e.target.value)||1})} /></div>
-        <div className="form-group"><label>Период (мес.)</label><input className="form-control" type="number" value={form.issue_period_months||12} onChange={e=>setForm({...form,issue_period_months:parseInt(e.target.value)||12})} /></div></div>
-    </Modal>
-  </div>;
-};
+      <div className="form-row"><div className="form-group"><label>Количество</label><input className="form-control" type="number" value={form.quantity||1} onChange={e=>setForm({...form,quantity:parseInt(e.target.value)||1})}/></div>
+        <div className="form-group"><label>Период (мес.)</label><input className="form-control" type="number" value={form.issue_period_months||12} onChange={e=>setForm({...form,issue_period_months:parseInt(e.target.value)||12})}/></div></div></Modal>
+  </div>};
 
-// ============ ORG STRUCTURE ============
-const OrgStructure = () => {
-  const { hasPerm } = useAuth();
-  const [tree, setTree] = useState([]); const [enterprises, setEnterprises] = useState([]);
-  const [expanded, setExpanded] = useState({});
-  const [showModal, setShowModal] = useState(null); const [form, setForm] = useState({});
-  const [loading, setLoading] = useState(true);
-  const load = useCallback(() => {
-    Promise.all([API.get('/org/tree'),API.get('/org/enterprises')]).then(([t,e])=>{
-      setTree(t); setEnterprises(e);
-      const ex = {}; t.forEach(o=>{ex[`o-${o.id}`]=true; o.enterprises?.forEach(e=>{ex[`e-${e.id}`]=true});}); setExpanded(ex);
-    }).catch(console.error).finally(()=>setLoading(false));
-  }, []);
-  useEffect(()=>{load();},[load]);
-  const toggle = k => setExpanded(p=>({...p,[k]:!p[k]}));
-  const save = async () => { try {
-    if(showModal==='org'){if(form.id)await API.put(`/org/organizations/${form.id}`,form);else await API.post('/org/organizations',form);}
-    if(showModal==='ent'){if(form.id)await API.put(`/org/enterprises/${form.id}`,form);else await API.post('/org/enterprises',form);}
-    if(showModal==='res'){if(form.id)await API.put(`/org/res-units/${form.id}`,form);else await API.post('/org/res-units',form);}
-    setShowModal(null);setForm({});load();
-  } catch(e){alert(e?.response?.data?.error||'Ошибка');} };
-  if(loading) return <RnLoader />;
-  return <div>
-    <div className="page-header"><h1>Оргструктура</h1>{hasPerm('can_create')&&<div className="flex gap-2">
-      <button className="btn btn-outline" onClick={()=>{setForm({});setShowModal('org')}}>+ Организация</button>
-      <button className="btn btn-outline" onClick={()=>{setForm({});setShowModal('ent')}}>+ Предприятие</button>
-      <button className="btn btn-primary" onClick={()=>{setForm({});setShowModal('res')}}>+ РЭС</button></div>}</div>
-    {!tree.length?<div className="card"><div className="empty-state"><div className="icon">🏢</div>Нет организаций</div></div>:
+const OrgStructure=()=>{const{hasPerm}=useAuth();const[tree,setTree]=useState([]);const[enterprises,setEnterprises]=useState([]);const[expanded,setExpanded]=useState({});const[showModal,setShowModal]=useState(null);const[form,setForm]=useState({});const[loading,setLoading]=useState(true);
+  const load=useCallback(()=>{Promise.all([API.get('/org/tree'),API.get('/org/enterprises')]).then(([t,e])=>{setTree(t);setEnterprises(e);const ex={};t.forEach(o=>{ex[`o-${o.id}`]=true;o.enterprises?.forEach(e=>{ex[`e-${e.id}`]=true})});setExpanded(ex)}).catch(console.error).finally(()=>setLoading(false))},[]);
+  useEffect(()=>{load()},[load]);
+  const toggle=k=>setExpanded(p=>({...p,[k]:!p[k]}));
+  const save=async()=>{try{
+    if(showModal==='org'){if(form.id)await API.put(`/org/organizations/${form.id}`,form);else await API.post('/org/organizations',form)}
+    if(showModal==='ent'){if(form.id)await API.put(`/org/enterprises/${form.id}`,form);else await API.post('/org/enterprises',form)}
+    if(showModal==='res'){if(form.id)await API.put(`/org/res-units/${form.id}`,form);else await API.post('/org/res-units',form)}
+    setShowModal(null);setForm({});load()}catch(e){alert(e?.response?.data?.error||'Ошибка')}};
+  if(loading)return <RnLoader/>;
+  return <div><div className="page-header"><h1>Оргструктура</h1>{hasPerm('can_create')&&<div className="flex gap-2">
+    <button className="btn btn-outline" onClick={()=>{setForm({});setShowModal('org')}}><I.plus style={{width:16,height:16}}/> Организация</button>
+    <button className="btn btn-outline" onClick={()=>{setForm({});setShowModal('ent')}}><I.plus style={{width:16,height:16}}/> Предприятие</button>
+    <button className="btn btn-primary" onClick={()=>{setForm({});setShowModal('res')}}><I.plus style={{width:16,height:16}}/> РЭС</button></div>}</div>
+    {!tree.length?<div className="card"><div className="empty-state"><div className="icon"><I.building/></div>Нет организаций</div></div>:
       tree.map(org=><div key={org.id} className="card" style={{marginBottom:12}}>
         <div className="tree-item" onClick={()=>toggle(`o-${org.id}`)}>
-          <div className="flex gap-2" style={{alignItems:'center'}}><span>{expanded[`o-${org.id}`]?'▼':'▶'}</span><span style={{fontSize:20}}>🏛️</span>
-            <div><div style={{fontWeight:600,fontSize:16}}>{org.name}</div><div className="text-muted" style={{fontSize:12}}>{org.code||''} · {org.enterprises?.length||0} предприятий</div></div></div>
-          {hasPerm('can_edit')&&<button className="btn btn-outline btn-sm" onClick={e=>{e.stopPropagation();setForm(org);setShowModal('org')}}>✏️</button>}</div>
+          <div className="flex gap-2" style={{alignItems:'center'}}><span style={{color:'var(--text-secondary)',fontSize:12}}>{expanded[`o-${org.id}`]?'▼':'▶'}</span><div className="tree-icon org"><I.building style={{width:16,height:16}}/></div>
+            <div><div style={{fontWeight:700,fontSize:15}}>{org.name}</div><div className="text-muted" style={{fontSize:12}}>{org.code||''} · {org.enterprises?.length||0} предприятий</div></div></div>
+          {hasPerm('can_edit')&&<button className="btn btn-outline btn-sm" onClick={e=>{e.stopPropagation();setForm(org);setShowModal('org')}}><I.edit style={{width:14,height:14}}/></button>}</div>
         {expanded[`o-${org.id}`]&&org.enterprises?.map(ent=><div key={ent.id} className="tree-branch">
           <div className="tree-item" onClick={()=>toggle(`e-${ent.id}`)}>
-            <div className="flex gap-2" style={{alignItems:'center'}}><span style={{fontSize:14}}>{expanded[`e-${ent.id}`]?'▼':'▶'}</span><span style={{fontSize:18}}>🏢</span>
-              <div><div style={{fontWeight:500}}>{ent.name}</div><div className="text-muted" style={{fontSize:12}}>{ent.code||''} · {ent.res_units?.length||0} РЭС</div></div></div>
-            {hasPerm('can_edit')&&<button className="btn btn-outline btn-sm" onClick={e=>{e.stopPropagation();setForm(ent);setShowModal('ent')}}>✏️</button>}</div>
+            <div className="flex gap-2" style={{alignItems:'center'}}><span style={{color:'var(--text-secondary)',fontSize:11}}>{expanded[`e-${ent.id}`]?'▼':'▶'}</span><div className="tree-icon ent"><I.building2 style={{width:16,height:16}}/></div>
+              <div><div style={{fontWeight:600}}>{ent.name}</div><div className="text-muted" style={{fontSize:12}}>{ent.code||''} · {ent.res_units?.length||0} РЭС</div></div></div>
+            {hasPerm('can_edit')&&<button className="btn btn-outline btn-sm" onClick={e=>{e.stopPropagation();setForm(ent);setShowModal('ent')}}><I.edit style={{width:14,height:14}}/></button>}</div>
           {expanded[`e-${ent.id}`]&&ent.res_units?.map(r=><div key={r.id} className="tree-branch">
-            <div className="tree-item"><div className="flex gap-2" style={{alignItems:'center'}}><span style={{fontSize:16}}>⚡</span>
-              <div><div style={{fontWeight:500}}>{r.name}</div><div className="text-muted" style={{fontSize:12}}>{r.code||''}</div></div></div>
-            {hasPerm('can_edit')&&<button className="btn btn-outline btn-sm" onClick={()=>{setForm(r);setShowModal('res')}}>✏️</button>}</div></div>)}
-        </div>)}
-      </div>)}
-    <Modal isOpen={showModal==='org'} onClose={()=>setShowModal(null)} title={form.id?'Редактировать организацию':'Новая организация'}
-      footer={<><button className="btn btn-outline" onClick={()=>setShowModal(null)}>Отмена</button><button className="btn btn-primary" onClick={save}>Сохранить</button></>}>
-      <div className="form-group"><label>Название</label><input className="form-control" value={form.name||''} onChange={e=>setForm({...form,name:e.target.value})} /></div>
-      <div className="form-group"><label>Код</label><input className="form-control" value={form.code||''} onChange={e=>setForm({...form,code:e.target.value})} /></div></Modal>
-    <Modal isOpen={showModal==='ent'} onClose={()=>setShowModal(null)} title={form.id?'Редактировать предприятие':'Новое предприятие'}
-      footer={<><button className="btn btn-outline" onClick={()=>setShowModal(null)}>Отмена</button><button className="btn btn-primary" onClick={save}>Сохранить</button></>}>
-      <div className="form-group"><label>Название</label><input className="form-control" value={form.name||''} onChange={e=>setForm({...form,name:e.target.value})} /></div>
-      <div className="form-group"><label>Код</label><input className="form-control" value={form.code||''} onChange={e=>setForm({...form,code:e.target.value})} /></div>
+            <div className="tree-item"><div className="flex gap-2" style={{alignItems:'center'}}><div className="tree-icon res"><I.zap style={{width:16,height:16}}/></div>
+              <div><div style={{fontWeight:600}}>{r.name}</div><div className="text-muted" style={{fontSize:12}}>{r.code||''}</div></div></div>
+            {hasPerm('can_edit')&&<button className="btn btn-outline btn-sm" onClick={()=>{setForm(r);setShowModal('res')}}><I.edit style={{width:14,height:14}}/></button>}</div></div>)}</div>)}</div>)}
+    <Modal isOpen={showModal==='org'} onClose={()=>setShowModal(null)} title={form.id?'Редактировать организацию':'Новая организация'} footer={<><button className="btn btn-outline" onClick={()=>setShowModal(null)}>Отмена</button><button className="btn btn-primary" onClick={save}>Сохранить</button></>}>
+      <div className="form-group"><label>Название</label><input className="form-control" value={form.name||''} onChange={e=>setForm({...form,name:e.target.value})}/></div>
+      <div className="form-group"><label>Код</label><input className="form-control" value={form.code||''} onChange={e=>setForm({...form,code:e.target.value})}/></div></Modal>
+    <Modal isOpen={showModal==='ent'} onClose={()=>setShowModal(null)} title={form.id?'Редактировать предприятие':'Новое предприятие'} footer={<><button className="btn btn-outline" onClick={()=>setShowModal(null)}>Отмена</button><button className="btn btn-primary" onClick={save}>Сохранить</button></>}>
+      <div className="form-group"><label>Название</label><input className="form-control" value={form.name||''} onChange={e=>setForm({...form,name:e.target.value})}/></div>
+      <div className="form-group"><label>Код</label><input className="form-control" value={form.code||''} onChange={e=>setForm({...form,code:e.target.value})}/></div>
       <div className="form-group"><label>Организация</label><select className="form-control" value={form.organization_id||''} onChange={e=>setForm({...form,organization_id:e.target.value})}><option value="">—</option>{tree.map(o=><option key={o.id} value={o.id}>{o.name}</option>)}</select></div></Modal>
-    <Modal isOpen={showModal==='res'} onClose={()=>setShowModal(null)} title={form.id?'Редактировать РЭС':'Новый РЭС'}
-      footer={<><button className="btn btn-outline" onClick={()=>setShowModal(null)}>Отмена</button><button className="btn btn-primary" onClick={save}>Сохранить</button></>}>
-      <div className="form-group"><label>Название</label><input className="form-control" value={form.name||''} onChange={e=>setForm({...form,name:e.target.value})} /></div>
-      <div className="form-group"><label>Код</label><input className="form-control" value={form.code||''} onChange={e=>setForm({...form,code:e.target.value})} /></div>
+    <Modal isOpen={showModal==='res'} onClose={()=>setShowModal(null)} title={form.id?'Редактировать РЭС':'Новый РЭС'} footer={<><button className="btn btn-outline" onClick={()=>setShowModal(null)}>Отмена</button><button className="btn btn-primary" onClick={save}>Сохранить</button></>}>
+      <div className="form-group"><label>Название</label><input className="form-control" value={form.name||''} onChange={e=>setForm({...form,name:e.target.value})}/></div>
+      <div className="form-group"><label>Код</label><input className="form-control" value={form.code||''} onChange={e=>setForm({...form,code:e.target.value})}/></div>
       <div className="form-group"><label>Предприятие</label><select className="form-control" value={form.enterprise_id||''} onChange={e=>setForm({...form,enterprise_id:e.target.value})}><option value="">—</option>{enterprises.map(e=><option key={e.id} value={e.id}>{e.name}</option>)}</select></div></Modal>
-  </div>;
-};
+  </div>};
 
-// ============ ADMIN: USERS ============
-const AdminUsers = () => {
-  const [users, setUsers] = useState([]); const [roles, setRoles] = useState([]);
-  const [orgs, setOrgs] = useState([]); const [ents, setEnts] = useState([]); const [resU, setResU] = useState([]);
-  const [showModal, setShowModal] = useState(false); const [form, setForm] = useState({});
-  const [loading, setLoading] = useState(true);
-  const load = useCallback(() => {
-    Promise.all([API.get('/admin/users'),API.get('/auth/roles'),API.get('/org/organizations'),API.get('/org/enterprises'),API.get('/org/res-units')])
-      .then(([u,r,o,e,res])=>{setUsers(u);setRoles(r);setOrgs(o);setEnts(e);setResU(res);}).catch(console.error).finally(()=>setLoading(false));
-  }, []);
-  useEffect(()=>{load();},[load]);
-  const save = async () => { try { await API.post('/auth/register',form); setShowModal(false);setForm({});load(); } catch(e){alert(e?.response?.data?.error||'Ошибка');} };
-  if(loading) return <RnLoader />;
-  return <div>
-    <div className="page-header"><h1>Пользователи ({users.length})</h1><button className="btn btn-primary" onClick={()=>{setForm({});setShowModal(true)}}>+ Пользователь</button></div>
+const AdminUsers=()=>{const[users,setUsers]=useState([]);const[roles,setRoles]=useState([]);const[orgs,setOrgs]=useState([]);const[ents,setEnts]=useState([]);const[resU,setResU]=useState([]);const[showModal,setShowModal]=useState(false);const[form,setForm]=useState({});const[loading,setLoading]=useState(true);
+  const load=useCallback(()=>{Promise.all([API.get('/admin/users'),API.get('/auth/roles'),API.get('/org/organizations'),API.get('/org/enterprises'),API.get('/org/res-units')]).then(([u,r,o,e,res])=>{setUsers(u);setRoles(r);setOrgs(o);setEnts(e);setResU(res)}).catch(console.error).finally(()=>setLoading(false))},[]);
+  useEffect(()=>{load()},[load]);
+  const save=async()=>{try{await API.post('/auth/register',form);setShowModal(false);setForm({});load()}catch(e){alert(e?.response?.data?.error||'Ошибка')}};
+  if(loading)return <RnLoader/>;
+  return <div><div className="page-header"><h1>Пользователи <span className="text-muted" style={{fontWeight:400,fontSize:16}}>({users.length})</span></h1><button className="btn btn-primary" onClick={()=>{setForm({});setShowModal(true)}}><I.plus style={{width:16,height:16}}/> Пользователь</button></div>
     <div className="card"><div className="table-container"><table><thead><tr><th>Логин</th><th>ФИО</th><th>Роль</th><th>Уровень</th><th>Привязка</th><th>Последний вход</th><th>Статус</th></tr></thead>
-      <tbody>{users.map(u=><tr key={u.id}><td style={{fontWeight:500}}>{u.username}</td><td>{u.full_name||'—'}</td><td>{u.role_name||'—'}</td><td><span className="badge">{u.role_level||'—'}</span></td>
-        <td className="text-muted">{u.organization_name||u.enterprise_name||u.res_name||'—'}</td><td className="text-muted">{fmtDateTime(u.last_login)}</td>
+      <tbody>{users.map(u=><tr key={u.id}><td style={{fontWeight:600,fontFamily:'JetBrains Mono,monospace',fontSize:12}}>{u.username}</td><td>{u.full_name||'—'}</td><td>{u.role_name||'—'}</td><td><span className="badge badge-default">{u.role_level||'—'}</span></td>
+        <td className="text-muted">{u.organization_name||u.enterprise_name||u.res_name||'—'}</td><td className="text-muted" style={{fontFamily:'JetBrains Mono,monospace',fontSize:11}}>{fmtDateTime(u.last_login)}</td>
         <td>{u.is_active?<span className="badge badge-success">Активен</span>:<span className="badge badge-danger">Отключен</span>}</td></tr>)}</tbody></table></div></div>
-    <Modal isOpen={showModal} onClose={()=>setShowModal(false)} title="Новый пользователь"
-      footer={<><button className="btn btn-outline" onClick={()=>setShowModal(false)}>Отмена</button><button className="btn btn-primary" onClick={save}>Сохранить</button></>}>
-      <div className="form-row"><div className="form-group"><label>Логин *</label><input className="form-control" value={form.username||''} onChange={e=>setForm({...form,username:e.target.value})} /></div>
-        <div className="form-group"><label>Пароль *</label><input className="form-control" type="password" value={form.password||''} onChange={e=>setForm({...form,password:e.target.value})} /></div></div>
-      <div className="form-group"><label>ФИО *</label><input className="form-control" value={form.full_name||''} onChange={e=>setForm({...form,full_name:e.target.value})} /></div>
-      <div className="form-row"><div className="form-group"><label>Email</label><input className="form-control" value={form.email||''} onChange={e=>setForm({...form,email:e.target.value})} /></div>
-        <div className="form-group"><label>Телефон</label><input className="form-control" value={form.phone||''} onChange={e=>setForm({...form,phone:e.target.value})} /></div></div>
+    <Modal isOpen={showModal} onClose={()=>setShowModal(false)} title="Новый пользователь" footer={<><button className="btn btn-outline" onClick={()=>setShowModal(false)}>Отмена</button><button className="btn btn-primary" onClick={save}>Сохранить</button></>}>
+      <div className="form-row"><div className="form-group"><label>Логин *</label><input className="form-control" value={form.username||''} onChange={e=>setForm({...form,username:e.target.value})}/></div>
+        <div className="form-group"><label>Пароль *</label><input className="form-control" type="password" value={form.password||''} onChange={e=>setForm({...form,password:e.target.value})}/></div></div>
+      <div className="form-group"><label>ФИО *</label><input className="form-control" value={form.full_name||''} onChange={e=>setForm({...form,full_name:e.target.value})}/></div>
+      <div className="form-row"><div className="form-group"><label>Email</label><input className="form-control" value={form.email||''} onChange={e=>setForm({...form,email:e.target.value})}/></div>
+        <div className="form-group"><label>Телефон</label><input className="form-control" value={form.phone||''} onChange={e=>setForm({...form,phone:e.target.value})}/></div></div>
       <div className="form-group"><label>Роль *</label><select className="form-control" value={form.role_id||''} onChange={e=>setForm({...form,role_id:e.target.value})}><option value="">—</option>{roles.map(r=><option key={r.id} value={r.id}>{r.display_name} ({r.level})</option>)}</select></div>
       <div className="form-row"><div className="form-group"><label>Организация</label><select className="form-control" value={form.organization_id||''} onChange={e=>setForm({...form,organization_id:e.target.value||null})}><option value="">—</option>{orgs.map(o=><option key={o.id} value={o.id}>{o.name}</option>)}</select></div>
         <div className="form-group"><label>Предприятие</label><select className="form-control" value={form.enterprise_id||''} onChange={e=>setForm({...form,enterprise_id:e.target.value||null})}><option value="">—</option>{ents.map(e=><option key={e.id} value={e.id}>{e.name}</option>)}</select></div>
         <div className="form-group"><label>РЭС</label><select className="form-control" value={form.res_unit_id||''} onChange={e=>setForm({...form,res_unit_id:e.target.value||null})}><option value="">—</option>{resU.map(r=><option key={r.id} value={r.id}>{r.name}</option>)}</select></div></div>
-    </Modal>
-  </div>;
-};
+    </Modal></div>};
 
-// ============ ADMIN: AUDIT ============
-const AdminAudit = () => {
-  const [logs, setLogs] = useState([]); const [filters, setFilters] = useState({table_name:'',action:''});
-  const [loading, setLoading] = useState(true);
-  const load = useCallback(() => {
-    const p = new URLSearchParams(); Object.entries(filters).forEach(([k,v])=>{if(v)p.append(k,v)});
-    API.get(`/admin/audit?${p}`).then(setLogs).catch(console.error).finally(()=>setLoading(false));
-  }, [filters]);
-  useEffect(()=>{load();},[load]);
-  const actionLabel = a=>({create:'Создание',update:'Изменение',delete:'Удаление'}[a]||a);
-  const actionBadge = a=>({create:'badge badge-success',update:'badge badge-warning',delete:'badge badge-danger'}[a]||'badge');
-  const tblLabel = t=>({employees:'Сотрудники',siz_items:'СИЗ',siz_transactions:'Транзакции',positions:'Должности',siz_categories:'Категории'}[t]||t);
-  if(loading) return <RnLoader />;
-  return <div>
-    <div className="page-header"><h1>Журнал аудита</h1><span className="text-muted">Последние 100</span></div>
+const AdminAudit=()=>{const[logs,setLogs]=useState([]);const[filters,setFilters]=useState({table_name:'',action:''});const[loading,setLoading]=useState(true);
+  const load=useCallback(()=>{const p=new URLSearchParams();Object.entries(filters).forEach(([k,v])=>{if(v)p.append(k,v)});API.get(`/admin/audit?${p}`).then(setLogs).catch(console.error).finally(()=>setLoading(false))},[filters]);
+  useEffect(()=>{load()},[load]);
+  const actionLabel=a=>({create:'Создание',update:'Изменение',delete:'Удаление'}[a]||a);
+  const actionBadge=a=>({create:'badge badge-success',update:'badge badge-warning',delete:'badge badge-danger'}[a]||'badge badge-default');
+  const tblLabel=t=>({employees:'Сотрудники',siz_items:'СИЗ',siz_transactions:'Транзакции',positions:'Должности',siz_categories:'Категории'}[t]||t);
+  if(loading)return <RnLoader/>;
+  return <div><div className="page-header"><h1>Журнал аудита</h1><span className="text-muted">Последние 100</span></div>
     <div className="card" style={{marginBottom:16}}><div className="form-row">
       <div className="form-group"><select className="form-control" value={filters.table_name} onChange={e=>setFilters({...filters,table_name:e.target.value})}><option value="">Все таблицы</option><option value="employees">Сотрудники</option><option value="siz_items">СИЗ</option><option value="siz_transactions">Транзакции</option><option value="positions">Должности</option></select></div>
-      <div className="form-group"><select className="form-control" value={filters.action} onChange={e=>setFilters({...filters,action:e.target.value})}><option value="">Все действия</option><option value="create">Создание</option><option value="update">Изменение</option><option value="delete">Удаление</option></select></div>
-    </div></div>
+      <div className="form-group"><select className="form-control" value={filters.action} onChange={e=>setFilters({...filters,action:e.target.value})}><option value="">Все действия</option><option value="create">Создание</option><option value="update">Изменение</option><option value="delete">Удаление</option></select></div></div></div>
     <div className="card"><div className="table-container"><table><thead><tr><th>Дата/время</th><th>Пользователь</th><th>Действие</th><th>Таблица</th><th>Изменения</th></tr></thead>
-      <tbody>{!logs.length?<tr><td colSpan="5"><div className="empty-state"><div className="icon">📜</div>Нет записей</div></td></tr>:
-        logs.map(l=><tr key={l.id}><td className="text-muted" style={{whiteSpace:'nowrap'}}>{fmtDateTime(l.created_at)}</td><td style={{fontWeight:500}}>{l.user_name||l.username||'—'}</td>
+      <tbody>{!logs.length?<tr><td colSpan="5"><div className="empty-state"><div className="icon"><I.scroll/></div>Нет записей</div></td></tr>:
+        logs.map(l=><tr key={l.id}><td className="text-muted" style={{whiteSpace:'nowrap',fontFamily:'JetBrains Mono,monospace',fontSize:11}}>{fmtDateTime(l.created_at)}</td><td style={{fontWeight:600}}>{l.user_name||l.username||'—'}</td>
           <td><span className={actionBadge(l.action)}>{actionLabel(l.action)}</span></td><td>{tblLabel(l.table_name)}</td>
-          <td>{l.changes&&<details><summary>Просмотр</summary><pre>{JSON.stringify(l.changes,null,2)}</pre></details>}</td></tr>)}</tbody></table></div></div>
-  </div>;
-};
+          <td>{l.changes&&<details><summary>Просмотр</summary><pre>{JSON.stringify(l.changes,null,2)}</pre></details>}</td></tr>)}</tbody></table></div></div></div>};
 
-// ============ MAIN APP ============
-const App = () => {
-  const { user, logout, hasPerm, isLevel } = useAuth();
-  const { path, navigate } = useRoute();
-
-  // Hide initial fullscreen loader
-  useEffect(() => {
-    const el = document.getElementById('initialLoader');
-    if (el) { el.classList.add('hidden'); setTimeout(() => el.remove(), 600); }
-  }, []);
-
-  if (!user) return <LoginPage />;
-  if (path === '/login') { navigate('/'); return null; }
-
-  // Route matching
-  const empMatch = path.match(/^\/employees\/(.+)$/);
-  let content;
-  if (path === '/' || path === '') content = <Dashboard />;
-  else if (path === '/employees') content = <Employees navigate={navigate} />;
-  else if (empMatch) content = <EmployeeCard id={empMatch[1]} navigate={navigate} />;
-  else if (path === '/transactions') content = <Transactions navigate={navigate} />;
-  else if (path === '/directories') content = <Directories />;
-  else if (path === '/positions') content = <Positions />;
-  else if (path === '/org-structure') content = <OrgStructure />;
-  else if (path === '/admin/users' && isLevel(['ia'])) content = <AdminUsers />;
-  else if (path === '/admin/audit' && isLevel(['ia'])) content = <AdminAudit />;
-  else content = <Dashboard />;
-
-  const NavLink = ({ to, children }) => (
-    <a href={`#${to}`} className={`nav-link ${path===to?'active':''}`}>{children}</a>
-  );
-
+const App=()=>{const{user,logout,hasPerm,isLevel}=useAuth();const{path,navigate}=useRoute();
+  useEffect(()=>{const el=document.getElementById('initialLoader');if(el){el.classList.add('hidden');setTimeout(()=>el.remove(),600)}},[]);
+  if(!user)return <LoginPage/>;if(path==='/login'){navigate('/');return null}
+  const empMatch=path.match(/^\/employees\/(.+)$/);let content;
+  if(path==='/'||path==='')content=<Dashboard/>;
+  else if(path==='/employees')content=<Employees navigate={navigate}/>;
+  else if(empMatch)content=<EmployeeCard id={empMatch[1]} navigate={navigate}/>;
+  else if(path==='/transactions')content=<Transactions navigate={navigate}/>;
+  else if(path==='/directories')content=<Directories/>;
+  else if(path==='/positions')content=<Positions/>;
+  else if(path==='/org-structure')content=<OrgStructure/>;
+  else if(path==='/admin/users'&&isLevel(['ia']))content=<AdminUsers/>;
+  else if(path==='/admin/audit'&&isLevel(['ia']))content=<AdminAudit/>;
+  else content=<Dashboard/>;
+  const NavLink=({to,icon:Icon,children})=>(<a href={`#${to}`} className={`nav-link ${path===to?'active':''}`}><Icon/>{children}</a>);
   return <div className="app-layout">
     <aside className="sidebar">
-      <div className="sidebar-header"><h2>🦺 СИЗ</h2></div>
-      <div className="sidebar-user"><div style={{fontWeight:600,color:'#fff'}}>{user.full_name}</div><div className="role">{user.role_display_name}</div></div>
+      <div className="sidebar-header"><div className="logo-icon"><I.shield style={{width:20,height:20,color:'#0B0F19'}}/></div><div><div className="logo-text">СИЗ</div><div className="logo-sub">Учёт и движение</div></div></div>
+      <div className="sidebar-user"><div className="avatar"><I.user/></div><div><div className="uname">{user.full_name}</div><div className="role">{user.role_display_name}</div></div></div>
       <nav>
         <div className="nav-section">Основное</div>
-        <NavLink to="/">📊 Панель управления</NavLink>
-        <NavLink to="/employees">👥 Сотрудники</NavLink>
-        <NavLink to="/transactions">📋 Движение СИЗ</NavLink>
+        <NavLink to="/" icon={I.dashboard}>Панель управления</NavLink>
+        <NavLink to="/employees" icon={I.users}>Сотрудники</NavLink>
+        <NavLink to="/transactions" icon={I.clipboard}>Движение СИЗ</NavLink>
         <div className="nav-section">Справочники</div>
-        <NavLink to="/directories">📂 Категории СИЗ</NavLink>
-        <NavLink to="/positions">💼 Должности</NavLink>
-        <NavLink to="/org-structure">🏢 Оргструктура</NavLink>
-        {isLevel(['ia']) && <>
-          <div className="nav-section">Администрирование</div>
-          <NavLink to="/admin/users">👤 Пользователи</NavLink>
-          <NavLink to="/admin/audit">📜 Журнал аудита</NavLink>
-        </>}
+        <NavLink to="/directories" icon={I.folder}>Категории СИЗ</NavLink>
+        <NavLink to="/positions" icon={I.briefcase}>Должности</NavLink>
+        <NavLink to="/org-structure" icon={I.building}>Оргструктура</NavLink>
+        {isLevel(['ia'])&&<><div className="nav-section">Администрирование</div>
+          <NavLink to="/admin/users" icon={I.user}>Пользователи</NavLink>
+          <NavLink to="/admin/audit" icon={I.scroll}>Журнал аудита</NavLink></>}
       </nav>
-      <div className="sidebar-footer">
-        <button onClick={()=>{logout();navigate('/login')}} className="btn btn-outline" style={{width:'100%',color:'#fff',borderColor:'rgba(255,255,255,.2)'}}>Выйти</button>
-      </div>
+      <div className="sidebar-footer"><button onClick={()=>{logout();navigate('/login')}} className="btn btn-outline" style={{width:'100%',justifyContent:'center',color:'var(--text-secondary)',borderColor:'var(--border)'}}><I.logOut style={{width:16,height:16}}/> Выйти</button></div>
     </aside>
     <main className="main-content">{content}</main>
-  </div>;
-};
+  </div>};
 
-// ============ RENDER ============
-ReactDOM.createRoot(document.getElementById('root')).render(<AuthProvider><App /></AuthProvider>);
+ReactDOM.createRoot(document.getElementById('root')).render(<AuthProvider><App/></AuthProvider>);
 </script>
 </body>
 </html>
