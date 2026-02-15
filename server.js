@@ -463,6 +463,248 @@ app.get('/api/ton/items-for-employee/:employeeId', auth, async (req, res) => {
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
+// ============ ROUTES: SIZE REFERENCES ============
+
+app.get('/api/sizes', auth, async (req, res) => {
+  try {
+    let sql = 'SELECT * FROM size_references';
+    const p = [];
+    if (req.query.category_type) {
+      p.push(req.query.category_type);
+      sql += ` WHERE category_type = $1`;
+    }
+    sql += ' ORDER BY category_type, sort_order';
+    res.json((await db(sql, p)).rows);
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// ============ ROUTES: WAREHOUSES ============
+
+// Список складов
+app.get('/api/warehouses', auth, async (req, res) => {
+  try {
+    let sql = `SELECT w.*, sp.name as spbipk_name, r.name as res_name, e.name as enterprise_name
+      FROM warehouses w
+      LEFT JOIN spbipk sp ON w.spbipk_id = sp.id
+      LEFT JOIN res_units r ON w.res_unit_id = r.id
+      LEFT JOIN enterprises e ON w.enterprise_id = e.id
+      WHERE w.is_active = true`;
+    const p = [];
+    if (req.query.warehouse_type) { p.push(req.query.warehouse_type); sql += ` AND w.warehouse_type = $${p.length}`; }
+    if (req.query.enterprise_id) { p.push(req.query.enterprise_id); sql += ` AND w.enterprise_id = $${p.length}`; }
+    if (req.user.role_level === 'enterprise') { p.push(req.user.enterprise_id); sql += ` AND w.enterprise_id = $${p.length}`; }
+    else if (req.user.role_level === 'res') { p.push(req.user.res_unit_id); sql += ` AND (w.res_unit_id = $${p.length})`; }
+    sql += ' ORDER BY w.warehouse_type, w.name';
+    res.json((await db(sql, p)).rows);
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// Создать склад
+app.post('/api/warehouses', auth, perm('can_create'), async (req, res) => {
+  try {
+    const { name, warehouse_type, spbipk_id, res_unit_id, enterprise_id } = req.body;
+    if (!name || !warehouse_type) return res.status(400).json({ error: 'name и warehouse_type обязательны' });
+    const r = await db(
+      `INSERT INTO warehouses (name, warehouse_type, spbipk_id, res_unit_id, enterprise_id) VALUES ($1,$2,$3,$4,$5) RETURNING *`,
+      [name, warehouse_type, spbipk_id || null, res_unit_id || null, enterprise_id || null]);
+    await audit(req.user.id, 'warehouses', r.rows[0].id, 'create', req.body, req.ip);
+    res.status(201).json(r.rows[0]);
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// Остатки склада (сгруппированные для дерева: item → gender → size → qty)
+app.get('/api/warehouses/:id/stock', auth, async (req, res) => {
+  try {
+    const sql = `SELECT ws.id, ws.siz_item_id, ws.size_value, ws.quantity,
+      i.name as item_name, i.code as item_code, i.unit, i.gender as item_gender, i.season,
+      i.exploitation_years, c.name as category_name, c.code as category_code
+      FROM warehouse_stock ws
+      JOIN siz_items i ON ws.siz_item_id = i.id
+      LEFT JOIN siz_categories c ON i.category_id = c.id
+      WHERE ws.warehouse_id = $1 AND ws.quantity > 0
+      ORDER BY c.name, i.name, i.gender, ws.size_value`;
+    res.json((await db(sql, [req.params.id])).rows);
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// Приход на склад (receipt)
+app.post('/api/warehouses/:id/receipt', auth, perm('can_create'), async (req, res) => {
+  try {
+    const { siz_item_id, size_value, quantity, document_reference, notes, movement_date } = req.body;
+    if (!siz_item_id || !quantity || quantity < 1)
+      return res.status(400).json({ error: 'siz_item_id и quantity обязательны' });
+    const sv = size_value || '';
+    // Обновить остаток
+    await db(`INSERT INTO warehouse_stock (warehouse_id, siz_item_id, size_value, quantity)
+      VALUES ($1,$2,$3,$4) ON CONFLICT (warehouse_id, siz_item_id, size_value)
+      DO UPDATE SET quantity = warehouse_stock.quantity + $4`,
+      [req.params.id, siz_item_id, sv, quantity]);
+    // Записать движение
+    const r = await db(`INSERT INTO stock_movements
+      (movement_type, siz_item_id, size_value, quantity, to_warehouse_id, document_reference, notes, moved_by, movement_date)
+      VALUES ('receipt',$1,$2,$3,$4,$5,$6,$7,$8) RETURNING *`,
+      [siz_item_id, sv, quantity, req.params.id, document_reference||null, notes||null, req.user.id,
+       movement_date || new Date().toISOString().split('T')[0]]);
+    await audit(req.user.id, 'stock_movements', r.rows[0].id, 'create', req.body, req.ip);
+    res.status(201).json(r.rows[0]);
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// Перемещение между складами (transfer)
+app.post('/api/warehouses/transfer', auth, perm('can_create'), async (req, res) => {
+  try {
+    const { from_warehouse_id, to_warehouse_id, siz_item_id, size_value, quantity, document_reference, notes, movement_date } = req.body;
+    if (!from_warehouse_id || !to_warehouse_id || !siz_item_id || !quantity)
+      return res.status(400).json({ error: 'Все поля обязательны' });
+    const sv = size_value || '';
+    // Проверить остаток
+    const stock = await db('SELECT quantity FROM warehouse_stock WHERE warehouse_id=$1 AND siz_item_id=$2 AND size_value=$3',
+      [from_warehouse_id, siz_item_id, sv]);
+    const available = stock.rows[0]?.quantity || 0;
+    if (available < quantity) return res.status(400).json({ error: `Недостаточно на складе (есть: ${available})` });
+    // Минус с источника
+    await db('UPDATE warehouse_stock SET quantity = quantity - $1 WHERE warehouse_id=$2 AND siz_item_id=$3 AND size_value=$4',
+      [quantity, from_warehouse_id, siz_item_id, sv]);
+    // Плюс на приёмник
+    await db(`INSERT INTO warehouse_stock (warehouse_id, siz_item_id, size_value, quantity)
+      VALUES ($1,$2,$3,$4) ON CONFLICT (warehouse_id, siz_item_id, size_value)
+      DO UPDATE SET quantity = warehouse_stock.quantity + $4`,
+      [to_warehouse_id, siz_item_id, sv, quantity]);
+    // Движение
+    const r = await db(`INSERT INTO stock_movements
+      (movement_type, siz_item_id, size_value, quantity, from_warehouse_id, to_warehouse_id, document_reference, notes, moved_by, movement_date)
+      VALUES ('transfer',$1,$2,$3,$4,$5,$6,$7,$8,$9) RETURNING *`,
+      [siz_item_id, sv, quantity, from_warehouse_id, to_warehouse_id, document_reference||null, notes||null, req.user.id,
+       movement_date || new Date().toISOString().split('T')[0]]);
+    await audit(req.user.id, 'stock_movements', r.rows[0].id, 'create', req.body, req.ip);
+    res.status(201).json(r.rows[0]);
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// Выдача сотруднику (issue) — со склада РЭС
+app.post('/api/warehouses/:id/issue', auth, perm('can_create'), async (req, res) => {
+  try {
+    const { employee_id, siz_item_id, size_value, quantity, document_reference, notes, movement_date } = req.body;
+    if (!employee_id || !siz_item_id || !quantity)
+      return res.status(400).json({ error: 'employee_id, siz_item_id, quantity обязательны' });
+    const sv = size_value || '';
+    const md = movement_date || new Date().toISOString().split('T')[0];
+    // Проверить остаток
+    const stock = await db('SELECT quantity FROM warehouse_stock WHERE warehouse_id=$1 AND siz_item_id=$2 AND size_value=$3',
+      [req.params.id, siz_item_id, sv]);
+    const available = stock.rows[0]?.quantity || 0;
+    if (available < quantity) return res.status(400).json({ error: `Недостаточно на складе (есть: ${available})` });
+    // Минус со склада
+    await db('UPDATE warehouse_stock SET quantity = quantity - $1 WHERE warehouse_id=$2 AND siz_item_id=$3 AND size_value=$4',
+      [quantity, req.params.id, siz_item_id, sv]);
+    // Получить exploitation_years для расчёта
+    const itemR = await db('SELECT exploitation_years FROM siz_items WHERE id=$1', [siz_item_id]);
+    const expYears = itemR.rows[0]?.exploitation_years;
+    // Записать на сотрудника
+    await db(`INSERT INTO employee_siz (employee_id, siz_item_id, size_value, quantity, issued_date, exploitation_start, from_warehouse_id)
+      VALUES ($1,$2,$3,$4,$5,$6,$7)`,
+      [employee_id, siz_item_id, sv, quantity, md, expYears ? md : null, req.params.id]);
+    // Движение
+    const r = await db(`INSERT INTO stock_movements
+      (movement_type, siz_item_id, size_value, quantity, from_warehouse_id, employee_id, document_reference, notes, moved_by, movement_date)
+      VALUES ('issue',$1,$2,$3,$4,$5,$6,$7,$8,$9) RETURNING *`,
+      [siz_item_id, sv, quantity, req.params.id, employee_id, document_reference||null, notes||null, req.user.id, md]);
+    await audit(req.user.id, 'stock_movements', r.rows[0].id, 'create', req.body, req.ip);
+    res.status(201).json(r.rows[0]);
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// Возврат от сотрудника на склад (return)
+app.post('/api/warehouses/:id/return', auth, perm('can_create'), async (req, res) => {
+  try {
+    const { employee_siz_id, quantity, document_reference, notes, movement_date } = req.body;
+    if (!employee_siz_id || !quantity)
+      return res.status(400).json({ error: 'employee_siz_id и quantity обязательны' });
+    const md = movement_date || new Date().toISOString().split('T')[0];
+    // Найти запись
+    const es = await db('SELECT * FROM employee_siz WHERE id=$1 AND status=$2', [employee_siz_id, 'active']);
+    if (!es.rows.length) return res.status(404).json({ error: 'Запись не найдена или уже возвращена' });
+    const rec = es.rows[0];
+    if (quantity > rec.quantity) return res.status(400).json({ error: `У сотрудника только ${rec.quantity}` });
+    // Считаем паузу эксплуатации
+    let pausedDays = rec.exploitation_paused_days || 0;
+    if (rec.exploitation_start) {
+      const startDate = new Date(rec.exploitation_start);
+      const now = new Date(md);
+      const usedDays = Math.floor((now - startDate) / 86400000);
+      pausedDays = usedDays; // сохраняем сколько дней эксплуатировалось
+    }
+    if (quantity >= rec.quantity) {
+      // Полный возврат
+      await db('UPDATE employee_siz SET status=$1, returned_date=$2, exploitation_paused_days=$3 WHERE id=$4',
+        ['returned', md, pausedDays, employee_siz_id]);
+    } else {
+      // Частичный возврат
+      await db('UPDATE employee_siz SET quantity = quantity - $1 WHERE id=$2', [quantity, employee_siz_id]);
+    }
+    // Плюс на склад
+    await db(`INSERT INTO warehouse_stock (warehouse_id, siz_item_id, size_value, quantity)
+      VALUES ($1,$2,$3,$4) ON CONFLICT (warehouse_id, siz_item_id, size_value)
+      DO UPDATE SET quantity = warehouse_stock.quantity + $4`,
+      [req.params.id, rec.siz_item_id, rec.size_value, quantity]);
+    // Движение
+    const r = await db(`INSERT INTO stock_movements
+      (movement_type, siz_item_id, size_value, quantity, to_warehouse_id, employee_id, document_reference, notes, moved_by, movement_date)
+      VALUES ('return',$1,$2,$3,$4,$5,$6,$7,$8,$9) RETURNING *`,
+      [rec.siz_item_id, rec.size_value, quantity, req.params.id, rec.employee_id,
+       document_reference||null, notes||null, req.user.id, md]);
+    await audit(req.user.id, 'stock_movements', r.rows[0].id, 'create', req.body, req.ip);
+    res.status(201).json(r.rows[0]);
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// История движений по складу
+app.get('/api/warehouses/:id/movements', auth, async (req, res) => {
+  try {
+    const sql = `SELECT m.*, i.name as item_name, i.unit, c.name as category_name,
+      fw.name as from_warehouse_name, tw.name as to_warehouse_name,
+      e.last_name, e.first_name, e.middle_name, u.full_name as moved_by_name
+      FROM stock_movements m
+      JOIN siz_items i ON m.siz_item_id = i.id
+      LEFT JOIN siz_categories c ON i.category_id = c.id
+      LEFT JOIN warehouses fw ON m.from_warehouse_id = fw.id
+      LEFT JOIN warehouses tw ON m.to_warehouse_id = tw.id
+      LEFT JOIN employees e ON m.employee_id = e.id
+      LEFT JOIN users u ON m.moved_by = u.id
+      WHERE m.from_warehouse_id = $1 OR m.to_warehouse_id = $1
+      ORDER BY m.created_at DESC LIMIT 200`;
+    res.json((await db(sql, [req.params.id])).rows);
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// СИЗ на руках у конкретного сотрудника (для карточки)
+app.get('/api/employee-siz/:employeeId', auth, async (req, res) => {
+  try {
+    const sql = `SELECT es.*, i.name as item_name, i.unit, i.exploitation_years,
+      i.gender as item_gender, i.season, c.name as category_name, w.name as warehouse_name
+      FROM employee_siz es
+      JOIN siz_items i ON es.siz_item_id = i.id
+      LEFT JOIN siz_categories c ON i.category_id = c.id
+      LEFT JOIN warehouses w ON es.from_warehouse_id = w.id
+      WHERE es.employee_id = $1 AND es.status = 'active'
+      ORDER BY c.name, i.name`;
+    res.json((await db(sql, [req.params.employeeId])).rows);
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// Выгрузка остатков склада в Excel-совместимый JSON
+app.get('/api/warehouses/:id/export', auth, async (req, res) => {
+  try {
+    const sql = `SELECT i.name as item_name, c.name as category_name,
+      i.gender, i.season, ws.size_value, ws.quantity, i.unit, i.exploitation_years
+      FROM warehouse_stock ws
+      JOIN siz_items i ON ws.siz_item_id = i.id
+      LEFT JOIN siz_categories c ON i.category_id = c.id
+      WHERE ws.warehouse_id = $1 AND ws.quantity > 0
+      ORDER BY c.name, i.name, i.gender, ws.size_value`;
+    res.json((await db(sql, [req.params.id])).rows);
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
 
 // ============ ROUTES: EMPLOYEES ============
 
@@ -732,8 +974,88 @@ async function initDB() {
       DO $$ BEGIN
         ALTER TABLE departments ADD COLUMN res_unit_id UUID REFERENCES res_units(id);
       EXCEPTION WHEN duplicate_column THEN NULL; END $$;
+    `
+
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS size_references (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        category_type VARCHAR(20) NOT NULL,
+        size_value VARCHAR(30) NOT NULL,
+        sort_order INTEGER DEFAULT 0,
+        UNIQUE(category_type, size_value)
+      );
+      DO $$ BEGIN ALTER TABLE siz_items ADD COLUMN gender VARCHAR(10); EXCEPTION WHEN duplicate_column THEN NULL; END $$;
+      DO $$ BEGIN ALTER TABLE siz_items ADD COLUMN season VARCHAR(10); EXCEPTION WHEN duplicate_column THEN NULL; END $$;
+      DO $$ BEGIN ALTER TABLE siz_items ADD COLUMN exploitation_years NUMERIC; EXCEPTION WHEN duplicate_column THEN NULL; END $$;
+      CREATE TABLE IF NOT EXISTS warehouses (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        name VARCHAR(255) NOT NULL,
+        warehouse_type VARCHAR(20) NOT NULL,
+        spbipk_id UUID REFERENCES spbipk(id),
+        res_unit_id UUID REFERENCES res_units(id),
+        enterprise_id UUID REFERENCES enterprises(id),
+        is_active BOOLEAN DEFAULT true,
+        created_at TIMESTAMPTZ DEFAULT NOW()
+      );
+      CREATE TABLE IF NOT EXISTS warehouse_stock (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        warehouse_id UUID NOT NULL REFERENCES warehouses(id),
+        siz_item_id UUID NOT NULL REFERENCES siz_items(id),
+        size_value VARCHAR(30) DEFAULT '',
+        quantity INTEGER NOT NULL DEFAULT 0,
+        UNIQUE(warehouse_id, siz_item_id, size_value)
+      );
+      CREATE TABLE IF NOT EXISTS stock_movements (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        movement_type VARCHAR(20) NOT NULL,
+        siz_item_id UUID NOT NULL REFERENCES siz_items(id),
+        size_value VARCHAR(30) DEFAULT '',
+        quantity INTEGER NOT NULL,
+        from_warehouse_id UUID REFERENCES warehouses(id),
+        to_warehouse_id UUID REFERENCES warehouses(id),
+        employee_id UUID REFERENCES employees(id),
+        document_reference VARCHAR(255),
+        notes TEXT,
+        moved_by UUID REFERENCES users(id),
+        movement_date DATE NOT NULL DEFAULT CURRENT_DATE,
+        created_at TIMESTAMPTZ DEFAULT NOW()
+      );
+      CREATE TABLE IF NOT EXISTS employee_siz (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        employee_id UUID NOT NULL REFERENCES employees(id),
+        siz_item_id UUID NOT NULL REFERENCES siz_items(id),
+        size_value VARCHAR(30) DEFAULT '',
+        quantity INTEGER NOT NULL DEFAULT 1,
+        issued_date DATE NOT NULL DEFAULT CURRENT_DATE,
+        exploitation_start DATE,
+        exploitation_paused_days INTEGER DEFAULT 0,
+        status VARCHAR(20) DEFAULT 'active',
+        returned_date DATE,
+        from_warehouse_id UUID REFERENCES warehouses(id),
+        created_at TIMESTAMPTZ DEFAULT NOW()
+      );
     `);
-    console.log('Migration: spbipk + department hierarchy applied');
+
+    await pool.query(`
+      INSERT INTO size_references (category_type, size_value, sort_order) VALUES
+      ('shoes','35',1),('shoes','36',2),('shoes','37',3),('shoes','38',4),('shoes','39',5),
+      ('shoes','40',6),('shoes','41',7),('shoes','42',8),('shoes','43',9),('shoes','44',10),
+      ('shoes','45',11),('shoes','46',12),('shoes','47',13),('shoes','48',14),('shoes','49',15),
+      ('clothing','40-42/158-164',1),('clothing','40-42/170-176',2),('clothing','40-42/182-188',3),('clothing','40-42/194-200',4),
+      ('clothing','44-46/158-164',5),('clothing','44-46/170-176',6),('clothing','44-46/182-188',7),('clothing','44-46/194-200',8),
+      ('clothing','48-50/158-164',9),('clothing','48-50/170-176',10),('clothing','48-50/182-188',11),('clothing','48-50/194-200',12),
+      ('clothing','52-54/158-164',13),('clothing','52-54/170-176',14),('clothing','52-54/182-188',15),('clothing','52-54/194-200',16),
+      ('clothing','56-58/158-164',17),('clothing','56-58/170-176',18),('clothing','56-58/182-188',19),('clothing','56-58/194-200',20),
+      ('clothing','60-62/158-164',21),('clothing','60-62/170-176',22),('clothing','60-62/182-188',23),('clothing','60-62/194-200',24),
+      ('clothing','64-66/158-164',25),('clothing','64-66/170-176',26),('clothing','64-66/182-188',27),('clothing','64-66/194-200',28),
+      ('clothing','68-70/158-164',29),('clothing','68-70/170-176',30),('clothing','68-70/182-188',31),('clothing','68-70/194-200',32),
+      ('clothing','72-74/158-164',33),('clothing','72-74/170-176',34),('clothing','72-74/182-188',35),('clothing','72-74/194-200',36),
+      ('head','Универсальный',1),
+      ('gloves','Универсальный',1),
+      ('consumable','Ручной ввод',1)
+      ON CONFLICT (category_type, size_value) DO NOTHING
+    `);
+    console.log('Migration: warehouses + sizes applied');
 
     // Create default admin
     const roleR = await db("SELECT id FROM roles WHERE name='admin_ia'");
