@@ -181,9 +181,9 @@ const Transactions=({navigate})=>{const{hasPerm}=useAuth();const[data,setData]=u
 const Directories=()=>{const{hasPerm}=useAuth();const[cats,setCats]=useState([]);const[items,setItems]=useState([]);const[selectedCat,setSelectedCat]=useState(null);const[showModal,setShowModal]=useState(null);const[form,setForm]=useState({});const[loading,setLoading]=useState(true);const load=useCallback(()=>{Promise.all([API.get('/siz/categories'),API.get('/siz/items')]).then(([c,i])=>{setCats(c);setItems(i)}).catch(console.error).finally(()=>setLoading(false))},[]);useEffect(()=>{load()},[load]);const saveCat=async()=>{try{if(form.id)await API.put(`/siz/categories/${form.id}`,form);else await API.post('/siz/categories',form);setShowModal(null);setForm({});load()}catch(e){alert(e?.response?.data?.error||'Ошибка')}};const saveItem=async()=>{try{if(form.id)await API.put(`/siz/items/${form.id}`,form);else await API.post('/siz/items',form);setShowModal(null);setForm({});load()}catch(e){alert(e?.response?.data?.error||'Ошибка')}};const filtered=selectedCat?items.filter(i=>i.category_id===selectedCat):items;if(loading)return<RnLoader/>;return<div>
 <div className="page-header"><h1>Справочники СИЗ</h1>{hasPerm('can_create')&&<div className="flex gap-2"><button className="btn btn-outline" onClick={()=>{setForm({});setShowModal('cat')}}><I.plus style={{width:16,height:16}}/> Категория</button><button className="btn btn-primary" onClick={()=>{setForm({category_id:selectedCat||''});setShowModal('item')}}><I.plus style={{width:16,height:16}}/> Номенклатура</button></div>}</div>
 <div className="tabs"><button className={`tab ${!selectedCat?'active':''}`} onClick={()=>setSelectedCat(null)}>Все ({items.length})</button>{cats.map(c=><button key={c.id} className={`tab ${selectedCat===c.id?'active':''}`} onClick={()=>setSelectedCat(c.id)}>{c.name} ({items.filter(i=>i.category_id===c.id).length})</button>)}</div>
-<div className="card"><div className="table-container"><table><thead><tr><th>Наименование</th><th>Код</th><th>Категория</th><th>Ед. изм.</th><th>Срок носки</th><th></th></tr></thead><tbody>{!filtered.length?<tr><td colSpan="6"><div className="empty-state"><div className="icon"><I.folder style={{width:36,height:36}}/></div>Нет номенклатуры</div></td></tr>:filtered.map(item=><tr key={item.id}><td style={{fontWeight:600}}>{item.name}</td><td className="text-muted" style={{fontFamily:'JetBrains Mono,monospace'}}>{item.code||'—'}</td><td>{item.category_name}</td><td>{item.unit}</td><td style={{fontFamily:'JetBrains Mono,monospace'}}>{item.wear_period_months?item.wear_period_months+' мес.':'—'}</td><td>{hasPerm('can_edit')&&<button className="btn btn-outline btn-sm" onClick={()=>{setForm(item);setShowModal('item')}}><I.edit style={{width:14,height:14}}/></button>}</td></tr>)}</tbody></table></div></div>
+<div className="card"><div className="table-container"><table><thead><tr><th>Наименование</th><th>Категория</th><th>Пол</th><th>Сезон</th><th>Ед. изм.</th><th>Срок эксп.</th><th></th></tr></thead><tbody>{!filtered.length?<tr><td colSpan="6"><div className="empty-state"><div className="icon"><I.folder style={{width:36,height:36}}/></div>Нет номенклатуры</div></td></tr>:filtered.map(item=><tr key={item.id}><td style={{fontWeight:600}}>{item.name}</td><td>{item.category_name}</td><td>{item.gender==='male'?'М':item.gender==='female'?'Ж':'—'}</td><td>{item.season==='summer'?'Лето':item.season==='winter'?'Зима':'—'}</td><td>{item.unit}</td><td style={{fontFamily:'JetBrains Mono,monospace'}}>{item.exploitation_years?item.exploitation_years+' г.':'—'}</td><td>{hasPerm('can_edit')&&<button className="btn btn-outline btn-sm" onClick={()=>{setForm(item);setShowModal('item')}}><I.edit style={{width:14,height:14}}/></button>}</td></tr>)}</tbody></table></div></div>
 <Modal isOpen={showModal==='cat'} onClose={()=>setShowModal(null)} title={form.id?'Редактировать категорию':'Новая категория'} footer={<><button className="btn btn-outline" onClick={()=>setShowModal(null)}>Отмена</button><button className="btn btn-primary" onClick={saveCat}>Сохранить</button></>}><div className="form-group"><label>Название</label><input className="form-control" value={form.name||''} onChange={e=>setForm({...form,name:e.target.value})}/></div><div className="form-row"><div className="form-group"><label>Код</label><input className="form-control" value={form.code||''} onChange={e=>setForm({...form,code:e.target.value})}/></div><div className="form-group"><label>Описание</label><input className="form-control" value={form.description||''} onChange={e=>setForm({...form,description:e.target.value})}/></div></div></Modal>
-<Modal isOpen={showModal==='item'} onClose={()=>setShowModal(null)} title={form.id?'Редактировать':'Новая номенклатура'} footer={<><button className="btn btn-outline" onClick={()=>setShowModal(null)}>Отмена</button><button className="btn btn-primary" onClick={saveItem}>Сохранить</button></>}><div className="form-group"><label>Название</label><input className="form-control" value={form.name||''} onChange={e=>setForm({...form,name:e.target.value})}/></div><div className="form-row"><div className="form-group"><label>Категория</label><select className="form-control" value={form.category_id||''} onChange={e=>setForm({...form,category_id:e.target.value})}><option value="">Выберите</option>{cats.map(c=><option key={c.id} value={c.id}>{c.name}</option>)}</select></div><div className="form-group"><label>Код</label><input className="form-control" value={form.code||''} onChange={e=>setForm({...form,code:e.target.value})}/></div></div><div className="form-row"><div className="form-group"><label>Ед. измерения</label><input className="form-control" value={form.unit||'шт'} onChange={e=>setForm({...form,unit:e.target.value})}/></div><div className="form-group"><label>Срок носки (мес.)</label><input className="form-control" type="number" value={form.wear_period_months||''} onChange={e=>setForm({...form,wear_period_months:parseInt(e.target.value)||null})}/></div></div></Modal></div>};
+<Modal isOpen={showModal==='item'} onClose={()=>setShowModal(null)} title={form.id?'Редактировать':'Новая номенклатура'} footer={<><button className="btn btn-outline" onClick={()=>setShowModal(null)}>Отмена</button><button className="btn btn-primary" onClick={saveItem}>Сохранить</button></>}><div className="form-group"><label>Название</label><input className="form-control" value={form.name||''} onChange={e=>setForm({...form,name:e.target.value})}/></div><div className="form-row"><div className="form-group"><label>Категория</label><select className="form-control" value={form.category_id||''} onChange={e=>setForm({...form,category_id:e.target.value})}><option value="">Выберите</option>{cats.map(c=><option key={c.id} value={c.id}>{c.name}</option>)}</select></div><div className="form-group"><label>Код</label><input className="form-control" value={form.code||''} onChange={e=>setForm({...form,code:e.target.value})}/></div></div><div className="form-row"><div className="form-group"><label>Ед. измерения</label><input className="form-control" value={form.unit||'шт'} onChange={e=>setForm({...form,unit:e.target.value})}/></div><div className="form-group"><label>Срок носки (мес.)</label><input className="form-control" type="number" value={form.wear_period_months||''} onChange={e=>setForm({...form,wear_period_months:parseInt(e.target.value)||null})}/></div></div><div className="form-row"><div className="form-group"><label>Пол</label><select className="form-control" value={form.gender||''} onChange={e=>setForm({...form,gender:e.target.value||null})}><option value="">—</option><option value="male">Мужской</option><option value="female">Женский</option></select></div><div className="form-group"><label>Сезон</label><select className="form-control" value={form.season||''} onChange={e=>setForm({...form,season:e.target.value||null})}><option value="">—</option><option value="summer">Лето</option><option value="winter">Зима</option></select></div><div className="form-group"><label>Срок эксплуатации (лет)</label><input className="form-control" type="number" step="0.5" value={form.exploitation_years||''} onChange={e=>setForm({...form,exploitation_years:parseFloat(e.target.value)||null})}/></div></div></Modal></div>};
 
 const Positions=()=>{const{hasPerm}=useAuth();const[positions,setPositions]=useState([]);const[items,setItems]=useState([]);const[selected,setSelected]=useState(null);const[norms,setNorms]=useState([]);const[showModal,setShowModal]=useState(null);const[form,setForm]=useState({});const[loading,setLoading]=useState(true);const load=useCallback(()=>{Promise.all([API.get('/positions'),API.get('/siz/items')]).then(([p,i])=>{setPositions(p);setItems(i)}).catch(console.error).finally(()=>setLoading(false))},[]);useEffect(()=>{load()},[load]);const loadNorms=async id=>{setSelected(id);try{setNorms(await API.get(`/positions/${id}/norms`))}catch(e){console.error(e)}};const savePos=async()=>{try{if(form.id)await API.put(`/positions/${form.id}`,form);else await API.post('/positions',form);setShowModal(null);setForm({});load()}catch(e){alert(e?.response?.data?.error||'Ошибка')}};const saveNorm=async()=>{try{await API.post(`/positions/${selected}/norms`,form);setShowModal(null);setForm({});loadNorms(selected)}catch(e){alert(e?.response?.data?.error||'Ошибка')}};if(loading)return<RnLoader/>;return<div>
 <div className="page-header"><h1>Реестр должностей</h1>{hasPerm('can_create')&&<button className="btn btn-primary" onClick={()=>{setForm({});setShowModal('pos')}}><I.plus style={{width:16,height:16}}/> Должность</button>}</div>
@@ -226,7 +226,135 @@ if(loading)return<RnLoader/>;return<div>
 <div className="form-group"><label>СИЗ *</label><select className="form-control" value={form.siz_item_id||''} onChange={e=>setForm({...form,siz_item_id:e.target.value})}><option value="">Выберите</option>{items.map(i=><option key={i.id} value={i.id}>{i.category_name} → {i.name}</option>)}</select></div>
 <div className="form-row"><div className="form-group"><label>Количество</label><input className="form-control" type="number" min="1" value={form.quantity} onChange={e=>setForm({...form,quantity:parseInt(e.target.value)||1})}/></div><div className="form-group"><label>Период выдачи (мес.)</label><input className="form-control" type="number" min="1" value={form.issue_period_months} onChange={e=>setForm({...form,issue_period_months:parseInt(e.target.value)||12})}/></div></div>
 </Modal></div>}; 
-// ============ ORG STRUCTURE (5 levels) ============
+
+  // ============ WAREHOUSE (Склады) ============
+const categoryTypeMap={'clothing':'Одежда','shoes':'Обувь','head':'Голова','gloves':'Перчатки','consumable':'Расходник'};
+const genderLabel=g=>g==='male'?'Мужской':g==='female'?'Женский':'Без пола';
+
+const WarehousePage=()=>{const{hasPerm}=useAuth();
+const[warehouses,setWarehouses]=useState([]);const[selectedWh,setSelectedWh]=useState(null);
+const[stock,setStock]=useState([]);const[movements,setMovements]=useState([]);
+const[spbipkList,setSpbipkList]=useState([]);const[resUnits,setResUnits]=useState([]);const[enterprises,setEnterprises]=useState([]);
+const[items,setItems]=useState([]);const[sizes,setSizes]=useState([]);const[employees,setEmployees]=useState([]);
+const[tab,setTab]=useState('stock');const[expanded,setExpanded]=useState({});
+const[showModal,setShowModal]=useState(null);const[form,setForm]=useState({quantity:1});
+const[loading,setLoading]=useState(true);
+
+const load=useCallback(()=>{
+Promise.all([API.get('/warehouses'),API.get('/org/spbipk'),API.get('/org/res-units'),API.get('/org/enterprises'),API.get('/siz/items'),API.get('/sizes'),API.get('/employees')])
+.then(([w,sp,r,e,it,sz,emp])=>{setWarehouses(w);setSpbipkList(sp);setResUnits(r);setEnterprises(e);setItems(it);setSizes(sz);setEmployees(emp)})
+.catch(console.error).finally(()=>setLoading(false))},[]);
+useEffect(()=>{load()},[load]);
+
+const loadStock=async(whId)=>{setSelectedWh(whId);setTab('stock');
+try{const[s,m]=await Promise.all([API.get(`/warehouses/${whId}/stock`),API.get(`/warehouses/${whId}/movements`)]);setStock(s);setMovements(m)}catch(e){console.error(e)}};
+
+const toggle=k=>setExpanded(p=>({...p,[k]:!p[k]}));
+
+// Группировка: item_name → gender → size → qty
+const groupStock=()=>{const tree={};
+stock.forEach(s=>{const key=s.item_name;if(!tree[key])tree[key]={item_name:s.item_name,category_name:s.category_name,item_gender:s.item_gender,season:s.season,total:0,genders:{}};
+tree[key].total+=s.quantity;
+const g=s.item_gender||'none';if(!tree[key].genders[g])tree[key].genders[g]={label:genderLabel(g),total:0,sizes:[]};
+tree[key].genders[g].total+=s.quantity;
+tree[key].genders[g].sizes.push({size:s.size_value||'—',qty:s.quantity,id:s.id})});return tree};
+
+const saveWarehouse=async()=>{try{await API.post('/warehouses',form);setShowModal(null);setForm({quantity:1});load()}catch(e){alert(e?.response?.data?.error||'Ошибка')}};
+const saveReceipt=async()=>{try{if(!selectedWh)return;await API.post(`/warehouses/${selectedWh}/receipt`,form);setShowModal(null);setForm({quantity:1});loadStock(selectedWh)}catch(e){alert(e?.response?.data?.error||'Ошибка')}};
+const saveTransfer=async()=>{try{await API.post('/warehouses/transfer',form);setShowModal(null);setForm({quantity:1});if(selectedWh)loadStock(selectedWh)}catch(e){alert(e?.response?.data?.error||'Ошибка')}};
+const saveIssue=async()=>{try{if(!selectedWh)return;await API.post(`/warehouses/${selectedWh}/issue`,form);setShowModal(null);setForm({quantity:1});loadStock(selectedWh)}catch(e){alert(e?.response?.data?.error||'Ошибка')}};
+
+// Размеры по категории выбранного item
+const getSizesForItem=(itemId)=>{const item=items.find(i=>i.id===itemId);if(!item)return[];const cat=item.category_name;const typeMap={'Одежда':'clothing','Обувь':'shoes','Голова':'head','Перчатки':'gloves','Расходник':'consumable'};const ct=typeMap[cat];if(!ct)return[];return sizes.filter(s=>s.category_type===ct)};
+
+// Экспорт в CSV (простой Excel-совместимый)
+const exportCSV=async()=>{if(!selectedWh)return;try{const data=await API.get(`/warehouses/${selectedWh}/export`);
+let csv='\uFEFF"Наименование";"Категория";"Пол";"Сезон";"Размер";"Кол-во";"Ед.";"Срок эксп. (лет)"\n';
+data.forEach(r=>{csv+=`"${r.item_name}";"${r.category_name||''}";"${genderLabel(r.gender)}";"${r.season==='summer'?'Лето':r.season==='winter'?'Зима':''}";"${r.size_value||''}";"${r.quantity}";"${r.unit}";"${r.exploitation_years||''}"\n`});
+const blob=new Blob([csv],{type:'text/csv;charset=utf-8;'});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download=`stock_${new Date().toISOString().slice(0,10)}.csv`;a.click();URL.revokeObjectURL(url)}catch(e){alert('Ошибка экспорта')}};
+
+const grouped=groupStock();
+if(loading)return<RnLoader/>;return<div>
+<div className="page-header"><h1>Склады</h1>{hasPerm('can_create')&&<button className="btn btn-primary" onClick={()=>{setForm({});setShowModal('wh')}}><I.plus style={{width:16,height:16}}/> Создать склад</button>}</div>
+
+<div style={{display:'grid',gridTemplateColumns:'280px 1fr',gap:16}}>
+{/* Левая панель — список складов */}
+<div className="card" style={{alignSelf:'start'}}><div className="card-header"><h3>Склады</h3></div>
+{warehouses.length===0?<div className="empty-state" style={{padding:20}}>Нет складов</div>:warehouses.map(w=><div key={w.id} onClick={()=>loadStock(w.id)} className="tree-item" style={{padding:'8px 12px',background:selectedWh===w.id?'var(--primary-light)':'transparent'}}>
+<div><div style={{fontWeight:600,fontSize:13}}>{w.name}</div><div className="text-muted" style={{fontSize:11}}>{w.warehouse_type==='spbipk'?'СПБиПК':'РЭС/Служба'}{w.enterprise_name?' · '+w.enterprise_name:''}</div></div></div>)}</div>
+
+{/* Правая панель */}
+<div>{!selectedWh?<div className="card"><div className="empty-state"><div className="icon"><I.arrowLeft style={{width:36,height:36}}/></div>Выберите склад</div></div>:<>
+<div className="tabs"><button className={`tab ${tab==='stock'?'active':''}`} onClick={()=>setTab('stock')}>Остатки</button><button className={`tab ${tab==='movements'?'active':''}`} onClick={()=>setTab('movements')}>Движения</button></div>
+
+{tab==='stock'&&<><div style={{marginBottom:12,display:'flex',gap:8,flexWrap:'wrap'}}>
+{hasPerm('can_create')&&<><button className="btn btn-primary btn-sm" onClick={()=>{setForm({quantity:1});setShowModal('receipt')}}><I.plus style={{width:14,height:14}}/> Приход</button>
+<button className="btn btn-outline btn-sm" onClick={()=>{setForm({quantity:1,from_warehouse_id:selectedWh});setShowModal('transfer')}}>Перемещение</button>
+<button className="btn btn-outline btn-sm" onClick={()=>{setForm({quantity:1});setShowModal('issue')}}>Выдать сотруднику</button></>}
+<button className="btn btn-outline btn-sm" onClick={exportCSV}>Выгрузка CSV</button></div>
+
+{Object.keys(grouped).length===0?<div className="card"><div className="empty-state">Склад пуст</div></div>:
+<div className="card"><div className="table-container">{Object.entries(grouped).map(([name,item])=><div key={name} style={{marginBottom:4}}>
+<div className="tree-item" onClick={()=>toggle(`i-${name}`)} style={{padding:'8px 4px',borderBottom:'1px solid var(--border-light)'}}>
+<div className="flex gap-2" style={{alignItems:'center'}}><span style={{fontSize:11,color:'var(--text-secondary)',width:12}}>{expanded[`i-${name}`]?'▼':'▶'}</span><div style={{fontWeight:600}}>{name}</div><span className="text-muted" style={{fontSize:12,marginLeft:4}}>({item.category_name})</span></div>
+<span className="badge badge-info" style={{fontFamily:'JetBrains Mono,monospace'}}>{item.total} шт</span></div>
+{expanded[`i-${name}`]&&<div className="tree-branch">{Object.entries(item.genders).map(([gk,gv])=><div key={gk}>
+<div className="tree-item" onClick={()=>toggle(`g-${name}-${gk}`)} style={{padding:'6px 4px'}}>
+<div className="flex gap-2" style={{alignItems:'center'}}><span style={{fontSize:10,color:'var(--text-secondary)',width:12}}>{expanded[`g-${name}-${gk}`]?'▼':'▶'}</span><span style={{fontWeight:500}}>{gv.label}</span></div>
+<span className="badge badge-default" style={{fontFamily:'JetBrains Mono,monospace'}}>{gv.total} шт</span></div>
+{expanded[`g-${name}-${gk}`]&&<div className="tree-branch">{gv.sizes.map((s,si)=><div key={si} className="tree-item" style={{padding:'4px'}}>
+<span className="text-muted">{s.size}</span><span style={{fontFamily:'JetBrains Mono,monospace',fontWeight:600}}>{s.qty} шт</span></div>)}</div>}
+</div>)}</div>}</div>)}</div></div>}</>}
+
+{tab==='movements'&&<div className="card"><div className="table-container"><table><thead><tr><th>Дата</th><th>Тип</th><th>СИЗ</th><th>Размер</th><th>Кол-во</th><th>Откуда</th><th>Куда</th><th>Сотрудник</th></tr></thead><tbody>
+{!movements.length?<tr><td colSpan="8"><div className="empty-state">Нет движений</div></td></tr>:movements.map(m=><tr key={m.id}>
+<td className="text-muted" style={{fontSize:12}}>{fmtDate(m.movement_date)}</td>
+<td><span className={m.movement_type==='receipt'?'badge badge-success':m.movement_type==='transfer'?'badge badge-info':m.movement_type==='issue'?'badge badge-warning':'badge badge-default'}>{{receipt:'Приход',transfer:'Перемещ.',issue:'Выдача',return:'Возврат',write_off:'Списание'}[m.movement_type]||m.movement_type}</span></td>
+<td style={{fontWeight:600}}>{m.item_name}</td>
+<td className="text-muted">{m.size_value||'—'}</td>
+<td style={{fontFamily:'JetBrains Mono,monospace'}}>{m.quantity} {m.unit}</td>
+<td className="text-muted" style={{fontSize:12}}>{m.from_warehouse_name||'—'}</td>
+<td className="text-muted" style={{fontSize:12}}>{m.to_warehouse_name||'—'}</td>
+<td>{m.last_name?fio(m):'—'}</td></tr>)}</tbody></table></div></div>}
+</>}</div></div>
+
+{/* Модалка: Создать склад */}
+<Modal isOpen={showModal==='wh'} onClose={()=>setShowModal(null)} title="Новый склад" footer={<><button className="btn btn-outline" onClick={()=>setShowModal(null)}>Отмена</button><button className="btn btn-primary" onClick={saveWarehouse}>Создать</button></>}>
+<div className="form-group"><label>Название *</label><input className="form-control" value={form.name||''} onChange={e=>setForm({...form,name:e.target.value})}/></div>
+<div className="form-group"><label>Тип *</label><select className="form-control" value={form.warehouse_type||''} onChange={e=>setForm({...form,warehouse_type:e.target.value})}><option value="">—</option><option value="spbipk">СПБиПК</option><option value="res">РЭС/Служба</option></select></div>
+<div className="form-group"><label>Предприятие</label><select className="form-control" value={form.enterprise_id||''} onChange={e=>setForm({...form,enterprise_id:e.target.value||null})}><option value="">—</option>{enterprises.map(e=><option key={e.id} value={e.id}>{e.name}</option>)}</select></div>
+{form.warehouse_type==='spbipk'&&<div className="form-group"><label>СПБиПК</label><select className="form-control" value={form.spbipk_id||''} onChange={e=>setForm({...form,spbipk_id:e.target.value||null})}><option value="">—</option>{spbipkList.map(s=><option key={s.id} value={s.id}>{s.name}</option>)}</select></div>}
+{form.warehouse_type==='res'&&<div className="form-group"><label>РЭС/Служба</label><select className="form-control" value={form.res_unit_id||''} onChange={e=>setForm({...form,res_unit_id:e.target.value||null})}><option value="">—</option>{resUnits.map(r=><option key={r.id} value={r.id}>{r.name}</option>)}</select></div>}
+</Modal>
+
+{/* Модалка: Приход */}
+<Modal isOpen={showModal==='receipt'} onClose={()=>setShowModal(null)} title="Приход на склад" footer={<><button className="btn btn-outline" onClick={()=>setShowModal(null)}>Отмена</button><button className="btn btn-primary" onClick={saveReceipt}>Оприходовать</button></>}>
+<div className="form-group"><label>СИЗ *</label><select className="form-control" value={form.siz_item_id||''} onChange={e=>setForm({...form,siz_item_id:e.target.value,size_value:''})}><option value="">Выберите</option>{items.map(i=><option key={i.id} value={i.id}>{i.category_name} → {i.name}</option>)}</select></div>
+{form.siz_item_id&&<div className="form-group"><label>Размер</label><select className="form-control" value={form.size_value||''} onChange={e=>setForm({...form,size_value:e.target.value})}><option value="">—</option>{getSizesForItem(form.siz_item_id).map(s=><option key={s.id} value={s.size_value}>{s.size_value}</option>)}</select></div>}
+<div className="form-row"><div className="form-group"><label>Кол-во *</label><input className="form-control" type="number" min="1" value={form.quantity} onChange={e=>setForm({...form,quantity:parseInt(e.target.value)||1})}/></div><div className="form-group"><label>Дата</label><input className="form-control" type="date" value={form.movement_date||''} onChange={e=>setForm({...form,movement_date:e.target.value})}/></div></div>
+<div className="form-group"><label>Документ</label><input className="form-control" value={form.document_reference||''} onChange={e=>setForm({...form,document_reference:e.target.value})}/></div>
+</Modal>
+
+{/* Модалка: Перемещение */}
+<Modal isOpen={showModal==='transfer'} onClose={()=>setShowModal(null)} title="Перемещение между складами" footer={<><button className="btn btn-outline" onClick={()=>setShowModal(null)}>Отмена</button><button className="btn btn-primary" onClick={saveTransfer}>Переместить</button></>}>
+<div className="form-row"><div className="form-group"><label>Откуда *</label><select className="form-control" value={form.from_warehouse_id||''} onChange={e=>setForm({...form,from_warehouse_id:e.target.value})}><option value="">—</option>{warehouses.map(w=><option key={w.id} value={w.id}>{w.name}</option>)}</select></div><div className="form-group"><label>Куда *</label><select className="form-control" value={form.to_warehouse_id||''} onChange={e=>setForm({...form,to_warehouse_id:e.target.value})}><option value="">—</option>{warehouses.filter(w=>w.id!==form.from_warehouse_id).map(w=><option key={w.id} value={w.id}>{w.name}</option>)}</select></div></div>
+<div className="form-group"><label>СИЗ *</label><select className="form-control" value={form.siz_item_id||''} onChange={e=>setForm({...form,siz_item_id:e.target.value,size_value:''})}><option value="">Выберите</option>{items.map(i=><option key={i.id} value={i.id}>{i.category_name} → {i.name}</option>)}</select></div>
+{form.siz_item_id&&<div className="form-group"><label>Размер</label><select className="form-control" value={form.size_value||''} onChange={e=>setForm({...form,size_value:e.target.value})}><option value="">—</option>{getSizesForItem(form.siz_item_id).map(s=><option key={s.id} value={s.size_value}>{s.size_value}</option>)}</select></div>}
+<div className="form-row"><div className="form-group"><label>Кол-во *</label><input className="form-control" type="number" min="1" value={form.quantity} onChange={e=>setForm({...form,quantity:parseInt(e.target.value)||1})}/></div><div className="form-group"><label>Дата</label><input className="form-control" type="date" value={form.movement_date||''} onChange={e=>setForm({...form,movement_date:e.target.value})}/></div></div>
+<div className="form-group"><label>Документ</label><input className="form-control" value={form.document_reference||''} onChange={e=>setForm({...form,document_reference:e.target.value})}/></div>
+</Modal>
+
+{/* Модалка: Выдача */}
+<Modal isOpen={showModal==='issue'} onClose={()=>setShowModal(null)} title="Выдача сотруднику" footer={<><button className="btn btn-outline" onClick={()=>setShowModal(null)}>Отмена</button><button className="btn btn-primary" onClick={saveIssue}>Выдать</button></>}>
+<div className="form-group"><label>Сотрудник *</label><select className="form-control" value={form.employee_id||''} onChange={e=>setForm({...form,employee_id:e.target.value})}><option value="">Выберите</option>{employees.map(e=><option key={e.id} value={e.id}>{fio(e)} — {e.position_name||''}</option>)}</select></div>
+<div className="form-group"><label>СИЗ *</label><select className="form-control" value={form.siz_item_id||''} onChange={e=>setForm({...form,siz_item_id:e.target.value,size_value:''})}><option value="">Выберите</option>{items.map(i=><option key={i.id} value={i.id}>{i.category_name} → {i.name}</option>)}</select></div>
+{form.siz_item_id&&<div className="form-group"><label>Размер</label><select className="form-control" value={form.size_value||''} onChange={e=>setForm({...form,size_value:e.target.value})}><option value="">—</option>{getSizesForItem(form.siz_item_id).map(s=><option key={s.id} value={s.size_value}>{s.size_value}</option>)}</select></div>}
+<div className="form-row"><div className="form-group"><label>Кол-во *</label><input className="form-control" type="number" min="1" value={form.quantity} onChange={e=>setForm({...form,quantity:parseInt(e.target.value)||1})}/></div><div className="form-group"><label>Дата</label><input className="form-control" type="date" value={form.movement_date||''} onChange={e=>setForm({...form,movement_date:e.target.value})}/></div></div>
+<div className="form-group"><label>Документ</label><input className="form-control" value={form.document_reference||''} onChange={e=>setForm({...form,document_reference:e.target.value})}/></div>
+</Modal>
+</div>};
+  
+  // ============ ORG STRUCTURE (5 levels) ============
 
 const OrgStructure=()=>{const{hasPerm}=useAuth();const[tree,setTree]=useState([]);const[enterprises,setEnterprises]=useState([]);const[resUnits,setResUnits]=useState([]);const[spbipkList,setSpbipkList]=useState([]);const[expanded,setExpanded]=useState({});const[showModal,setShowModal]=useState(null);const[form,setForm]=useState({});const[loading,setLoading]=useState(true);const load=useCallback(()=>{Promise.all([API.get('/org/tree'),API.get('/org/enterprises'),API.get('/org/res-units'),API.get('/org/spbipk')]).then(([t,e,r,sp])=>{setTree(t);setEnterprises(e);setResUnits(r);setSpbipkList(sp);const ex={};t.forEach(o=>{ex[`o-${o.id}`]=true;o.enterprises?.forEach(e=>{ex[`e-${e.id}`]=true;e.res_units?.forEach(r=>{ex[`r-${r.id}`]=true})})});setExpanded(ex)}).catch(console.error).finally(()=>setLoading(false))},[]);useEffect(()=>{load()},[load]);const toggle=k=>setExpanded(p=>({...p,[k]:!p[k]}));
 const save=async()=>{try{if(showModal==='org'){if(form.id)await API.put(`/org/organizations/${form.id}`,form);else await API.post('/org/organizations',form)}if(showModal==='ent'){if(form.id)await API.put(`/org/enterprises/${form.id}`,form);else await API.post('/org/enterprises',form)}if(showModal==='spbipk'){if(form.id)await API.put(`/org/spbipk/${form.id}`,form);else await API.post('/org/spbipk',form)}if(showModal==='res'){if(form.id)await API.put(`/org/res-units/${form.id}`,form);else await API.post('/org/res-units',form)}if(showModal==='dept'){if(form.id)await API.put(`/org/departments/${form.id}`,form);else await API.post('/org/departments',form)}setShowModal(null);setForm({});load()}catch(e){alert(e?.response?.data?.error||'Ошибка')}};
@@ -307,6 +435,7 @@ else if(path==='/transactions')content=<Transactions navigate={navigate}/>;
 else if(path==='/directories')content=<Directories/>;
 else if(path==='/positions')content=<Positions/>;
 else if(path==='/ton')content=<TonPage/>;
+else if(path==='/warehouses')content=<WarehousePage/>;
 else if(path==='/org-structure')content=<OrgStructure/>;
 else if(path==='/admin/users'&&isLevel(['ia']))content=<AdminUsers/>;
 else if(path==='/admin/audit'&&isLevel(['ia']))content=<AdminAudit/>;
@@ -321,6 +450,7 @@ return<div className="app-layout">
 <NL to="/" icon={I.dashboard}>Панель управления</NL>
 <NL to="/employees" icon={I.users}>Сотрудники</NL>
 <NL to="/transactions" icon={I.activity}>Движение СИЗ</NL>
+<NL to="/warehouses" icon={I.package}>Склады</NL>
 <div className="nav-section">Справочники</div>
 <NL to="/directories" icon={I.folder}>Категории СИЗ</NL>
 <NL to="/positions" icon={I.briefcase}>Должности</NL>
