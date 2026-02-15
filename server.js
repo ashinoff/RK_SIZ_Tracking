@@ -705,6 +705,17 @@ app.get('/api/warehouses/:id/export', auth, async (req, res) => {
     res.json((await db(sql, [req.params.id])).rows);
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
+app.delete('/api/warehouses/:id', auth, perm('can_delete'), async (req, res) => {
+  try {
+    const stock = await db('SELECT SUM(quantity) as total FROM warehouse_stock WHERE warehouse_id=$1', [req.params.id]);
+    if (parseInt(stock.rows[0]?.total || 0) > 0)
+      return res.status(400).json({ error: 'Нельзя удалить склад с остатками' });
+    const r = await db('UPDATE warehouses SET is_active=false WHERE id=$1 RETURNING *', [req.params.id]);
+    if (!r.rows.length) return res.status(404).json({ error: 'Склад не найден' });
+    await audit(req.user.id, 'warehouses', req.params.id, 'delete', {}, req.ip);
+    res.json({ message: 'Склад удалён' });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
 
 // ============ ROUTES: EMPLOYEES ============
 
