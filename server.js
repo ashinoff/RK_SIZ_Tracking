@@ -956,105 +956,87 @@ async function initDB() {
     }
 
     // Migration: add spbipk table and update hierarchy
-    await pool.query(`
-      CREATE TABLE IF NOT EXISTS spbipk (
-        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-        name VARCHAR(255) NOT NULL,
-        code VARCHAR(50),
-        enterprise_id UUID REFERENCES enterprises(id),
-        is_active BOOLEAN DEFAULT true,
-        extra JSONB DEFAULT '{}',
-        created_at TIMESTAMPTZ DEFAULT NOW()
-      );
-      -- Add spbipk_id to res_units if not exists
-      DO $$ BEGIN
-        ALTER TABLE res_units ADD COLUMN spbipk_id UUID REFERENCES spbipk(id);
-      EXCEPTION WHEN duplicate_column THEN NULL; END $$;
-      -- Add res_unit_id to departments if not exists
-      DO $$ BEGIN
-        ALTER TABLE departments ADD COLUMN res_unit_id UUID REFERENCES res_units(id);
-      EXCEPTION WHEN duplicate_column THEN NULL; END $$;
-    `
-
-    await pool.query(`
-      CREATE TABLE IF NOT EXISTS size_references (
-        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-        category_type VARCHAR(20) NOT NULL,
-        size_value VARCHAR(30) NOT NULL,
-        sort_order INTEGER DEFAULT 0,
-        UNIQUE(category_type, size_value)
-      );
-      DO $$ BEGIN ALTER TABLE siz_items ADD COLUMN gender VARCHAR(10); EXCEPTION WHEN duplicate_column THEN NULL; END $$;
-      DO $$ BEGIN ALTER TABLE siz_items ADD COLUMN season VARCHAR(10); EXCEPTION WHEN duplicate_column THEN NULL; END $$;
-      DO $$ BEGIN ALTER TABLE siz_items ADD COLUMN exploitation_years NUMERIC; EXCEPTION WHEN duplicate_column THEN NULL; END $$;
-      CREATE TABLE IF NOT EXISTS warehouses (
-        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-        name VARCHAR(255) NOT NULL,
-        warehouse_type VARCHAR(20) NOT NULL,
-        spbipk_id UUID REFERENCES spbipk(id),
-        res_unit_id UUID REFERENCES res_units(id),
-        enterprise_id UUID REFERENCES enterprises(id),
-        is_active BOOLEAN DEFAULT true,
-        created_at TIMESTAMPTZ DEFAULT NOW()
-      );
-      CREATE TABLE IF NOT EXISTS warehouse_stock (
-        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-        warehouse_id UUID NOT NULL REFERENCES warehouses(id),
-        siz_item_id UUID NOT NULL REFERENCES siz_items(id),
-        size_value VARCHAR(30) DEFAULT '',
-        quantity INTEGER NOT NULL DEFAULT 0,
-        UNIQUE(warehouse_id, siz_item_id, size_value)
-      );
-      CREATE TABLE IF NOT EXISTS stock_movements (
-        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-        movement_type VARCHAR(20) NOT NULL,
-        siz_item_id UUID NOT NULL REFERENCES siz_items(id),
-        size_value VARCHAR(30) DEFAULT '',
-        quantity INTEGER NOT NULL,
-        from_warehouse_id UUID REFERENCES warehouses(id),
-        to_warehouse_id UUID REFERENCES warehouses(id),
-        employee_id UUID REFERENCES employees(id),
-        document_reference VARCHAR(255),
-        notes TEXT,
-        moved_by UUID REFERENCES users(id),
-        movement_date DATE NOT NULL DEFAULT CURRENT_DATE,
-        created_at TIMESTAMPTZ DEFAULT NOW()
-      );
-      CREATE TABLE IF NOT EXISTS employee_siz (
-        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-        employee_id UUID NOT NULL REFERENCES employees(id),
-        siz_item_id UUID NOT NULL REFERENCES siz_items(id),
-        size_value VARCHAR(30) DEFAULT '',
-        quantity INTEGER NOT NULL DEFAULT 1,
-        issued_date DATE NOT NULL DEFAULT CURRENT_DATE,
-        exploitation_start DATE,
-        exploitation_paused_days INTEGER DEFAULT 0,
-        status VARCHAR(20) DEFAULT 'active',
-        returned_date DATE,
-        from_warehouse_id UUID REFERENCES warehouses(id),
-        created_at TIMESTAMPTZ DEFAULT NOW()
-      );
-    `);
-
-    await pool.query(`
-      INSERT INTO size_references (category_type, size_value, sort_order) VALUES
-      ('shoes','35',1),('shoes','36',2),('shoes','37',3),('shoes','38',4),('shoes','39',5),
-      ('shoes','40',6),('shoes','41',7),('shoes','42',8),('shoes','43',9),('shoes','44',10),
-      ('shoes','45',11),('shoes','46',12),('shoes','47',13),('shoes','48',14),('shoes','49',15),
-      ('clothing','40-42/158-164',1),('clothing','40-42/170-176',2),('clothing','40-42/182-188',3),('clothing','40-42/194-200',4),
-      ('clothing','44-46/158-164',5),('clothing','44-46/170-176',6),('clothing','44-46/182-188',7),('clothing','44-46/194-200',8),
-      ('clothing','48-50/158-164',9),('clothing','48-50/170-176',10),('clothing','48-50/182-188',11),('clothing','48-50/194-200',12),
-      ('clothing','52-54/158-164',13),('clothing','52-54/170-176',14),('clothing','52-54/182-188',15),('clothing','52-54/194-200',16),
-      ('clothing','56-58/158-164',17),('clothing','56-58/170-176',18),('clothing','56-58/182-188',19),('clothing','56-58/194-200',20),
-      ('clothing','60-62/158-164',21),('clothing','60-62/170-176',22),('clothing','60-62/182-188',23),('clothing','60-62/194-200',24),
-      ('clothing','64-66/158-164',25),('clothing','64-66/170-176',26),('clothing','64-66/182-188',27),('clothing','64-66/194-200',28),
-      ('clothing','68-70/158-164',29),('clothing','68-70/170-176',30),('clothing','68-70/182-188',31),('clothing','68-70/194-200',32),
-      ('clothing','72-74/158-164',33),('clothing','72-74/170-176',34),('clothing','72-74/182-188',35),('clothing','72-74/194-200',36),
-      ('head','Универсальный',1),
-      ('gloves','Универсальный',1),
-      ('consumable','Ручной ввод',1)
-      ON CONFLICT (category_type, size_value) DO NOTHING
-    `);
+    await pool.query(
+      "CREATE TABLE IF NOT EXISTS size_references (" +
+      "id UUID PRIMARY KEY DEFAULT gen_random_uuid()," +
+      "category_type VARCHAR(20) NOT NULL," +
+      "size_value VARCHAR(30) NOT NULL," +
+      "sort_order INTEGER DEFAULT 0," +
+      "UNIQUE(category_type, size_value))"
+    );
+    await pool.query("ALTER TABLE siz_items ADD COLUMN IF NOT EXISTS gender VARCHAR(10)");
+    await pool.query("ALTER TABLE siz_items ADD COLUMN IF NOT EXISTS season VARCHAR(10)");
+    await pool.query("ALTER TABLE siz_items ADD COLUMN IF NOT EXISTS exploitation_years NUMERIC");
+    await pool.query(
+      "CREATE TABLE IF NOT EXISTS warehouses (" +
+      "id UUID PRIMARY KEY DEFAULT gen_random_uuid()," +
+      "name VARCHAR(255) NOT NULL," +
+      "warehouse_type VARCHAR(20) NOT NULL," +
+      "spbipk_id UUID REFERENCES spbipk(id)," +
+      "res_unit_id UUID REFERENCES res_units(id)," +
+      "enterprise_id UUID REFERENCES enterprises(id)," +
+      "is_active BOOLEAN DEFAULT true," +
+      "created_at TIMESTAMPTZ DEFAULT NOW())"
+    );
+    await pool.query(
+      "CREATE TABLE IF NOT EXISTS warehouse_stock (" +
+      "id UUID PRIMARY KEY DEFAULT gen_random_uuid()," +
+      "warehouse_id UUID NOT NULL REFERENCES warehouses(id)," +
+      "siz_item_id UUID NOT NULL REFERENCES siz_items(id)," +
+      "size_value VARCHAR(30) DEFAULT ''," +
+      "quantity INTEGER NOT NULL DEFAULT 0," +
+      "UNIQUE(warehouse_id, siz_item_id, size_value))"
+    );
+    await pool.query(
+      "CREATE TABLE IF NOT EXISTS stock_movements (" +
+      "id UUID PRIMARY KEY DEFAULT gen_random_uuid()," +
+      "movement_type VARCHAR(20) NOT NULL," +
+      "siz_item_id UUID NOT NULL REFERENCES siz_items(id)," +
+      "size_value VARCHAR(30) DEFAULT ''," +
+      "quantity INTEGER NOT NULL," +
+      "from_warehouse_id UUID REFERENCES warehouses(id)," +
+      "to_warehouse_id UUID REFERENCES warehouses(id)," +
+      "employee_id UUID REFERENCES employees(id)," +
+      "document_reference VARCHAR(255)," +
+      "notes TEXT," +
+      "moved_by UUID REFERENCES users(id)," +
+      "movement_date DATE NOT NULL DEFAULT CURRENT_DATE," +
+      "created_at TIMESTAMPTZ DEFAULT NOW())"
+    );
+    await pool.query(
+      "CREATE TABLE IF NOT EXISTS employee_siz (" +
+      "id UUID PRIMARY KEY DEFAULT gen_random_uuid()," +
+      "employee_id UUID NOT NULL REFERENCES employees(id)," +
+      "siz_item_id UUID NOT NULL REFERENCES siz_items(id)," +
+      "size_value VARCHAR(30) DEFAULT ''," +
+      "quantity INTEGER NOT NULL DEFAULT 1," +
+      "issued_date DATE NOT NULL DEFAULT CURRENT_DATE," +
+      "exploitation_start DATE," +
+      "exploitation_paused_days INTEGER DEFAULT 0," +
+      "status VARCHAR(20) DEFAULT 'active'," +
+      "returned_date DATE," +
+      "from_warehouse_id UUID REFERENCES warehouses(id)," +
+      "created_at TIMESTAMPTZ DEFAULT NOW())"
+    );
+    await pool.query(
+      "INSERT INTO size_references (category_type, size_value, sort_order) VALUES " +
+      "('shoes','35',1),('shoes','36',2),('shoes','37',3),('shoes','38',4),('shoes','39',5)," +
+      "('shoes','40',6),('shoes','41',7),('shoes','42',8),('shoes','43',9),('shoes','44',10)," +
+      "('shoes','45',11),('shoes','46',12),('shoes','47',13),('shoes','48',14),('shoes','49',15)," +
+      "('clothing','40-42/158-164',1),('clothing','40-42/170-176',2),('clothing','40-42/182-188',3),('clothing','40-42/194-200',4)," +
+      "('clothing','44-46/158-164',5),('clothing','44-46/170-176',6),('clothing','44-46/182-188',7),('clothing','44-46/194-200',8)," +
+      "('clothing','48-50/158-164',9),('clothing','48-50/170-176',10),('clothing','48-50/182-188',11),('clothing','48-50/194-200',12)," +
+      "('clothing','52-54/158-164',13),('clothing','52-54/170-176',14),('clothing','52-54/182-188',15),('clothing','52-54/194-200',16)," +
+      "('clothing','56-58/158-164',17),('clothing','56-58/170-176',18),('clothing','56-58/182-188',19),('clothing','56-58/194-200',20)," +
+      "('clothing','60-62/158-164',21),('clothing','60-62/170-176',22),('clothing','60-62/182-188',23),('clothing','60-62/194-200',24)," +
+      "('clothing','64-66/158-164',25),('clothing','64-66/170-176',26),('clothing','64-66/182-188',27),('clothing','64-66/194-200',28)," +
+      "('clothing','68-70/158-164',29),('clothing','68-70/170-176',30),('clothing','68-70/182-188',31),('clothing','68-70/194-200',32)," +
+      "('clothing','72-74/158-164',33),('clothing','72-74/170-176',34),('clothing','72-74/182-188',35),('clothing','72-74/194-200',36)," +
+      "('head','Универсальный',1)," +
+      "('gloves','Универсальный',1)," +
+      "('consumable','Ручной ввод',1)" +
+      " ON CONFLICT (category_type, size_value) DO NOTHING"
+    );
     console.log('Migration: warehouses + sizes applied');
 
     // Create default admin
