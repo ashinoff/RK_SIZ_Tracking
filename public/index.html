@@ -3,468 +3,1147 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>СИЗ — Учёт и движение</title>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
-<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.3.1/umd/react.production.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.3.1/umd/react-dom.production.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.26.2/babel.min.js"></script>
+<title>СИЗ — Учёт средств защиты</title>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
-:root{--bg-app:#EFF3F8;--bg-content:#FFFFFF;--bg-menu:#162240;--text-primary:#1A2332;--text-secondary:#6B7B8D;--primary:#2B5EA7;--primary-dark:#1E4A8A;--primary-light:#E8F0FA;--primary-lighter:#F2F7FD;--border:#D8E0EA;--border-light:#E8EDF3;--success:#2E9E5A;--warning:#E88C30;--error:#DC3545;--info:#5B9BD5;--sidebar-width:248px}
-body{font-family:'Inter',sans-serif;background:var(--bg-app);color:var(--text-primary);font-size:14px;line-height:1.5}
-a{color:var(--primary);text-decoration:none}
-.app-layout{display:flex;min-height:100vh}
-.sidebar{width:var(--sidebar-width);background:var(--bg-menu);color:#fff;display:flex;flex-direction:column;position:fixed;top:0;left:0;bottom:0;overflow-y:auto;z-index:100}
-.sidebar-header{padding:20px;border-bottom:1px solid rgba(255,255,255,.08);display:flex;align-items:center;gap:12px}
-.logo-icon{width:36px;height:36px;background:linear-gradient(135deg,#5B9BD5,#2B5EA7);border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
-.logo-text{font-weight:700;font-size:18px;letter-spacing:.5px}.logo-sub{font-size:11px;color:rgba(255,255,255,.45);margin-top:-2px}
-.sidebar-user{padding:14px 20px;border-bottom:1px solid rgba(255,255,255,.08);display:flex;align-items:center;gap:10px}
-.avatar{width:34px;height:34px;border-radius:8px;background:rgba(255,255,255,.1);display:flex;align-items:center;justify-content:center;flex-shrink:0;color:rgba(255,255,255,.5)}
-.uname{font-weight:600;font-size:13px;color:#fff}.role{font-size:11px;color:rgba(255,255,255,.4)}
-.sidebar nav{flex:1;padding:8px 0}
-.nav-section{color:rgba(255,255,255,.3);font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;padding:16px 20px 6px}
-.nav-link{display:flex;align-items:center;gap:10px;padding:9px 20px;color:rgba(255,255,255,.55);font-size:13px;font-weight:500;cursor:pointer;transition:all .15s;border-left:3px solid transparent}
-.nav-link:hover{background:rgba(255,255,255,.06);color:rgba(255,255,255,.85)}
-.nav-link.active{background:rgba(91,155,213,.12);color:#fff;border-left-color:#5B9BD5}
-.sidebar-footer{padding:16px 20px;border-top:1px solid rgba(255,255,255,.08)}
-.main-content{margin-left:var(--sidebar-width);flex:1;padding:24px;min-height:100vh}
-.page-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;flex-wrap:wrap;gap:8px}
-.page-header h1{font-size:22px;font-weight:700;color:var(--text-primary)}
-.card{background:var(--bg-content);border-radius:10px;border:1px solid var(--border-light);padding:16px;margin-bottom:12px;box-shadow:0 1px 3px rgba(0,0,0,.04)}
-.card-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
-.card-header h3{font-size:15px;font-weight:600}
-.stats-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:14px}
-.stat-card{background:var(--bg-content);border-radius:10px;border:1px solid var(--border-light);padding:16px;box-shadow:0 1px 3px rgba(0,0,0,.04);position:relative}
-.stat-icon{width:40px;height:40px;border-radius:10px;display:flex;align-items:center;justify-content:center;margin-bottom:10px}
-.stat-icon.blue{background:#E8F0FA;color:var(--primary)}.stat-icon.green{background:#E6F5EC;color:var(--success)}
-.stat-icon.yellow{background:#FDF1E0;color:var(--warning)}.stat-icon.red{background:#FDEAEA;color:var(--error)}
-.stat-value{font-size:28px;font-weight:700;font-family:'JetBrains Mono',monospace;color:var(--text-primary)}
-.stat-label{font-size:12px;color:var(--text-secondary);margin-top:2px;font-weight:500}
-.table-container{overflow-x:auto}
+:root{
+  --bg:#F0F2F5;--bg2:#FFFFFF;--sidebar:#0C1829;--sidebar2:#111F36;
+  --tx1:#101828;--tx2:#667085;--tx3:#98A2B3;
+  --blue:#2563EB;--blue-d:#1D4ED8;--blue-l:#EFF6FF;--blue-l2:#DBEAFE;
+  --green:#059669;--green-l:#ECFDF5;--green-l2:#D1FAE5;
+  --red:#DC2626;--red-l:#FEF2F2;--red-l2:#FEE2E2;
+  --amber:#D97706;--amber-l:#FFFBEB;
+  --border:#E5E7EB;--border2:#D1D5DB;
+  --radius:8px;--radius2:12px;
+  --sw:260px;
+  --shadow:0 1px 3px rgba(0,0,0,.06),0 1px 2px rgba(0,0,0,.04);
+  --shadow2:0 4px 16px rgba(0,0,0,.08);
+}
+html{font-size:14px}
+body{font-family:'Manrope',sans-serif;background:var(--bg);color:var(--tx1);line-height:1.5;-webkit-font-smoothing:antialiased}
+input,select,textarea,button{font-family:inherit;font-size:inherit}
+
+/* Layout */
+.app{display:flex;min-height:100vh}
+.sidebar{width:var(--sw);background:var(--sidebar);position:fixed;top:0;left:0;bottom:0;display:flex;flex-direction:column;z-index:100;overflow-y:auto}
+.sidebar::-webkit-scrollbar{width:4px}
+.sidebar::-webkit-scrollbar-thumb{background:rgba(255,255,255,.1);border-radius:4px}
+.main{margin-left:var(--sw);flex:1;padding:28px 32px;min-height:100vh}
+
+/* Sidebar */
+.sb-logo{padding:20px 22px;display:flex;align-items:center;gap:14px;border-bottom:1px solid rgba(255,255,255,.06)}
+.sb-logo-icon{width:42px;height:42px;border-radius:12px;background:linear-gradient(135deg,#3B82F6,#1D4ED8);display:flex;align-items:center;justify-content:center;box-shadow:0 4px 12px rgba(37,99,235,.3)}
+.sb-logo-text{font-weight:800;font-size:20px;color:#fff;letter-spacing:.5px}
+.sb-logo-sub{font-size:11px;color:rgba(255,255,255,.35);font-weight:500;margin-top:-2px}
+.sb-nav{flex:1;padding:12px 0}
+.sb-section{padding:18px 22px 6px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1.2px;color:rgba(255,255,255,.25)}
+.sb-link{display:flex;align-items:center;gap:12px;padding:10px 22px;color:rgba(255,255,255,.5);font-weight:500;font-size:13px;cursor:pointer;transition:all .15s;border-left:3px solid transparent;position:relative}
+.sb-link:hover{color:rgba(255,255,255,.85);background:rgba(255,255,255,.04)}
+.sb-link.active{color:#fff;background:rgba(37,130,246,.12);border-left-color:#3B82F6}
+.sb-link.active::after{content:'';position:absolute;right:0;top:50%;transform:translateY(-50%);width:3px;height:20px;background:#3B82F6;border-radius:3px 0 0 3px}
+.sb-link svg{width:18px;height:18px;flex-shrink:0;opacity:.7}
+.sb-link.active svg{opacity:1}
+.sb-footer{padding:16px 22px;border-top:1px solid rgba(255,255,255,.06)}
+
+/* Page */
+.page-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:24px;flex-wrap:wrap;gap:12px}
+.page-top h1{font-size:24px;font-weight:800;color:var(--tx1)}
+.page-top .sub{font-size:13px;color:var(--tx2);font-weight:500;margin-top:2px}
+.breadcrumb{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--tx3);margin-bottom:16px;font-weight:500}
+.breadcrumb span{cursor:pointer;color:var(--blue);transition:color .15s}
+.breadcrumb span:hover{color:var(--blue-d)}
+
+/* Card */
+.card{background:var(--bg2);border-radius:var(--radius2);border:1px solid var(--border);box-shadow:var(--shadow);margin-bottom:16px}
+.card-h{padding:16px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+.card-h h3{font-size:15px;font-weight:700}
+.card-body{padding:20px}
+.card-body.np{padding:0}
+
+/* Stats */
+.stats{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:16px;margin-bottom:24px}
+.stat{background:var(--bg2);border-radius:var(--radius2);border:1px solid var(--border);padding:20px;box-shadow:var(--shadow);display:flex;gap:16px;align-items:flex-start}
+.stat-ic{width:44px;height:44px;border-radius:12px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.stat-ic svg{width:22px;height:22px}
+.stat-ic.bl{background:var(--blue-l);color:var(--blue)}
+.stat-ic.gr{background:var(--green-l);color:var(--green)}
+.stat-ic.rd{background:var(--red-l);color:var(--red)}
+.stat-ic.am{background:var(--amber-l);color:var(--amber)}
+.stat-val{font-size:28px;font-weight:800;font-family:'JetBrains Mono',monospace;line-height:1}
+.stat-lbl{font-size:12px;color:var(--tx2);font-weight:500;margin-top:4px}
+
+/* Table */
+.tbl-wrap{overflow-x:auto}
 table{width:100%;border-collapse:collapse}
-thead th{background:var(--bg-app);color:var(--text-secondary);font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;padding:10px 12px;text-align:left;border-bottom:2px solid var(--border);white-space:nowrap}
-tbody td{padding:10px 12px;border-bottom:1px solid var(--border-light);font-size:13px}
-tbody tr:hover{background:var(--primary-lighter)}
-.form-group{margin-bottom:12px;flex:1}
-.form-group label{display:block;font-size:11px;font-weight:600;color:var(--text-secondary);margin-bottom:4px;text-transform:uppercase;letter-spacing:.3px}
-.form-control{width:100%;padding:8px 12px;border:1px solid var(--border);border-radius:6px;font-size:13px;background:#fff;transition:border-color .15s;font-family:'Inter',sans-serif}
-.form-control:focus{outline:none;border-color:var(--primary);box-shadow:0 0 0 3px rgba(43,94,167,.1)}
-.form-row{display:flex;gap:12px;flex-wrap:wrap}.form-row .form-group{min-width:140px}
-.btn{display:inline-flex;align-items:center;gap:6px;padding:8px 16px;border-radius:6px;font-size:13px;font-weight:500;border:1px solid transparent;cursor:pointer;transition:all .15s;white-space:nowrap;font-family:'Inter',sans-serif}
-.btn-primary{background:var(--primary);color:#fff;border-color:var(--primary)}.btn-primary:hover{background:var(--primary-dark)}
-.btn-outline{background:transparent;border-color:var(--border);color:var(--text-primary)}.btn-outline:hover{background:var(--bg-app);border-color:var(--text-secondary)}
-.btn-sm{padding:4px 10px;font-size:12px}
-.btn-danger{background:var(--error);color:#fff;border-color:var(--error)}.btn-danger:hover{background:#c82333}
-.badge{display:inline-block;padding:2px 8px;border-radius:10px;font-size:11px;font-weight:600}
-.badge-default{background:var(--bg-app);color:var(--text-secondary)}
-.badge-success{background:#E6F5EC;color:#166534}.badge-warning{background:#FDF1E0;color:#92400e}
-.badge-danger{background:#FDEAEA;color:#991b1b}.badge-info{background:#E8F0FA;color:#1e40af}
-.tabs{display:flex;border-bottom:2px solid var(--border);margin-bottom:16px;gap:0;overflow-x:auto}
-.tab{padding:10px 16px;font-size:13px;font-weight:500;color:var(--text-secondary);cursor:pointer;border:none;background:none;border-bottom:2px solid transparent;margin-bottom:-2px;white-space:nowrap;font-family:'Inter',sans-serif}
-.tab.active{color:var(--primary);border-bottom-color:var(--primary)}.tab:hover{color:var(--text-primary)}
-.modal-overlay{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.4);display:flex;align-items:center;justify-content:center;z-index:1000;padding:20px}
-.modal{background:#fff;border-radius:12px;width:100%;max-width:580px;max-height:90vh;display:flex;flex-direction:column;box-shadow:0 20px 60px rgba(0,0,0,.2)}
-.modal-header{display:flex;justify-content:space-between;align-items:center;padding:16px 20px;border-bottom:1px solid var(--border-light)}
-.modal-header h2{font-size:16px;font-weight:600}
-.modal-body{padding:20px;overflow-y:auto;flex:1}.modal-footer{padding:12px 20px;border-top:1px solid var(--border-light);display:flex;justify-content:flex-end;gap:8px}
-.text-muted{color:var(--text-secondary)}.empty-state{text-align:center;padding:40px 20px;color:var(--text-secondary)}
-.empty-state .icon{margin-bottom:8px;color:var(--border)}
-.loading{display:flex;justify-content:center;align-items:center;min-height:200px;color:var(--text-secondary)}
-.login-page{min-height:100vh;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,#162240 0%,#1B3A5C 100%)}
-.login-card{background:#fff;padding:40px;border-radius:16px;width:100%;max-width:380px;box-shadow:0 25px 50px rgba(0,0,0,.25)}
-.login-card h1{text-align:center;margin-bottom:24px;font-size:22px;font-weight:700;color:var(--text-primary)}
-.login-error{background:#FDEAEA;color:#991b1b;padding:10px;border-radius:6px;margin-bottom:12px;font-size:13px}
-.flex{display:flex}.gap-2{gap:8px}.gap-3{gap:12px}
-.tree-branch{margin-left:28px;border-left:2px solid var(--border);padding-left:14px;margin-top:6px}
-.tree-item{display:flex;align-items:center;justify-content:space-between;padding:6px 4px;cursor:pointer;border-radius:6px}
-.tree-item:hover{background:var(--primary-lighter)}
-details summary{cursor:pointer;color:var(--primary);font-size:13px}
-pre{font-size:11px;max-width:400px;overflow:auto;background:var(--bg-app);padding:8px;border-radius:4px;margin-top:4px}
-.rn-loader-overlay{position:fixed;inset:0;background:#070b14;display:flex;align-items:center;justify-content:center;z-index:10000;transition:opacity .5s ease,visibility .5s ease}
-.rn-loader-overlay.hidden{opacity:0;visibility:hidden;pointer-events:none}
-.rn-loader-inline{display:flex;align-items:center;justify-content:center;min-height:200px}
-.rn-loader-svg{width:120px;height:120px}.rn-loader-overlay .rn-loader-svg{width:180px;height:180px}
-.confirm-delete{background:#FDEAEA;border:1px solid #f5c6cb;border-radius:8px;padding:16px;margin-top:12px}
-.confirm-delete label{color:#991b1b;font-weight:600}
+thead th{background:var(--bg);font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--tx2);padding:10px 14px;text-align:left;border-bottom:2px solid var(--border);white-space:nowrap;position:sticky;top:0;z-index:1}
+tbody td{padding:10px 14px;border-bottom:1px solid #F3F4F6;font-size:13px;vertical-align:middle}
+tbody tr{transition:background .1s}
+tbody tr:hover{background:#F9FAFB}
+tbody tr:last-child td{border-bottom:none}
+
+/* Badge */
+.badge{display:inline-flex;align-items:center;padding:2px 10px;border-radius:20px;font-size:11px;font-weight:600;white-space:nowrap}
+.b-blue{background:var(--blue-l2);color:#1E40AF}
+.b-green{background:var(--green-l2);color:#065F46}
+.b-red{background:var(--red-l2);color:#991B1B}
+.b-amber{background:#FEF3C7;color:#92400E}
+.b-gray{background:#F3F4F6;color:#4B5563}
+
+/* Buttons */
+.btn{display:inline-flex;align-items:center;gap:6px;padding:8px 18px;border-radius:var(--radius);font-size:13px;font-weight:600;border:none;cursor:pointer;transition:all .15s;white-space:nowrap}
+.btn:active{transform:scale(.97)}
+.btn-p{background:var(--blue);color:#fff}.btn-p:hover{background:var(--blue-d)}
+.btn-o{background:#fff;border:1px solid var(--border2);color:var(--tx1)}.btn-o:hover{background:var(--bg);border-color:var(--tx3)}
+.btn-d{background:var(--red);color:#fff}.btn-d:hover{background:#B91C1C}
+.btn-g{background:var(--green);color:#fff}.btn-g:hover{background:#047857}
+.btn-sm{padding:5px 12px;font-size:12px;border-radius:6px}
+.btn-icon{padding:6px;border-radius:6px;background:none;border:1px solid transparent;cursor:pointer;color:var(--tx2);transition:all .15s;display:inline-flex}
+.btn-icon:hover{background:var(--bg);border-color:var(--border);color:var(--tx1)}
+
+/* Form */
+.fg{margin-bottom:14px}
+.fg label{display:block;font-size:11px;font-weight:700;color:var(--tx2);margin-bottom:5px;text-transform:uppercase;letter-spacing:.3px}
+.fc{width:100%;padding:9px 12px;border:1.5px solid var(--border);border-radius:var(--radius);font-size:13px;background:#fff;transition:all .15s;color:var(--tx1)}
+.fc:focus{outline:none;border-color:var(--blue);box-shadow:0 0 0 3px rgba(37,99,235,.1)}
+.fc::placeholder{color:var(--tx3)}
+select.fc{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%23667085' viewBox='0 0 16 16'%3E%3Cpath d='M8 11L3 6h10l-5 5z'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 12px center;padding-right:32px}
+.fr{display:flex;gap:12px;flex-wrap:wrap}.fr .fg{min-width:140px}
+textarea.fc{resize:vertical;min-height:80px}
+
+/* Modal */
+.modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.45);display:flex;align-items:center;justify-content:center;z-index:1000;padding:20px;backdrop-filter:blur(4px);animation:fadeIn .15s}
+.modal{background:#fff;border-radius:16px;width:100%;max-width:620px;max-height:90vh;display:flex;flex-direction:column;box-shadow:0 24px 64px rgba(0,0,0,.2);animation:slideUp .2s}
+.modal.wide{max-width:900px}
+.modal-h{display:flex;justify-content:space-between;align-items:center;padding:18px 24px;border-bottom:1px solid var(--border)}
+.modal-h h2{font-size:17px;font-weight:700}
+.modal-b{padding:24px;overflow-y:auto;flex:1}
+.modal-f{padding:14px 24px;border-top:1px solid var(--border);display:flex;justify-content:flex-end;gap:8px}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+@keyframes slideUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+
+/* Tabs */
+.tabs{display:flex;gap:0;border-bottom:2px solid var(--border);margin-bottom:20px;overflow-x:auto}
+.tab{padding:10px 20px;font-size:13px;font-weight:600;color:var(--tx2);cursor:pointer;border:none;background:none;border-bottom:2px solid transparent;margin-bottom:-2px;transition:all .15s;white-space:nowrap}
+.tab:hover{color:var(--tx1)}
+.tab.active{color:var(--blue);border-bottom-color:var(--blue)}
+
+/* Tree */
+.tree-node{margin-left:0}
+.tree-node.child{margin-left:28px;border-left:2px solid var(--border);padding-left:16px}
+.tree-item{display:flex;align-items:center;justify-content:space-between;padding:8px 12px;border-radius:var(--radius);cursor:pointer;transition:all .1s;margin-bottom:2px}
+.tree-item:hover{background:var(--blue-l)}
+.tree-item.sel{background:var(--blue-l2)}
+.tree-icon{width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;margin-right:10px;flex-shrink:0}
+.tree-icon.org{background:linear-gradient(135deg,#818CF8,#6366F1);color:#fff}
+.tree-icon.ent{background:linear-gradient(135deg,#3B82F6,#2563EB);color:#fff}
+.tree-icon.spb{background:linear-gradient(135deg,#F59E0B,#D97706);color:#fff}
+.tree-icon.res{background:linear-gradient(135deg,#10B981,#059669);color:#fff}
+.tree-icon.dep{background:linear-gradient(135deg,#8B5CF6,#7C3AED);color:#fff}
+
+/* Chip / Tag */
+.chip{display:inline-flex;align-items:center;gap:4px;padding:3px 10px;border-radius:6px;font-size:11px;font-weight:600;cursor:default}
+.chip-g{background:var(--green-l2);color:#065F46}
+.chip-r{background:var(--red-l2);color:#991B1B}
+
+/* Grid PPE */
+.ppe-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:10px}
+.ppe-card{border:2px solid var(--border);border-radius:var(--radius);padding:10px 12px;font-size:12px;transition:all .15s;cursor:pointer;position:relative}
+.ppe-card.assigned{border-color:var(--green);background:var(--green-l)}
+.ppe-card.not-assigned{border-color:var(--red-l2);background:var(--red-l);opacity:.6}
+.ppe-card .ppe-name{font-weight:700;font-size:12px;margin-bottom:4px;line-height:1.3}
+.ppe-card .ppe-meta{color:var(--tx2);font-size:11px}
+.ppe-card .ppe-dates{margin-top:6px;font-size:11px;font-family:'JetBrains Mono',monospace}
+.ppe-card .ppe-dot{position:absolute;top:8px;right:8px;width:8px;height:8px;border-radius:50%}
+.ppe-card.assigned .ppe-dot{background:var(--green)}
+.ppe-card.not-assigned .ppe-dot{background:var(--red)}
+
+/* Empty */
+.empty{text-align:center;padding:48px 20px;color:var(--tx3)}
+.empty svg{width:48px;height:48px;margin-bottom:12px;opacity:.4}
+.empty p{font-size:14px;font-weight:500}
+
+/* Search */
+.search-box{position:relative}
+.search-box input{padding-left:36px}
+.search-box svg{position:absolute;left:12px;top:50%;transform:translateY(-50%);width:16px;height:16px;color:var(--tx3)}
+
+/* Scrollbar */
+::-webkit-scrollbar{width:6px;height:6px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:#D1D5DB;border-radius:3px}
+::-webkit-scrollbar-thumb:hover{background:#9CA3AF}
+
+/* Loading animation */
+.loader-wrap{position:fixed;inset:0;background:var(--sidebar);display:flex;align-items:center;justify-content:center;z-index:9999;transition:opacity .4s,visibility .4s}
+.loader-wrap.hide{opacity:0;visibility:hidden;pointer-events:none}
+.loader-hex{position:relative;width:120px;height:120px}
+.loader-hex svg{width:100%;height:100%}
+
+/* Personnel table special */
+.ptbl{font-size:12px}
+.ptbl th{font-size:10px;padding:8px 6px;text-align:center}
+.ptbl td{padding:6px;text-align:center;font-size:11px}
+.ptbl .name-col{text-align:left;font-weight:600;white-space:nowrap;min-width:160px;position:sticky;left:0;background:inherit;z-index:1}
+.ptbl thead .name-col{background:var(--bg)}
+.ptbl .siz-ok{background:#ECFDF5;color:#065F46;font-weight:600}
+.ptbl .siz-no{background:#FEF2F2;color:#991B1B;font-weight:500}
+.ptbl .siz-exp{background:#FFFBEB;color:#92400E;font-weight:600}
+.ptbl tbody tr:hover td{background:#F0F9FF}
+.ptbl tbody tr:hover .siz-ok{background:#D1FAE5}
+.ptbl tbody tr:hover .siz-no{background:#FEE2E2}
+
+/* Category icons */
+.cat-icon{width:36px;height:36px;border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:18px}
+.cat-clothes{background:#EDE9FE;color:#7C3AED}
+.cat-shoes{background:#FEF3C7;color:#D97706}
+.cat-head{background:#E0E7FF;color:#4338CA}
+.cat-gloves{background:#FCE7F3;color:#DB2777}
+.cat-consumable{background:#ECFDF5;color:#059669}
+
+/* Toast */
+.toast{position:fixed;bottom:24px;right:24px;background:#1F2937;color:#fff;padding:12px 20px;border-radius:10px;font-size:13px;font-weight:500;z-index:2000;animation:slideUp .3s;box-shadow:0 8px 24px rgba(0,0,0,.2);display:flex;align-items:center;gap:8px;max-width:360px}
+.toast.success{background:#059669}.toast.error{background:#DC2626}
+
+/* Responsive */
+@media(max-width:768px){
+  .sidebar{width:0;overflow:hidden}.main{margin-left:0;padding:16px}
+  .stats{grid-template-columns:1fr 1fr}.fr{flex-direction:column}
+}
 </style>
 </head>
 <body>
-<div class="rn-loader-overlay" id="initialLoader">
-  <svg class="rn-loader-svg" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
-    <defs><filter id="rnGlowInit" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="3" result="b1"/><feGaussianBlur stdDeviation="7" result="b2"/><feMerge><feMergeNode in="b2"/><feMergeNode in="b1"/><feMergeNode in="SourceGraphic"/></feMerge></filter><clipPath id="ccInit"><circle cx="100" cy="100" r="88"/></clipPath></defs>
-    <g clip-path="url(#ccInit)"><path class="rn-seg-init" d="M115,62 L-58,-38 L89,-138 Z"/><path class="rn-seg-init" d="M115,62 L89,-138 L235,-52 Z"/><path class="rn-seg-init" d="M115,62 L235,-52 L304,118 Z"/><path class="rn-seg-init" d="M115,62 L304,118 L167,262 Z"/><path class="rn-seg-init" d="M115,62 L167,262 L15,242 Z"/><path class="rn-seg-init" d="M115,62 L15,242 L-78,120 Z"/><path class="rn-seg-init" d="M115,62 L-78,120 L-58,-38 Z"/></g>
-    <g clip-path="url(#ccInit)"><line x1="115" y1="62" x2="-58" y2="-38" stroke="#070b14" stroke-width="5"/><line x1="115" y1="62" x2="89" y2="-138" stroke="#070b14" stroke-width="5"/><line x1="115" y1="62" x2="235" y2="-52" stroke="#070b14" stroke-width="5"/><line x1="115" y1="62" x2="304" y2="118" stroke="#070b14" stroke-width="5"/><line x1="115" y1="62" x2="167" y2="262" stroke="#070b14" stroke-width="5"/><line x1="115" y1="62" x2="15" y2="242" stroke="#070b14" stroke-width="5"/><line x1="115" y1="62" x2="-78" y2="120" stroke="#070b14" stroke-width="5"/></g>
-  </svg>
+<div class="loader-wrap" id="loader">
+  <div class="loader-hex">
+    <svg viewBox="0 0 120 120">
+      <defs>
+        <filter id="glow"><feGaussianBlur stdDeviation="2" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+      </defs>
+      <polygon points="60,10 105,35 105,85 60,110 15,85 15,35" fill="none" stroke="#1E3A5F" stroke-width="2"/>
+      <polygon points="60,10 105,35 105,85 60,110 15,85 15,35" fill="none" stroke="#3B82F6" stroke-width="2.5" stroke-dasharray="300" stroke-dashoffset="300" filter="url(#glow)">
+        <animate attributeName="stroke-dashoffset" values="300;0;300" dur="2s" repeatCount="indefinite"/>
+      </polygon>
+      <text x="60" y="58" text-anchor="middle" fill="#3B82F6" font-family="Manrope" font-weight="800" font-size="16">СИЗ</text>
+      <text x="60" y="74" text-anchor="middle" fill="#667085" font-family="Manrope" font-weight="500" font-size="8">Загрузка...</text>
+    </svg>
+  </div>
 </div>
-<script>(function(){var segs=document.querySelectorAll('.rn-seg-init'),step=0,phase='appear';function style(s,lit){s.style.fill=lit?'#5B9BD5':'transparent';s.style.filter=lit?'url(#rnGlowInit)':'none'}function tick(){if(phase==='appear'){style(segs[step],true);step++;if(step>=segs.length){phase='disappear';step=0;setTimeout(tick,400)}else setTimeout(tick,250)}else{style(segs[step],false);step++;if(step>=segs.length){phase='appear';step=0;setTimeout(tick,400)}else setTimeout(tick,250)}}setTimeout(tick,300)})()</script>
+
 <div id="root"></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.3.1/umd/react.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.3.1/umd/react-dom.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.26.2/babel.min.js"></script>
+
 <script type="text/babel">
-const{useState,useEffect,useCallback,createContext,useContext,useRef}=React;
-// ============ SVG ICONS ============
-const I={
-shield:p=><svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>,
-users:p=><svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>,
-activity:p=><svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>,
-zap:p=><svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>,
-alertTriangle:p=><svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>,
-plus:p=><svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>,
-edit:p=><svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>,
-arrowLeft:p=><svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>,
-package:p=><svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="16.5" y1="9.4" x2="7.5" y2="4.21"/><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>,
-clipboard:p=><svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1" ry="1"/></svg>,
-folder:p=><svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>,
-briefcase:p=><svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>,
-building:p=><svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="4" y="2" width="16" height="20" rx="2"/><path d="M9 22v-4h6v4"/><path d="M8 6h.01"/><path d="M16 6h.01"/><path d="M12 6h.01"/><path d="M12 10h.01"/><path d="M12 14h.01"/><path d="M16 10h.01"/><path d="M16 14h.01"/><path d="M8 10h.01"/><path d="M8 14h.01"/></svg>,
-userCog:p=><svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><circle cx="18" cy="16" r="3"/><path d="M18 13v1"/><path d="M18 18v1"/></svg>,
-scroll:p=><svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M8 21h12a2 2 0 0 0 2-2v-2H10v2a2 2 0 1 1-4 0V5a2 2 0 1 0-4 0v3h4"/><path d="M19 17V5a2 2 0 0 0-2-2H4"/></svg>,
-logOut:p=><svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>,
-check:p=><svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>,
-trash:p=><svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>,
-dashboard:p=><svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>,
-wrench:p=><svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>,
-layers:p=><svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></svg>,
+const {useState, useEffect, useCallback, createContext, useContext, useRef, useMemo} = React;
+
+// ═══════════════════════════════════════
+// ICONS (inline SVG components)
+// ═══════════════════════════════════════
+const IC = {
+  shield: p => <svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>,
+  home: p => <svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>,
+  users: p => <svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>,
+  user: p => <svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>,
+  building: p => <svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="4" y="2" width="16" height="20" rx="2"/><path d="M9 22v-4h6v4"/><path d="M8 6h.01M16 6h.01M12 6h.01M12 10h.01M12 14h.01M16 10h.01M16 14h.01M8 10h.01M8 14h.01"/></svg>,
+  folder: p => <svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>,
+  package: p => <svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="16.5" y1="9.4" x2="7.5" y2="4.21"/><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>,
+  briefcase: p => <svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>,
+  scroll: p => <svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M8 21h12a2 2 0 0 0 2-2v-2H10v2a2 2 0 1 1-4 0V5a2 2 0 1 0-4 0v3h4"/><path d="M19 17V5a2 2 0 0 0-2-2H4"/></svg>,
+  plus: p => <svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>,
+  edit: p => <svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>,
+  trash: p => <svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>,
+  search: p => <svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>,
+  check: p => <svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>,
+  x: p => <svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>,
+  chevDown: p => <svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 12 15 18 9"/></svg>,
+  chevRight: p => <svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6"/></svg>,
+  arrowLeft: p => <svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>,
+  link: p => <svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>,
+  warehouse: p => <svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 8.35V20a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V8.35A2 2 0 0 1 3.26 6.5l8-3.2a2 2 0 0 1 1.48 0l8 3.2A2 2 0 0 1 22 8.35Z"/><path d="M6 18h12"/><path d="M6 14h12"/><rect x="6" y="10" width="12" height="12"/></svg>,
+  shirt: p => <svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20.38 3.46L16 2a4 4 0 0 1-8 0L3.62 3.46a2 2 0 0 0-1.34 2.23l.58 3.47a1 1 0 0 0 .99.84H6v10c0 1.1.9 2 2 2h8a2 2 0 0 0 2-2V10h2.15a1 1 0 0 0 .99-.84l.58-3.47a2 2 0 0 0-1.34-2.23z"/></svg>,
+  boot: p => <svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M7 21h10l3-3V9l-3 3H7V5a2 2 0 0 0-2-2H3v16a2 2 0 0 0 2 2h2z"/></svg>,
+  hardhat: p => <svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M2 18a1 1 0 0 0 1 1h18a1 1 0 0 0 1-1v-2a1 1 0 0 0-1-1H3a1 1 0 0 0-1 1v2z"/><path d="M10 15V6a2 2 0 0 1 4 0v9"/><path d="M4 15v-3a8 8 0 0 1 16 0v3"/></svg>,
+  hand: p => <svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 11V6a2 2 0 0 0-4 0v1"/><path d="M14 10V4a2 2 0 0 0-4 0v2"/><path d="M10 10.5V6a2 2 0 0 0-4 0v8"/><path d="M18 8a2 2 0 1 1 4 0v6a8 8 0 0 1-8 8h-2c-2.8 0-4.5-.86-5.99-2.34l-3.6-3.6a2 2 0 0 1 2.83-2.82L7 15"/></svg>,
+  droplet: p => <svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z"/></svg>,
+  calendar: p => <svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>,
+  clock: p => <svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>,
+  settings: p => <svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>,
+  eye: p => <svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>,
 };
 
-// ============ LOADER ============
-const loaderPaths=["M115,62 L-58,-38 L89,-138 Z","M115,62 L89,-138 L235,-52 Z","M115,62 L235,-52 L304,118 Z","M115,62 L304,118 L167,262 Z","M115,62 L167,262 L15,242 Z","M115,62 L15,242 L-78,120 Z","M115,62 L-78,120 L-58,-38 Z"];
-const loaderLines=[[-58,-38],[89,-138],[235,-52],[304,118],[167,262],[15,242],[-78,120]];
-let rnGlowId=0;
-const RnLoader=({overlay})=>{const svgRef=useRef(null);const ids=useRef({glow:`rnG${++rnGlowId}`,clip:`rnC${rnGlowId}`});const gapColor=overlay?'#070b14':'var(--bg-app)';useEffect(()=>{if(!svgRef.current)return;const segs=svgRef.current.querySelectorAll('.rn-s');let step=0,phase='appear',alive=true;function tick(){if(!alive)return;if(phase==='appear'){segs[step].setAttribute('fill','#5B9BD5');segs[step].setAttribute('filter',`url(#${ids.current.glow})`);step++;if(step>=7){phase='disappear';step=0;setTimeout(tick,400)}else setTimeout(tick,250)}else{segs[step].setAttribute('fill','transparent');segs[step].setAttribute('filter','none');step++;if(step>=7){phase='appear';step=0;setTimeout(tick,400)}else setTimeout(tick,250)}}setTimeout(tick,200);return()=>{alive=false}},[]);return<div className={overlay?"rn-loader-overlay":"rn-loader-inline"}><svg ref={svgRef} className="rn-loader-svg" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg"><defs><filter id={ids.current.glow} x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="3" result="b1"/><feGaussianBlur stdDeviation="7" result="b2"/><feMerge><feMergeNode in="b2"/><feMergeNode in="b1"/><feMergeNode in="SourceGraphic"/></feMerge></filter><clipPath id={ids.current.clip}><circle cx="100" cy="100" r="88"/></clipPath></defs><g clipPath={`url(#${ids.current.clip})`}>{loaderPaths.map((d,i)=><path key={i} className="rn-s" d={d} fill="transparent" filter="none"/>)}</g><g clipPath={`url(#${ids.current.clip})`}>{loaderLines.map((l,i)=><line key={i} x1="115" y1="62" x2={l[0]} y2={l[1]} stroke={gapColor} strokeWidth="5"/>)}</g></svg></div>};
+// ═══════════════════════════════════════
+// DATA STORE (localStorage based)
+// ═══════════════════════════════════════
+const LS = {
+  get(k, def) { try { const v = localStorage.getItem('siz_' + k); return v ? JSON.parse(v) : def; } catch { return def; } },
+  set(k, v) { localStorage.setItem('siz_' + k, JSON.stringify(v)); },
+};
 
-// ============ API & AUTH ============
-const API={token:localStorage.getItem('siz_token'),async req(method,url,data){const opts={method,headers:{'Content-Type':'application/json'}};if(this.token)opts.headers['Authorization']=`Bearer ${this.token}`;if(data)opts.body=JSON.stringify(data);const res=await fetch(`/api${url}`,opts);if(res.status===401){this.token=null;localStorage.removeItem('siz_token');localStorage.removeItem('siz_user');window.location.hash='#/login';throw new Error('Unauthorized')}const json=await res.json();if(!res.ok)throw{response:{data:json}};return json},get(u){return this.req('GET',u)},post(u,d){return this.req('POST',u,d)},put(u,d){return this.req('PUT',u,d)},del(u,d){return this.req('DELETE',u,d)},setToken(t){this.token=t;localStorage.setItem('siz_token',t)},clearToken(){this.token=null;localStorage.removeItem('siz_token');localStorage.removeItem('siz_user')}};
-const AuthCtx=createContext(null);const useAuth=()=>useContext(AuthCtx);
-const AuthProvider=({children})=>{const[user,setUser]=useState(()=>{try{return JSON.parse(localStorage.getItem('siz_user'))}catch{return null}});const login=async(username,password)=>{const data=await API.post('/auth/login',{username,password});API.setToken(data.token);localStorage.setItem('siz_user',JSON.stringify(data.user));setUser(data.user)};const logout=()=>{API.clearToken();setUser(null)};const hasPerm=p=>user?.general_permissions?.[p]===true;const isLevel=levels=>levels.includes(user?.role_level);return<AuthCtx.Provider value={{user,login,logout,hasPerm,isLevel}}>{children}</AuthCtx.Provider>};
-const useRoute=()=>{const[hash,setHash]=useState(window.location.hash||'#/');useEffect(()=>{const h=()=>setHash(window.location.hash||'#/');window.addEventListener('hashchange',h);return()=>window.removeEventListener('hashchange',h)},[]);return{path:hash.replace('#','')||'/',navigate:to=>{window.location.hash=to}}};
-const Modal=({isOpen,onClose,title,footer,children,wide})=>{if(!isOpen)return null;return<div className="modal-overlay" onClick={onClose}><div className="modal" style={wide?{maxWidth:720}:{}} onClick={e=>e.stopPropagation()}><div className="modal-header"><h2>{title}</h2><button className="btn btn-outline btn-sm" onClick={onClose}>✕</button></div><div className="modal-body">{children}</div>{footer&&<div className="modal-footer">{footer}</div>}</div></div>};
-const fio=e=>[e?.last_name,e?.first_name,e?.middle_name].filter(Boolean).join(' ');
-const fmtDate=d=>d?new Date(d).toLocaleDateString('ru-RU'):'—';
-const fmtDateTime=d=>d?new Date(d).toLocaleString('ru-RU'):'—';
-const txLabel=t=>({issue:'Выдача',return:'Возврат',write_off:'Списание',exchange:'Обмен'}[t]||t);
-const txBadge=t=>({issue:'badge badge-success',return:'badge badge-info',write_off:'badge badge-danger',exchange:'badge badge-warning'}[t]||'badge');
-const isExpired=d=>d&&new Date(d)<new Date();
-// ============ LOGIN + DASHBOARD ============
-const LoginPage=()=>{const{login}=useAuth();const[form,setForm]=useState({username:'',password:''});const[error,setError]=useState('');const[loading,setLoading]=useState(false);const handleSubmit=async()=>{setLoading(true);setError('');try{await login(form.username,form.password);window.location.hash='#/'}catch(e){setError(e?.response?.data?.error||'Ошибка входа')}setLoading(false)};return<div className="login-page">{loading&&<RnLoader overlay/>}<div className="login-card"><div style={{textAlign:'center',marginBottom:16}}><div style={{display:'inline-flex',width:56,height:56,background:'linear-gradient(135deg,#5B9BD5,#2B5EA7)',borderRadius:14,alignItems:'center',justifyContent:'center'}}><I.shield style={{width:28,height:28,color:'#fff'}}/></div></div><h1>Учёт СИЗ</h1>{error&&<div className="login-error">{error}</div>}<div className="form-group"><label>Логин</label><input className="form-control" value={form.username} onChange={e=>setForm({...form,username:e.target.value})} onKeyDown={e=>e.key==='Enter'&&handleSubmit()}/></div><div className="form-group"><label>Пароль</label><input className="form-control" type="password" value={form.password} onChange={e=>setForm({...form,password:e.target.value})} onKeyDown={e=>e.key==='Enter'&&handleSubmit()}/></div><button className="btn btn-primary" style={{width:'100%',marginTop:8,justifyContent:'center'}} onClick={handleSubmit} disabled={loading}>{loading?'Вход...':'Войти'}</button></div></div>};
+const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+const fmtDate = d => d ? new Date(d).toLocaleDateString('ru-RU') : '—';
+const addYears = (d, y) => { const dt = new Date(d); dt.setFullYear(dt.getFullYear() + y); return dt.toISOString().split('T')[0]; };
+const isExpired = d => d && new Date(d) < new Date();
+const isExpiringSoon = d => { if (!d) return false; const diff = (new Date(d) - new Date()) / (1000*60*60*24); return diff > 0 && diff <= 30; };
 
-const Dashboard=()=>{const[stats,setStats]=useState({employees:[],transactions:[],summary:[]});const[loading,setLoading]=useState(true);useEffect(()=>{Promise.all([API.get('/employees'),API.get('/transactions?limit=10'),API.get('/transactions/reports/summary')]).then(([e,t,s])=>setStats({employees:e,transactions:t,summary:s})).catch(console.error).finally(()=>setLoading(false))},[]);if(loading)return<RnLoader/>;return<div><div className="page-header"><h1>Панель управления</h1></div><div className="stats-grid" style={{marginBottom:20}}><div className="stat-card"><div className="stat-icon blue"><I.users style={{width:20,height:20}}/></div><div className="stat-value">{stats.employees.length}</div><div className="stat-label">Сотрудников</div></div><div className="stat-card"><div className="stat-icon green"><I.activity style={{width:20,height:20}}/></div><div className="stat-value">{stats.transactions.length}</div><div className="stat-label">Последних операций</div></div><div className="stat-card"><div className="stat-icon yellow"><I.zap style={{width:20,height:20}}/></div><div className="stat-value">{stats.summary.length}</div><div className="stat-label">РЭС</div></div><div className="stat-card"><div className="stat-icon red"><I.alertTriangle style={{width:20,height:20}}/></div><div className="stat-value" style={{color:'var(--error)'}}>{stats.summary.reduce((a,s)=>a+parseInt(s.expired_count||0),0)}</div><div className="stat-label">Просроченных СИЗ</div></div></div><div className="card"><div className="card-header"><h3>Последние операции</h3></div><div className="table-container"><table><thead><tr><th>Дата</th><th>Тип</th><th>Сотрудник</th><th>СИЗ</th><th>Кол-во</th></tr></thead><tbody>{stats.transactions.length===0?<tr><td colSpan="5"><div className="empty-state">Нет операций</div></td></tr>:stats.transactions.map(t=><tr key={t.id}><td className="text-muted">{fmtDate(t.transaction_date)}</td><td><span className={txBadge(t.transaction_type)}>{txLabel(t.transaction_type)}</span></td><td style={{fontWeight:600}}>{fio(t)}</td><td>{t.item_name}</td><td style={{fontFamily:'JetBrains Mono,monospace'}}>{t.quantity} {t.unit}</td></tr>)}</tbody></table></div></div></div>};
-// ============ EMPLOYEES ============
-const Employees=({navigate})=>{const{hasPerm}=useAuth();const[data,setData]=useState({employees:[],positions:[],resUnits:[],enterprises:[],departments:[]});const[filters,setFilters]=useState({search:'',res_unit_id:'',enterprise_id:'',department_id:''});const[showModal,setShowModal]=useState(false);const[form,setForm]=useState({});const[loading,setLoading]=useState(true);const load=useCallback(()=>{const p=new URLSearchParams();Object.entries(filters).forEach(([k,v])=>{if(v)p.append(k,v)});Promise.all([API.get(`/employees?${p}`),API.get('/positions'),API.get('/org/res-units'),API.get('/org/enterprises'),API.get('/org/departments')]).then(([e,pos,r,ent,dep])=>setData({employees:e,positions:pos,resUnits:r,enterprises:ent,departments:dep})).catch(console.error).finally(()=>setLoading(false))},[filters]);useEffect(()=>{load()},[load]);const save=async()=>{try{if(form.id)await API.put(`/employees/${form.id}`,form);else await API.post('/employees',form);setShowModal(false);setForm({});load()}catch(e){alert(e?.response?.data?.error||'Ошибка')}};if(loading)return<RnLoader/>;return<div>
-<div className="page-header"><h1>Сотрудники ({data.employees.length})</h1>{hasPerm('can_create')&&<button className="btn btn-primary" onClick={()=>{setForm({});setShowModal(true)}}><I.plus style={{width:16,height:16}}/> Сотрудник</button>}</div>
-<div className="card" style={{marginBottom:16}}><div className="form-row"><div className="form-group" style={{flex:2}}><input className="form-control" placeholder="Поиск по ФИО..." value={filters.search} onChange={e=>setFilters({...filters,search:e.target.value})}/></div><div className="form-group"><select className="form-control" value={filters.enterprise_id} onChange={e=>setFilters({...filters,enterprise_id:e.target.value})}><option value="">Все предприятия</option>{data.enterprises.map(e=><option key={e.id} value={e.id}>{e.name}</option>)}</select></div><div className="form-group"><select className="form-control" value={filters.res_unit_id} onChange={e=>setFilters({...filters,res_unit_id:e.target.value})}><option value="">Все РЭС/Службы</option>{data.resUnits.map(r=><option key={r.id} value={r.id}>{r.name}</option>)}</select></div></div></div>
-<div className="card"><div className="table-container"><table><thead><tr><th>Таб. №</th><th>ФИО</th><th>Должность</th><th>РЭС/Служба</th><th>Подразделение</th><th></th></tr></thead><tbody>{data.employees.length===0?<tr><td colSpan="6"><div className="empty-state"><div className="icon"><I.users style={{width:40,height:40}}/></div>Нет сотрудников</div></td></tr>:data.employees.map(emp=><tr key={emp.id} onClick={()=>navigate(`/employees/${emp.id}`)} style={{cursor:'pointer'}}><td className="text-muted" style={{fontFamily:'JetBrains Mono,monospace'}}>{emp.employee_number||'—'}</td><td style={{fontWeight:600}}>{fio(emp)}</td><td>{emp.position_name||'—'}</td><td>{emp.res_name||'—'}</td><td>{emp.department_name||'—'}</td><td>{hasPerm('can_edit')&&<button className="btn btn-outline btn-sm" onClick={e=>{e.stopPropagation();setForm(emp);setShowModal(true)}}><I.edit style={{width:14,height:14}}/></button>}</td></tr>)}</tbody></table></div></div>
-<Modal isOpen={showModal} onClose={()=>setShowModal(false)} title={form.id?'Редактировать':'Новый сотрудник'} wide footer={<><button className="btn btn-outline" onClick={()=>setShowModal(false)}>Отмена</button><button className="btn btn-primary" onClick={save}>Сохранить</button></>}>
-<div className="form-row"><div className="form-group"><label>Фамилия *</label><input className="form-control" value={form.last_name||''} onChange={e=>setForm({...form,last_name:e.target.value})}/></div><div className="form-group"><label>Имя *</label><input className="form-control" value={form.first_name||''} onChange={e=>setForm({...form,first_name:e.target.value})}/></div><div className="form-group"><label>Отчество</label><input className="form-control" value={form.middle_name||''} onChange={e=>setForm({...form,middle_name:e.target.value})}/></div></div>
-<div className="form-row"><div className="form-group"><label>Табельный №</label><input className="form-control" value={form.employee_number||''} onChange={e=>setForm({...form,employee_number:e.target.value})}/></div><div className="form-group"><label>Должность</label><select className="form-control" value={form.position_id||''} onChange={e=>setForm({...form,position_id:e.target.value||null})}><option value="">—</option>{data.positions.map(p=><option key={p.id} value={p.id}>{p.name}</option>)}</select></div><div className="form-group"><label>Дата приёма</label><input className="form-control" type="date" value={form.hire_date||''} onChange={e=>setForm({...form,hire_date:e.target.value})}/></div></div>
-<div className="form-row"><div className="form-group"><label>Предприятие</label><select className="form-control" value={form.enterprise_id||''} onChange={e=>setForm({...form,enterprise_id:e.target.value||null,res_unit_id:null,department_id:null})}><option value="">—</option>{data.enterprises.map(e=><option key={e.id} value={e.id}>{e.name}</option>)}</select></div><div className="form-group"><label>РЭС/Служба</label><select className="form-control" value={form.res_unit_id||''} onChange={e=>setForm({...form,res_unit_id:e.target.value||null,department_id:null})}><option value="">—</option>{data.resUnits.filter(r=>!form.enterprise_id||r.enterprise_id===form.enterprise_id).map(r=><option key={r.id} value={r.id}>{r.name}</option>)}</select></div></div>
-<div className="form-row"><div className="form-group"><label>Подразделение</label><select className="form-control" value={form.department_id||''} onChange={e=>setForm({...form,department_id:e.target.value||null})}><option value="">—</option>{data.departments.filter(d=>!form.res_unit_id||d.res_unit_id===form.res_unit_id).map(d=><option key={d.id} value={d.id}>{d.name}</option>)}</select></div></div>
-</Modal></div>};
-// ============ EMPLOYEE CARD ============
-const EmployeeCard=({id,navigate})=>{const{hasPerm}=useAuth();const[emp,setEmp]=useState(null);const[items,setItems]=useState([]);const[allowedItems,setAllowedItems]=useState([]);const[tab,setTab]=useState('balance');const[showTx,setShowTx]=useState(false);const[txForm,setTxForm]=useState({transaction_type:'issue',quantity:1});const[loading,setLoading]=useState(true);const load=useCallback(()=>{Promise.all([API.get(`/employees/${id}`),API.get('/siz/items'),API.get(`/ton/items-for-employee/${id}`)]).then(([e,i,allowed])=>{setEmp(e);setItems(i);setAllowedItems(allowed)}).catch(e=>{console.error(e);if(e?.response?.data?.error)navigate('/employees')}).finally(()=>setLoading(false))},[id]);useEffect(()=>{load()},[load]);const saveTx=async()=>{try{await API.post('/transactions',{...txForm,employee_id:id,transaction_date:txForm.transaction_date||new Date().toISOString().split('T')[0]});setShowTx(false);setTxForm({transaction_type:'issue',quantity:1});load()}catch(e){alert(e?.response?.data?.error||'Ошибка')}};if(loading)return<RnLoader/>;if(!emp)return<div className="empty-state">Не найден</div>;return<div>
-<div className="page-header"><div className="flex gap-3" style={{alignItems:'center'}}><button className="btn btn-outline btn-sm" onClick={()=>navigate('/employees')}><I.arrowLeft style={{width:14,height:14}}/> Назад</button><h1>{fio(emp)}</h1></div>{hasPerm('can_create')&&<button className="btn btn-primary" onClick={()=>{setTxForm({transaction_type:'issue',quantity:1});setShowTx(true)}}><I.plus style={{width:16,height:16}}/> Операция</button>}</div>
-<div className="card" style={{marginBottom:16}}><div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(160px,1fr))',gap:14}}>{[['Табельный №',emp.employee_number,'mono'],['Должность',emp.position_name],['Предприятие',emp.enterprise_name],['РЭС/Служба',emp.res_name],['Подразделение',emp.department_name],['Дата приёма',fmtDate(emp.hire_date)]].map(([lbl,val,cls],i)=><div key={i}><div className="text-muted" style={{fontSize:11,textTransform:'uppercase',letterSpacing:'.4px',fontWeight:600}}>{lbl}</div><div style={{fontWeight:600,marginTop:2,fontFamily:cls==='mono'?'JetBrains Mono,monospace':undefined}}>{val||'—'}</div></div>)}</div></div>
-<div className="stats-grid" style={{marginBottom:20}}><div className="stat-card"><div className="stat-icon blue"><I.package style={{width:20,height:20}}/></div><div className="stat-value">{emp.balance?.length||0}</div><div className="stat-label">СИЗ на руках</div></div><div className="stat-card"><div className="stat-icon green"><I.clipboard style={{width:20,height:20}}/></div><div className="stat-value">{emp.norms?.length||0}</div><div className="stat-label">Норм по должности</div></div><div className="stat-card"><div className="stat-icon yellow"><I.activity style={{width:20,height:20}}/></div><div className="stat-value">{emp.transactions?.length||0}</div><div className="stat-label">Всего операций</div></div><div className="stat-card" style={{borderLeft:`3px solid ${emp.balance?.some(b=>isExpired(b.valid_until))?'var(--error)':'var(--success)'}`}}><div className="stat-icon red"><I.alertTriangle style={{width:20,height:20}}/></div><div className="stat-value" style={{color:emp.balance?.some(b=>isExpired(b.valid_until))?'var(--error)':'var(--success)'}}>{emp.balance?.filter(b=>isExpired(b.valid_until)).length||0}</div><div className="stat-label">Просроченных</div></div></div>
-<div className="tabs"><button className={`tab ${tab==='balance'?'active':''}`} onClick={()=>setTab('balance')}>На руках ({emp.balance?.length||0})</button><button className={`tab ${tab==='history'?'active':''}`} onClick={()=>setTab('history')}>История ({emp.transactions?.length||0})</button><button className={`tab ${tab==='norms'?'active':''}`} onClick={()=>setTab('norms')}>Нормы ({emp.norms?.length||0})</button></div>
-<div className="card">{tab==='balance'&&<div className="table-container"><table><thead><tr><th>СИЗ</th><th>Категория</th><th>Кол-во</th><th>Последняя выдача</th><th>Срок до</th><th>Статус</th></tr></thead><tbody>{!emp.balance?.length?<tr><td colSpan="6"><div className="empty-state"><div className="icon"><I.package style={{width:36,height:36}}/></div>Нет СИЗ</div></td></tr>:emp.balance.map((b,i)=><tr key={i}><td style={{fontWeight:600}}>{b.item_name}</td><td className="text-muted">{b.category_name}</td><td style={{fontFamily:'JetBrains Mono,monospace'}}>{b.on_hand} {b.unit}</td><td>{fmtDate(b.last_issued)}</td><td>{fmtDate(b.valid_until)}</td><td>{isExpired(b.valid_until)?<span className="badge badge-danger">Просрочено</span>:<span className="badge badge-success">Действует</span>}</td></tr>)}</tbody></table></div>}
-{tab==='history'&&<div className="table-container"><table><thead><tr><th>Дата</th><th>Тип</th><th>СИЗ</th><th>Кол-во</th><th>Срок до</th><th>Кто выдал</th><th>Документ</th></tr></thead><tbody>{!emp.transactions?.length?<tr><td colSpan="7"><div className="empty-state"><div className="icon"><I.clipboard style={{width:36,height:36}}/></div>Нет операций</div></td></tr>:emp.transactions.map(t=><tr key={t.id}><td className="text-muted">{fmtDate(t.transaction_date)}</td><td><span className={txBadge(t.transaction_type)}>{txLabel(t.transaction_type)}</span></td><td style={{fontWeight:600}}>{t.item_name}</td><td style={{fontFamily:'JetBrains Mono,monospace'}}>{t.quantity} {t.unit}</td><td>{fmtDate(t.valid_until)}</td><td className="text-muted">{t.issued_by_name||'—'}</td><td className="text-muted">{t.document_reference||'—'}</td></tr>)}</tbody></table></div>}
-{tab==='norms'&&<div className="table-container"><table><thead><tr><th>СИЗ</th><th>Категория</th><th>Норма</th><th>Период</th><th>На руках</th><th>Статус</th></tr></thead><tbody>{!emp.norms?.length?<tr><td colSpan="6"><div className="empty-state"><div className="icon"><I.clipboard style={{width:36,height:36}}/></div>Нормы не заданы</div></td></tr>:emp.norms.map(n=>{const bal=emp.balance?.find(b=>b.item_id===n.siz_item_id);const oh=bal?parseInt(bal.on_hand):0;return<tr key={n.id}><td style={{fontWeight:600}}>{n.item_name}</td><td className="text-muted">{n.category_name}</td><td style={{fontFamily:'JetBrains Mono,monospace'}}>{n.quantity} {n.unit}</td><td>{n.issue_period_months} мес.</td><td style={{fontFamily:'JetBrains Mono,monospace'}}>{oh} {n.unit}</td><td>{oh>=n.quantity?<span className="badge badge-success">Обеспечен</span>:oh>0?<span className="badge badge-warning">Частично</span>:<span className="badge badge-danger">Нет</span>}</td></tr>})}</tbody></table></div>}</div>
-<Modal isOpen={showTx} onClose={()=>setShowTx(false)} title="Новая операция" footer={<><button className="btn btn-outline" onClick={()=>setShowTx(false)}>Отмена</button><button className="btn btn-primary" onClick={saveTx}>Сохранить</button></>}><div className="form-group"><label>Тип</label><select className="form-control" value={txForm.transaction_type} onChange={e=>setTxForm({...txForm,transaction_type:e.target.value})}><option value="issue">Выдача</option><option value="return">Возврат</option><option value="write_off">Списание</option><option value="exchange">Обмен</option></select></div><div className="form-group"><label>СИЗ *</label><select className="form-control" value={txForm.siz_item_id||''} onChange={e=>setTxForm({...txForm,siz_item_id:e.target.value})}><option value="">Выберите</option>{(txForm.transaction_type==='issue'&&allowedItems.length?allowedItems:items).map(i=><option key={i.id} value={i.id}>{i.category_name} → {i.name}{txForm.transaction_type==='issue'&&allowedItems.length?' (ТОН: '+i.norm_quantity+' '+i.unit+')':''}</option>)}</select></div><div className="form-row"><div className="form-group"><label>Кол-во</label><input className="form-control" type="number" min="1" value={txForm.quantity} onChange={e=>setTxForm({...txForm,quantity:parseInt(e.target.value)||1})}/></div><div className="form-group"><label>Дата</label><input className="form-control" type="date" value={txForm.transaction_date||''} onChange={e=>setTxForm({...txForm,transaction_date:e.target.value})}/></div></div>{txForm.transaction_type==='issue'&&<div className="form-group"><label>Срок до</label><input className="form-control" type="date" value={txForm.valid_until||''} onChange={e=>setTxForm({...txForm,valid_until:e.target.value})}/></div>}<div className="form-group"><label>Документ</label><input className="form-control" value={txForm.document_reference||''} onChange={e=>setTxForm({...txForm,document_reference:e.target.value})}/></div><div className="form-group"><label>Примечание</label><input className="form-control" value={txForm.notes||''} onChange={e=>setTxForm({...txForm,notes:e.target.value})}/></div></Modal></div>};
-// ============ TRANSACTIONS ============
-const Transactions=({navigate})=>{const{hasPerm}=useAuth();const[data,setData]=useState({tx:[],employees:[],items:[]});const[filters,setFilters]=useState({transaction_type:'',date_from:'',date_to:''});const[tab,setTab]=useState('all');const[report,setReport]=useState([]);const[showModal,setShowModal]=useState(false);const[form,setForm]=useState({transaction_type:'issue',quantity:1});const[allowedItems,setAllowedItems]=useState([]);const[loading,setLoading]=useState(true);const load=useCallback(()=>{const p=new URLSearchParams();Object.entries(filters).forEach(([k,v])=>{if(v)p.append(k,v)});Promise.all([API.get(`/transactions?${p}`),API.get('/employees'),API.get('/siz/items')]).then(([t,e,i])=>setData({tx:t,employees:e,items:i})).catch(console.error).finally(()=>setLoading(false))},[filters]);useEffect(()=>{load()},[load]);const loadReport=async type=>{setTab(type);if(type==='expired')setReport(await API.get('/transactions/reports/expired'));if(type==='summary')setReport(await API.get('/transactions/reports/summary'))};const save=async()=>{try{await API.post('/transactions',{...form,transaction_date:form.transaction_date||new Date().toISOString().split('T')[0]});setShowModal(false);setForm({transaction_type:'issue',quantity:1});load()}catch(e){alert(e?.response?.data?.error||'Ошибка')}};if(loading)return<RnLoader/>;return<div>
-<div className="page-header"><h1>Движение СИЗ</h1>{hasPerm('can_create')&&<button className="btn btn-primary" onClick={()=>{setForm({transaction_type:'issue',quantity:1});setShowModal(true)}}><I.plus style={{width:16,height:16}}/> Операция</button>}</div>
-<div className="tabs"><button className={`tab ${tab==='all'?'active':''}`} onClick={()=>setTab('all')}>Все ({data.tx.length})</button><button className={`tab ${tab==='expired'?'active':''}`} onClick={()=>loadReport('expired')}>Просроченные</button><button className={`tab ${tab==='summary'?'active':''}`} onClick={()=>loadReport('summary')}>Сводка по РЭС</button></div>
-{tab==='all'&&<><div className="card" style={{marginBottom:16}}><div className="form-row"><div className="form-group"><select className="form-control" value={filters.transaction_type} onChange={e=>setFilters({...filters,transaction_type:e.target.value})}><option value="">Все типы</option><option value="issue">Выдача</option><option value="return">Возврат</option><option value="write_off">Списание</option></select></div><div className="form-group"><input className="form-control" type="date" value={filters.date_from} onChange={e=>setFilters({...filters,date_from:e.target.value})}/></div><div className="form-group"><input className="form-control" type="date" value={filters.date_to} onChange={e=>setFilters({...filters,date_to:e.target.value})}/></div></div></div><div className="card"><div className="table-container"><table><thead><tr><th>Дата</th><th>Тип</th><th>Сотрудник</th><th>СИЗ</th><th>Кол-во</th><th>Документ</th></tr></thead><tbody>{!data.tx.length?<tr><td colSpan="6"><div className="empty-state"><div className="icon"><I.clipboard style={{width:36,height:36}}/></div>Нет операций</div></td></tr>:data.tx.map(t=><tr key={t.id}><td className="text-muted">{fmtDate(t.transaction_date)}</td><td><span className={txBadge(t.transaction_type)}>{txLabel(t.transaction_type)}</span></td><td><span style={{cursor:'pointer',color:'var(--primary)',fontWeight:600}} onClick={()=>navigate(`/employees/${t.employee_id}`)}>{fio(t)}</span></td><td>{t.item_name}</td><td style={{fontFamily:'JetBrains Mono,monospace'}}>{t.quantity} {t.unit}</td><td className="text-muted">{t.document_reference||'—'}</td></tr>)}</tbody></table></div></div></>}
-{tab==='expired'&&<div className="card"><div className="table-container"><table><thead><tr><th>Сотрудник</th><th>РЭС</th><th>СИЗ</th><th>Просрочен с</th></tr></thead><tbody>{!report.length?<tr><td colSpan="4"><div className="empty-state"><div className="icon"><I.check style={{width:36,height:36}}/></div>Нет просроченных</div></td></tr>:report.map((r,i)=><tr key={i}><td><span style={{cursor:'pointer',color:'var(--primary)',fontWeight:600}} onClick={()=>navigate(`/employees/${r.employee_id}`)}>{fio(r)}</span></td><td>{r.res_name||'—'}</td><td>{r.item_name}</td><td><span className="badge badge-danger">{fmtDate(r.valid_until)}</span></td></tr>)}</tbody></table></div></div>}
-{tab==='summary'&&<div className="card"><div className="table-container"><table><thead><tr><th>РЭС</th><th>Сотрудников</th><th>Выдач</th><th>Просрочено</th></tr></thead><tbody>{!report.length?<tr><td colSpan="4"><div className="empty-state">Нет данных</div></td></tr>:report.map((r,i)=><tr key={i}><td style={{fontWeight:600}}>{r.res_name}</td><td>{r.employees_count}</td><td>{r.total_issued}</td><td>{parseInt(r.expired_count)>0?<span className="badge badge-danger">{r.expired_count}</span>:<span className="badge badge-success">0</span>}</td></tr>)}</tbody></table></div></div>}
-<Modal isOpen={showModal} onClose={()=>setShowModal(false)} title="Новая операция" footer={<><button className="btn btn-outline" onClick={()=>setShowModal(false)}>Отмена</button><button className="btn btn-primary" onClick={save}>Сохранить</button></>}><div className="form-group"><label>Сотрудник *</label><select className="form-control" value={form.employee_id||''} onChange={e=>{const eid=e.target.value;setForm({...form,employee_id:eid});if(eid&&form.transaction_type==='issue'){API.get(`/ton/items-for-employee/${eid}`).then(setAllowedItems).catch(()=>setAllowedItems([]))}else{setAllowedItems([])}}}><option value="">Выберите</option>{data.employees.map(e=><option key={e.id} value={e.id}>{fio(e)} — {e.position_name||''}</option>)}</select></div><div className="form-group"><label>Тип</label><select className="form-control" value={form.transaction_type} onChange={e=>setForm({...form,transaction_type:e.target.value})}><option value="issue">Выдача</option><option value="return">Возврат</option><option value="write_off">Списание</option></select></div><div className="form-group"><label>СИЗ *</label><select className="form-control" value={form.siz_item_id||''} onChange={e=>setForm({...form,siz_item_id:e.target.value})}><option value="">Выберите</option>{(form.transaction_type==='issue'&&allowedItems.length?allowedItems:data.items).map(i=><option key={i.id} value={i.id}>{i.category_name} → {i.name}</option>)}</select></div><div className="form-row"><div className="form-group"><label>Кол-во</label><input className="form-control" type="number" min="1" value={form.quantity} onChange={e=>setForm({...form,quantity:parseInt(e.target.value)||1})}/></div><div className="form-group"><label>Дата</label><input className="form-control" type="date" value={form.transaction_date||''} onChange={e=>setForm({...form,transaction_date:e.target.value})}/></div></div>{form.transaction_type==='issue'&&<div className="form-group"><label>Срок до</label><input className="form-control" type="date" value={form.valid_until||''} onChange={e=>setForm({...form,valid_until:e.target.value})}/></div>}<div className="form-group"><label>Документ</label><input className="form-control" value={form.document_reference||''} onChange={e=>setForm({...form,document_reference:e.target.value})}/></div></Modal></div>};
+// Category config
+const CATEGORIES = [
+  { key: 'clothes', name: 'ОДЕЖДА', icon: 'shirt', cls: 'cat-clothes', hasSizes: true, sizeType: 'clothing' },
+  { key: 'shoes', name: 'ОБУВЬ', icon: 'boot', cls: 'cat-shoes', hasSizes: true, sizeType: 'shoes' },
+  { key: 'head', name: 'ГОЛОВА', icon: 'hardhat', cls: 'cat-head', hasSizes: false, sizeLabel: 'Универсальный' },
+  { key: 'gloves', name: 'ПЕРЧАТКИ', icon: 'hand', cls: 'cat-gloves', hasSizes: false, sizeLabel: 'Универсальный' },
+  { key: 'consumable', name: 'РАСХОДНИК', icon: 'droplet', cls: 'cat-consumable', hasSizes: false, sizeLabel: 'шт/мл' },
+];
+const catByKey = k => CATEGORIES.find(c => c.key === k);
+const catIcon = k => { const c = catByKey(k); if (!c) return null; return IC[c.icon]; };
 
-// ============ DIRECTORIES + POSITIONS (unchanged logic) ============
-const Directories=()=>{const{hasPerm}=useAuth();const[cats,setCats]=useState([]);const[items,setItems]=useState([]);const[selectedCat,setSelectedCat]=useState(null);const[showModal,setShowModal]=useState(null);const[form,setForm]=useState({});const[loading,setLoading]=useState(true);const load=useCallback(()=>{Promise.all([API.get('/siz/categories'),API.get('/siz/items')]).then(([c,i])=>{setCats(c);setItems(i)}).catch(console.error).finally(()=>setLoading(false))},[]);useEffect(()=>{load()},[load]);const saveCat=async()=>{try{if(form.id)await API.put(`/siz/categories/${form.id}`,form);else await API.post('/siz/categories',form);setShowModal(null);setForm({});load()}catch(e){alert(e?.response?.data?.error||'Ошибка')}};const saveItem=async()=>{try{if(form.id)await API.put(`/siz/items/${form.id}`,form);else await API.post('/siz/items',form);setShowModal(null);setForm({});load()}catch(e){alert(e?.response?.data?.error||'Ошибка')}};const filtered=selectedCat?items.filter(i=>i.category_id===selectedCat):items;if(loading)return<RnLoader/>;return<div>
-<div className="page-header"><h1>Справочники СИЗ</h1>{hasPerm('can_create')&&<div className="flex gap-2"><button className="btn btn-outline" onClick={()=>{setForm({});setShowModal('cat')}}><I.plus style={{width:16,height:16}}/> Категория</button><button className="btn btn-primary" onClick={()=>{setForm({category_id:selectedCat||''});setShowModal('item')}}><I.plus style={{width:16,height:16}}/> Номенклатура</button></div>}</div>
-<div className="tabs"><button className={`tab ${!selectedCat?'active':''}`} onClick={()=>setSelectedCat(null)}>Все ({items.length})</button>{cats.map(c=><button key={c.id} className={`tab ${selectedCat===c.id?'active':''}`} onClick={()=>setSelectedCat(c.id)} onDoubleClick={()=>{if(hasPerm('can_edit')){setForm(c);setShowModal('cat')}}}>{c.name} ({items.filter(i=>i.category_id===c.id).length})</button>)}</div>
-<div className="card"><div className="table-container"><table><thead><tr><th>Наименование</th><th>Категория</th><th>Пол</th><th>Сезон</th><th>Ед. изм.</th><th>Срок эксп.</th><th></th></tr></thead><tbody>{!filtered.length?<tr><td colSpan="6"><div className="empty-state"><div className="icon"><I.folder style={{width:36,height:36}}/></div>Нет номенклатуры</div></td></tr>:filtered.map(item=><tr key={item.id}><td style={{fontWeight:600}}>{item.name}</td><td>{item.category_name}</td><td>{item.gender==='male'?'М':item.gender==='female'?'Ж':'—'}</td><td>{item.season==='summer'?'Лето':item.season==='winter'?'Зима':'—'}</td><td>{item.unit}</td><td style={{fontFamily:'JetBrains Mono,monospace'}}>{item.exploitation_years?item.exploitation_years+' г.':'—'}</td><td><div className="flex gap-2">{hasPerm('can_edit')&&<button className="btn btn-outline btn-sm" onClick={()=>{setForm(item);setShowModal('item')}}><I.edit style={{width:14,height:14}}/></button>}{hasPerm('can_delete')&&<button className="btn btn-sm" style={{background:'#FDEAEA',color:'var(--error)',border:'1px solid #f5c6cb'}} onClick={async()=>{if(!confirm('Удалить «'+item.name+'»?'))return;try{await API.del('/siz/items/'+item.id);load()}catch(e){alert(e?.response?.data?.error||'Ошибка')}}}><I.trash style={{width:14,height:14}}/></button>}</div></td></tr>)}</tbody></table></div></div>
-<Modal isOpen={showModal==='cat'} onClose={()=>setShowModal(null)} title={form.id?'Редактировать категорию':'Новая категория'} footer={<><button className="btn btn-outline" onClick={()=>setShowModal(null)}>Отмена</button><button className="btn btn-primary" onClick={saveCat}>Сохранить</button></>}><div className="form-group"><label>Название</label><input className="form-control" value={form.name||''} onChange={e=>setForm({...form,name:e.target.value})}/></div><div className="form-row"><div className="form-group"><label>Код</label><input className="form-control" value={form.code||''} onChange={e=>setForm({...form,code:e.target.value})}/></div><div className="form-group"><label>Описание</label><input className="form-control" value={form.description||''} onChange={e=>setForm({...form,description:e.target.value})}/></div></div>{form.id&&hasPerm('can_delete')&&<div className="confirm-delete" style={{marginTop:12}}><button className="btn btn-danger btn-sm" onClick={async()=>{if(!confirm('Удалить категорию «'+form.name+'»? Убедитесь что в ней нет номенклатуры.'))return;try{await API.del('/siz/categories/'+form.id);setShowModal(null);setForm({});load()}catch(e){alert(e?.response?.data?.error||'Ошибка')}}}>Удалить категорию</button></div>}</Modal>
-<Modal isOpen={showModal==='item'} onClose={()=>setShowModal(null)} title={form.id?'Редактировать':'Новая номенклатура'} footer={<><button className="btn btn-outline" onClick={()=>setShowModal(null)}>Отмена</button><button className="btn btn-primary" onClick={saveItem}>Сохранить</button></>}><div className="form-group"><label>Название</label><input className="form-control" value={form.name||''} onChange={e=>setForm({...form,name:e.target.value})}/></div><div className="form-row"><div className="form-group"><label>Категория</label><select className="form-control" value={form.category_id||''} onChange={e=>setForm({...form,category_id:e.target.value})}><option value="">Выберите</option>{cats.map(c=><option key={c.id} value={c.id}>{c.name}</option>)}</select></div><div className="form-group"><label>Код</label><input className="form-control" value={form.code||''} onChange={e=>setForm({...form,code:e.target.value})}/></div></div><div className="form-row"><div className="form-group"><label>Ед. измерения</label><input className="form-control" value={form.unit||'шт'} onChange={e=>setForm({...form,unit:e.target.value})}/></div><div className="form-group"><label>Срок носки (мес.)</label><input className="form-control" type="number" value={form.wear_period_months||''} onChange={e=>setForm({...form,wear_period_months:parseInt(e.target.value)||null})}/></div></div><div className="form-row"><div className="form-group"><label>Пол</label><select className="form-control" value={form.gender||''} onChange={e=>setForm({...form,gender:e.target.value||null})}><option value="">—</option><option value="male">Мужской</option><option value="female">Женский</option></select></div><div className="form-group"><label>Сезон</label><select className="form-control" value={form.season||''} onChange={e=>setForm({...form,season:e.target.value||null})}><option value="">—</option><option value="summer">Лето</option><option value="winter">Зима</option></select></div><div className="form-group"><label>Срок эксплуатации (лет)</label><input className="form-control" type="number" step="0.5" value={form.exploitation_years||''} onChange={e=>setForm({...form,exploitation_years:parseFloat(e.target.value)||null})}/></div></div></Modal></div>};
+const CLOTHING_SIZES = [
+  '40-42/158-164','40-42/170-176','40-42/182-188','40-42/194-200',
+  '44-46/158-164','44-46/170-176','44-46/182-188','44-46/194-200',
+  '48-50/158-164','48-50/170-176','48-50/182-188','48-50/194-200',
+  '52-54/158-164','52-54/170-176','52-54/182-188','52-54/194-200',
+  '56-58/158-164','56-58/170-176','56-58/182-188','56-58/194-200',
+  '60-62/158-164','60-62/170-176','60-62/182-188','60-62/194-200',
+  '64-66/158-164','64-66/170-176','64-66/182-188','64-66/194-200',
+  '68-70/158-164','68-70/170-176','68-70/182-188','68-70/194-200',
+  '72-74/158-164','72-74/170-176','72-74/182-188','72-74/194-200',
+];
+const SHOE_SIZES = Array.from({length:15},(_,i)=>String(35+i));
+const GENDERS = ['Мужской','Женский'];
+const SEASONS = ['Лето','Зима','Всесезонный'];
 
-const Positions=()=>{const{hasPerm}=useAuth();const[positions,setPositions]=useState([]);const[items,setItems]=useState([]);const[selected,setSelected]=useState(null);const[norms,setNorms]=useState([]);const[showModal,setShowModal]=useState(null);const[form,setForm]=useState({});const[loading,setLoading]=useState(true);const load=useCallback(()=>{Promise.all([API.get('/positions'),API.get('/siz/items')]).then(([p,i])=>{setPositions(p);setItems(i)}).catch(console.error).finally(()=>setLoading(false))},[]);useEffect(()=>{load()},[load]);const loadNorms=async id=>{setSelected(id);try{setNorms(await API.get(`/positions/${id}/norms`))}catch(e){console.error(e)}};const savePos=async()=>{try{if(form.id)await API.put(`/positions/${form.id}`,form);else await API.post('/positions',form);setShowModal(null);setForm({});load()}catch(e){alert(e?.response?.data?.error||'Ошибка')}};const saveNorm=async()=>{try{await API.post(`/positions/${selected}/norms`,form);setShowModal(null);setForm({});loadNorms(selected)}catch(e){alert(e?.response?.data?.error||'Ошибка')}};if(loading)return<RnLoader/>;return<div>
-<div className="page-header"><h1>Реестр должностей</h1>{hasPerm('can_create')&&<button className="btn btn-primary" onClick={()=>{setForm({});setShowModal('pos')}}><I.plus style={{width:16,height:16}}/> Должность</button>}</div>
-<div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:16}}><div className="card"><div className="card-header"><h3>Должности</h3></div><div className="table-container"><table><thead><tr><th>Должность</th><th>Уровень</th><th>Нормы</th><th>Сотр.</th><th></th></tr></thead><tbody>{positions.map(p=><tr key={p.id} onClick={()=>loadNorms(p.id)} style={{cursor:'pointer',background:selected===p.id?'var(--primary-light)':undefined}}><td style={{fontWeight:600}}>{p.name}</td><td><span className="badge badge-default">{p.level||'—'}</span></td><td style={{fontFamily:'JetBrains Mono,monospace'}}>{p.norms_count}</td><td style={{fontFamily:'JetBrains Mono,monospace'}}>{p.employees_count}</td><td>{hasPerm('can_edit')&&<button className="btn btn-outline btn-sm" onClick={e=>{e.stopPropagation();setForm(p);setShowModal('pos')}}><I.edit style={{width:14,height:14}}/></button>}</td></tr>)}{!positions.length&&<tr><td colSpan="5"><div className="empty-state">Нет должностей</div></td></tr>}</tbody></table></div></div>
-<div className="card"><div className="card-header"><h3>Нормы выдачи {selected&&`— ${positions.find(p=>p.id===selected)?.name}`}</h3>{selected&&hasPerm('can_create')&&<button className="btn btn-primary btn-sm" onClick={()=>{setForm({position_id:selected});setShowModal('norm')}}><I.plus style={{width:14,height:14}}/> Добавить</button>}</div>{!selected?<div className="empty-state"><div className="icon"><I.arrowLeft style={{width:36,height:36}}/></div>Выберите должность</div>:!norms.length?<div className="empty-state"><div className="icon"><I.clipboard style={{width:36,height:36}}/></div>Нормы не заданы</div>:<div className="table-container"><table><thead><tr><th>СИЗ</th><th>Категория</th><th>Кол-во</th><th>Период</th></tr></thead><tbody>{norms.map(n=><tr key={n.id}><td style={{fontWeight:600}}>{n.item_name}</td><td className="text-muted">{n.category_name}</td><td style={{fontFamily:'JetBrains Mono,monospace'}}>{n.quantity} {n.unit}</td><td style={{fontFamily:'JetBrains Mono,monospace'}}>{n.issue_period_months} мес.</td></tr>)}</tbody></table></div>}</div></div>
-<Modal isOpen={showModal==='pos'} onClose={()=>setShowModal(null)} title={form.id?'Редактировать':'Новая должность'} footer={<><button className="btn btn-outline" onClick={()=>setShowModal(null)}>Отмена</button><button className="btn btn-primary" onClick={savePos}>Сохранить</button></>}><div className="form-group"><label>Название</label><input className="form-control" value={form.name||''} onChange={e=>setForm({...form,name:e.target.value})}/></div><div className="form-row"><div className="form-group"><label>Код</label><input className="form-control" value={form.code||''} onChange={e=>setForm({...form,code:e.target.value})}/></div><div className="form-group"><label>Уровень</label><select className="form-control" value={form.level||''} onChange={e=>setForm({...form,level:e.target.value})}><option value="">—</option><option value="ia">ИА</option><option value="enterprise">Предприятие</option><option value="res">РЭС/Служба</option><option value="department">Подразделение</option></select></div></div></Modal>
-<Modal isOpen={showModal==='norm'} onClose={()=>setShowModal(null)} title="Добавить норму" footer={<><button className="btn btn-outline" onClick={()=>setShowModal(null)}>Отмена</button><button className="btn btn-primary" onClick={saveNorm}>Сохранить</button></>}><div className="form-group"><label>СИЗ</label><select className="form-control" value={form.siz_item_id||''} onChange={e=>setForm({...form,siz_item_id:e.target.value})}><option value="">Выберите</option>{items.map(i=><option key={i.id} value={i.id}>{i.category_name} → {i.name}</option>)}</select></div><div className="form-row"><div className="form-group"><label>Количество</label><input className="form-control" type="number" value={form.quantity||1} onChange={e=>setForm({...form,quantity:parseInt(e.target.value)||1})}/></div><div className="form-group"><label>Период (мес.)</label><input className="form-control" type="number" value={form.issue_period_months||12} onChange={e=>setForm({...form,issue_period_months:parseInt(e.target.value)||12})}/></div></div></Modal></div>};
+// ═══════════════════════════════════════
+// GLOBAL STATE CONTEXT
+// ═══════════════════════════════════════
+const StoreCtx = createContext(null);
 
- // ============ TON (Типовые отраслевые нормы) ============
-const TonPage=()=>{const{hasPerm}=useAuth();
-const[norms,setNorms]=useState([]);const[positions,setPositions]=useState([]);const[items,setItems]=useState([]);const[cats,setCats]=useState([]);
-const[filters,setFilters]=useState({position_id:'',category_id:''});
-const[showModal,setShowModal]=useState(false);const[form,setForm]=useState({quantity:1,issue_period_months:12});
-const[loading,setLoading]=useState(true);
-const load=useCallback(()=>{const p=new URLSearchParams();Object.entries(filters).forEach(([k,v])=>{if(v)p.append(k,v)});
-Promise.all([API.get(`/ton?${p}`),API.get('/positions'),API.get('/siz/items'),API.get('/siz/categories')])
-.then(([n,pos,it,c])=>{setNorms(n);setPositions(pos);setItems(it);setCats(c)})
-.catch(console.error).finally(()=>setLoading(false))},[filters]);
-useEffect(()=>{load()},[load]);
-const save=async()=>{try{if(!form.position_id||!form.siz_item_id)return alert('Выберите должность и СИЗ');
-await API.post(`/positions/${form.position_id}/norms`,form);setShowModal(false);setForm({quantity:1,issue_period_months:12});load()}catch(e){alert(e?.response?.data?.error||'Ошибка')}};
-const remove=async(id)=>{if(!confirm('Удалить норму из ТОН?'))return;try{await API.del(`/ton/${id}`);load()}catch(e){alert(e?.response?.data?.error||'Ошибка')}};
-// Группируем по должностям
-const grouped={};norms.forEach(n=>{if(!grouped[n.position_id])grouped[n.position_id]={name:n.position_name,code:n.position_code,items:[]};grouped[n.position_id].items.push(n)});
-if(loading)return<RnLoader/>;return<div>
-<div className="page-header"><h1>ТОН — Типовые отраслевые нормы</h1>{hasPerm('can_create')&&<button className="btn btn-primary" onClick={()=>{setForm({quantity:1,issue_period_months:12});setShowModal(true)}}><I.plus style={{width:16,height:16}}/> Добавить норму</button>}</div>
-<div className="card" style={{marginBottom:16}}><div className="form-row"><div className="form-group"><select className="form-control" value={filters.position_id} onChange={e=>setFilters({...filters,position_id:e.target.value})}><option value="">Все должности</option>{positions.map(p=><option key={p.id} value={p.id}>{p.name}</option>)}</select></div><div className="form-group"><select className="form-control" value={filters.category_id} onChange={e=>setFilters({...filters,category_id:e.target.value})}><option value="">Все категории СИЗ</option>{cats.map(c=><option key={c.id} value={c.id}>{c.name}</option>)}</select></div></div></div>
-{Object.keys(grouped).length===0?<div className="card"><div className="empty-state"><div className="icon"><I.scroll style={{width:40,height:40}}/></div>Нормы не заданы</div></div>:Object.entries(grouped).map(([posId,g])=><div key={posId} className="card" style={{marginBottom:12}}>
-<div className="card-header"><h3><I.briefcase style={{width:16,height:16,display:'inline',verticalAlign:'middle',marginRight:6}}/>{g.name}{g.code&&<span className="text-muted" style={{fontWeight:400}}> ({g.code})</span>}</h3><span className="badge badge-info">{g.items.length} поз.</span></div>
-<div className="table-container"><table><thead><tr><th>СИЗ</th><th>Категория</th><th>Норма</th><th>Период</th><th>Срок носки</th><th></th></tr></thead><tbody>{g.items.map(n=><tr key={n.id}>
-<td style={{fontWeight:600}}>{n.item_name}</td>
-<td className="text-muted">{n.category_name||'—'}</td>
-<td style={{fontFamily:'JetBrains Mono,monospace'}}>{n.quantity} {n.unit}</td>
-<td style={{fontFamily:'JetBrains Mono,monospace'}}>{n.issue_period_months} мес.</td>
-<td style={{fontFamily:'JetBrains Mono,monospace'}}>{n.wear_period_months?n.wear_period_months+' мес.':'—'}</td>
-<td>{hasPerm('can_delete')&&<button className="btn btn-sm" style={{background:'#FDEAEA',color:'var(--error)',border:'1px solid #f5c6cb'}} onClick={()=>remove(n.id)}><I.trash style={{width:14,height:14}}/></button>}</td>
-</tr>)}</tbody></table></div></div>)}
-<Modal isOpen={showModal} onClose={()=>setShowModal(false)} title="Добавить норму в ТОН" footer={<><button className="btn btn-outline" onClick={()=>setShowModal(false)}>Отмена</button><button className="btn btn-primary" onClick={save}>Сохранить</button></>}>
-<div className="form-group"><label>Должность *</label><select className="form-control" value={form.position_id||''} onChange={e=>setForm({...form,position_id:e.target.value})}><option value="">Выберите</option>{positions.map(p=><option key={p.id} value={p.id}>{p.name}</option>)}</select></div>
-<div className="form-group"><label>СИЗ *</label><select className="form-control" value={form.siz_item_id||''} onChange={e=>setForm({...form,siz_item_id:e.target.value})}><option value="">Выберите</option>{items.map(i=><option key={i.id} value={i.id}>{i.category_name} → {i.name}</option>)}</select></div>
-<div className="form-row"><div className="form-group"><label>Количество</label><input className="form-control" type="number" min="1" value={form.quantity} onChange={e=>setForm({...form,quantity:parseInt(e.target.value)||1})}/></div><div className="form-group"><label>Период выдачи (мес.)</label><input className="form-control" type="number" min="1" value={form.issue_period_months} onChange={e=>setForm({...form,issue_period_months:parseInt(e.target.value)||12})}/></div></div>
-</Modal></div>}; 
+const StoreProvider = ({children}) => {
+  // Org structure
+  const [org, setOrg] = useState(() => LS.get('org', { id: uid(), name: 'ИнтерЭнерго', code: 'ИЭ' }));
+  const [enterprises, setEnterprises] = useState(() => LS.get('enterprises', []));
+  const [spbipks, setSpbipks] = useState(() => LS.get('spbipks', []));
+  const [resUnits, setResUnits] = useState(() => LS.get('resUnits', []));
+  const [departments, setDepartments] = useState(() => LS.get('departments', []));
 
-  // ============ WAREHOUSE (Склады) ============
-const categoryTypeMap={'clothing':'Одежда','shoes':'Обувь','head':'Голова','gloves':'Перчатки','consumable':'Расходник'};
-const genderLabel=g=>g==='male'?'Мужской':g==='female'?'Женский':'Без пола';
+  // Directories
+  const [positions, setPositions] = useState(() => LS.get('positions', []));
+  const [sizItems, setSizItems] = useState(() => LS.get('sizItems', []));
 
-const WarehousePage=()=>{const{hasPerm}=useAuth();
-const[warehouses,setWarehouses]=useState([]);const[selectedWh,setSelectedWh]=useState(null);
-const[stock,setStock]=useState([]);const[movements,setMovements]=useState([]);
-const[spbipkList,setSpbipkList]=useState([]);const[resUnits,setResUnits]=useState([]);const[enterprises,setEnterprises]=useState([]);
-const[items,setItems]=useState([]);const[sizes,setSizes]=useState([]);const[employees,setEmployees]=useState([]);
-const[tab,setTab]=useState('stock');const[expanded,setExpanded]=useState({});
-const[showModal,setShowModal]=useState(null);const[form,setForm]=useState({quantity:1});
-const[loading,setLoading]=useState(true);
+  // Personnel
+  const [employees, setEmployees] = useState(() => LS.get('employees', []));
 
-const load=useCallback(()=>{
-Promise.all([API.get('/warehouses'),API.get('/org/spbipk'),API.get('/org/res-units'),API.get('/org/enterprises'),API.get('/siz/items'),API.get('/sizes'),API.get('/employees')])
-.then(([w,sp,r,e,it,sz,emp])=>{setWarehouses(w);setSpbipkList(sp);setResUnits(r);setEnterprises(e);setItems(it);setSizes(sz);setEmployees(emp)})
-.catch(console.error).finally(()=>setLoading(false))},[]);
-useEffect(()=>{load()},[load]);
+  // TON norms (position -> siz_item mappings)
+  const [norms, setNorms] = useState(() => LS.get('norms', []));
 
-const loadStock=async(whId)=>{setSelectedWh(whId);setTab('stock');
-try{const[s,m]=await Promise.all([API.get(`/warehouses/${whId}/stock`),API.get(`/warehouses/${whId}/movements`)]);setStock(s);setMovements(m)}catch(e){console.error(e)}};
+  // Employee issued SIZ
+  const [issued, setIssued] = useState(() => LS.get('issued', []));
 
-const toggle=k=>setExpanded(p=>({...p,[k]:!p[k]}));
+  // Toast
+  const [toast, setToast] = useState(null);
+  const showToast = (msg, type='success') => { setToast({msg,type}); setTimeout(()=>setToast(null), 3000); };
 
-// Группировка: item_name → gender → size → qty
-const groupStock=()=>{const tree={};
-stock.forEach(s=>{const key=s.item_name;if(!tree[key])tree[key]={item_name:s.item_name,category_name:s.category_name,item_gender:s.item_gender,season:s.season,total:0,genders:{}};
-tree[key].total+=s.quantity;
-const g=s.item_gender||'none';if(!tree[key].genders[g])tree[key].genders[g]={label:genderLabel(g),total:0,sizes:[]};
-tree[key].genders[g].total+=s.quantity;
-tree[key].genders[g].sizes.push({size:s.size_value||'—',qty:s.quantity,id:s.id})});return tree};
+  // Persist
+  useEffect(() => LS.set('org', org), [org]);
+  useEffect(() => LS.set('enterprises', enterprises), [enterprises]);
+  useEffect(() => LS.set('spbipks', spbipks), [spbipks]);
+  useEffect(() => LS.set('resUnits', resUnits), [resUnits]);
+  useEffect(() => LS.set('departments', departments), [departments]);
+  useEffect(() => LS.set('positions', positions), [positions]);
+  useEffect(() => LS.set('sizItems', sizItems), [sizItems]);
+  useEffect(() => LS.set('employees', employees), [employees]);
+  useEffect(() => LS.set('norms', norms), [norms]);
+  useEffect(() => LS.set('issued', issued), [issued]);
 
-const saveWarehouse=async()=>{try{await API.post('/warehouses',form);setShowModal(null);setForm({quantity:1});load()}catch(e){alert(e?.response?.data?.error||'Ошибка')}};
-const saveReceipt=async()=>{try{if(!selectedWh)return;await API.post(`/warehouses/${selectedWh}/receipt`,form);setShowModal(null);setForm({quantity:1});loadStock(selectedWh)}catch(e){alert(e?.response?.data?.error||'Ошибка')}};
-const saveTransfer=async()=>{try{await API.post('/warehouses/transfer',form);setShowModal(null);setForm({quantity:1});if(selectedWh)loadStock(selectedWh)}catch(e){alert(e?.response?.data?.error||'Ошибка')}};
-const saveIssue=async()=>{try{if(!selectedWh)return;await API.post(`/warehouses/${selectedWh}/issue`,form);setShowModal(null);setForm({quantity:1});loadStock(selectedWh)}catch(e){alert(e?.response?.data?.error||'Ошибка')}};
+  const val = {
+    org, setOrg,
+    enterprises, setEnterprises,
+    spbipks, setSpbipks,
+    resUnits, setResUnits,
+    departments, setDepartments,
+    positions, setPositions,
+    sizItems, setSizItems,
+    employees, setEmployees,
+    norms, setNorms,
+    issued, setIssued,
+    toast, showToast,
+  };
+  return <StoreCtx.Provider value={val}>{children}</StoreCtx.Provider>;
+};
+const useStore = () => useContext(StoreCtx);
 
-// Размеры по категории выбранного item
-const getSizesForItem=(itemId)=>{const item=items.find(i=>i.id===itemId);if(!item)return[];const cat=item.category_name;const typeMap={'Одежда':'clothing','Обувь':'shoes','Голова':'head','Перчатки':'gloves','Расходник':'consumable'};const ct=typeMap[cat];if(!ct)return[];return sizes.filter(s=>s.category_type===ct)};
+// ═══════════════════════════════════════
+// SHARED COMPONENTS
+// ═══════════════════════════════════════
+const Modal = ({open, onClose, title, wide, children, footer}) => {
+  if (!open) return null;
+  return <div className="modal-bg" onClick={onClose}>
+    <div className={`modal ${wide?'wide':''}`} onClick={e=>e.stopPropagation()}>
+      <div className="modal-h"><h2>{title}</h2><button className="btn-icon" onClick={onClose}><IC.x style={{width:18,height:18}}/></button></div>
+      <div className="modal-b">{children}</div>
+      {footer && <div className="modal-f">{footer}</div>}
+    </div>
+  </div>;
+};
 
-// Экспорт в CSV (простой Excel-совместимый)
-const exportCSV=async()=>{if(!selectedWh)return;try{const data=await API.get(`/warehouses/${selectedWh}/export`);
-let csv='\uFEFF"Наименование";"Категория";"Пол";"Сезон";"Размер";"Кол-во";"Ед.";"Срок эксп. (лет)"\n';
-data.forEach(r=>{csv+=`"${r.item_name}";"${r.category_name||''}";"${genderLabel(r.gender)}";"${r.season==='summer'?'Лето':r.season==='winter'?'Зима':''}";"${r.size_value||''}";"${r.quantity}";"${r.unit}";"${r.exploitation_years||''}"\n`});
-const blob=new Blob([csv],{type:'text/csv;charset=utf-8;'});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download=`stock_${new Date().toISOString().slice(0,10)}.csv`;a.click();URL.revokeObjectURL(url)}catch(e){alert('Ошибка экспорта')}};
+const Empty = ({icon:Icon, text}) => <div className="empty">{Icon && <Icon style={{width:48,height:48}}/>}<p>{text || 'Нет данных'}</p></div>;
 
-const grouped=groupStock();
-if(loading)return<RnLoader/>;return<div>
-<div className="page-header"><h1>Склады</h1>{hasPerm('can_create')&&<button className="btn btn-primary" onClick={()=>{setForm({});setShowModal('wh')}}><I.plus style={{width:16,height:16}}/> Создать склад</button>}</div>
+const SearchInput = ({value, onChange, placeholder}) => <div className="search-box">
+  <IC.search style={{width:16,height:16}}/>
+  <input className="fc" value={value} onChange={e=>onChange(e.target.value)} placeholder={placeholder || 'Поиск...'} style={{paddingLeft:36}}/>
+</div>;
 
-<div style={{display:'grid',gridTemplateColumns:'280px 1fr',gap:16}}>
-{/* Левая панель — список складов */}
-<div className="card" style={{alignSelf:'start'}}><div className="card-header"><h3>Склады</h3></div>
-{warehouses.map(w=><div key={w.id} onClick={()=>loadStock(w.id)} className="tree-item" style={{padding:'8px 12px',background:selectedWh===w.id?'var(--primary-light)':'transparent'}}>
-<div><div style={{fontWeight:600,fontSize:13}}>{w.name}</div><div className="text-muted" style={{fontSize:11}}>{w.warehouse_type==='spbipk'?'СПБиПК':'РЭС/Служба'}{w.enterprise_name?' · '+w.enterprise_name:''}</div></div>
-{hasPerm('can_delete')&&<button className="btn btn-sm" style={{background:'#FDEAEA',color:'var(--error)',border:'1px solid #f5c6cb',flexShrink:0}} onClick={async(e)=>{e.stopPropagation();if(!confirm('Удалить склад «'+w.name+'»?'))return;try{await API.del('/warehouses/'+w.id);if(selectedWh===w.id){setSelectedWh(null);setStock([]);setMovements([])}load()}catch(e){alert(e?.response?.data?.error||'Ошибка')}}}><I.trash style={{width:13,height:13}}/></button>}</div>)}</div>
+// ═══════════════════════════════════════
+// PAGES
+// ═══════════════════════════════════════
 
-{/* Правая панель */}
-<div>{!selectedWh?<div className="card"><div className="empty-state"><div className="icon"><I.arrowLeft style={{width:36,height:36}}/></div>Выберите склад</div></div>:<>
-<div className="tabs"><button className={`tab ${tab==='stock'?'active':''}`} onClick={()=>setTab('stock')}>Остатки</button><button className={`tab ${tab==='movements'?'active':''}`} onClick={()=>setTab('movements')}>Движения</button></div>
+// ---- DASHBOARD ----
+const Dashboard = () => {
+  const s = useStore();
+  const totalEmp = s.employees.length;
+  const totalSiz = s.sizItems.length;
+  const totalPos = s.positions.length;
+  const totalNorms = s.norms.length;
+  const totalIssued = s.issued.filter(i=>i.status==='active').length;
+  const expiredCount = s.issued.filter(i => i.status==='active' && i.expiryDate && isExpired(i.expiryDate)).length;
 
-{tab==='stock'&&<><div style={{marginBottom:12,display:'flex',gap:8,flexWrap:'wrap'}}>
-{hasPerm('can_create')&&<><button className="btn btn-primary btn-sm" onClick={()=>{setForm({quantity:1});setShowModal('receipt')}}><I.plus style={{width:14,height:14}}/> Приход</button>
-<button className="btn btn-outline btn-sm" onClick={()=>{setForm({quantity:1,from_warehouse_id:selectedWh});setShowModal('transfer')}}>Перемещение</button>
-<button className="btn btn-outline btn-sm" onClick={()=>{setForm({quantity:1});setShowModal('issue')}}>Выдать сотруднику</button></>}
-<button className="btn btn-outline btn-sm" onClick={exportCSV}>Выгрузка CSV</button></div>
+  return <div>
+    <div className="page-top"><div><h1>Панель управления</h1><div className="sub">Учёт средств индивидуальной защиты</div></div></div>
+    <div className="stats">
+      <div className="stat"><div className="stat-ic bl"><IC.users style={{width:22,height:22}}/></div><div><div className="stat-val">{totalEmp}</div><div className="stat-lbl">Сотрудников</div></div></div>
+      <div className="stat"><div className="stat-ic gr"><IC.shield style={{width:22,height:22}}/></div><div><div className="stat-val">{totalSiz}</div><div className="stat-lbl">Наименований СИЗ</div></div></div>
+      <div className="stat"><div className="stat-ic am"><IC.briefcase style={{width:22,height:22}}/></div><div><div className="stat-val">{totalPos}</div><div className="stat-lbl">Должностей</div></div></div>
+      <div className="stat"><div className="stat-ic rd"><IC.clock style={{width:22,height:22}}/></div><div><div className="stat-val">{expiredCount}</div><div className="stat-lbl">Просрочено</div></div></div>
+    </div>
 
-{Object.keys(grouped).length===0?<div className="card"><div className="empty-state">Склад пуст</div></div>:
-<div className="card"><div className="table-container">{Object.entries(grouped).map(([name,item])=><div key={name} style={{marginBottom:4}}>
-<div className="tree-item" onClick={()=>toggle(`i-${name}`)} style={{padding:'8px 4px',borderBottom:'1px solid var(--border-light)'}}>
-<div className="flex gap-2" style={{alignItems:'center'}}><span style={{fontSize:11,color:'var(--text-secondary)',width:12}}>{expanded[`i-${name}`]?'▼':'▶'}</span><div style={{fontWeight:600}}>{name}</div><span className="text-muted" style={{fontSize:12,marginLeft:4}}>({item.category_name})</span></div>
-<span className="badge badge-info" style={{fontFamily:'JetBrains Mono,monospace'}}>{item.total} шт</span></div>
-{expanded[`i-${name}`]&&<div className="tree-branch">{Object.entries(item.genders).map(([gk,gv])=><div key={gk}>
-<div className="tree-item" onClick={()=>toggle(`g-${name}-${gk}`)} style={{padding:'6px 4px'}}>
-<div className="flex gap-2" style={{alignItems:'center'}}><span style={{fontSize:10,color:'var(--text-secondary)',width:12}}>{expanded[`g-${name}-${gk}`]?'▼':'▶'}</span><span style={{fontWeight:500}}>{gv.label}</span></div>
-<span className="badge badge-default" style={{fontFamily:'JetBrains Mono,monospace'}}>{gv.total} шт</span></div>
-{expanded[`g-${name}-${gk}`]&&<div className="tree-branch">{gv.sizes.map((s,si)=><div key={si} className="tree-item" style={{padding:'4px'}}>
-<span className="text-muted">{s.size}</span><span style={{fontFamily:'JetBrains Mono,monospace',fontWeight:600}}>{s.qty} шт</span></div>)}</div>}
-</div>)}</div>}</div>)}</div></div>}</>}
+    <div className="card"><div className="card-h"><h3>Быстрый старт</h3></div><div className="card-body">
+      <p style={{color:'var(--tx2)',marginBottom:16,fontSize:13}}>Для начала работы выполните действия в следующем порядке:</p>
+      <div style={{display:'flex',flexDirection:'column',gap:10}}>
+        {[
+          {n:1,t:'Оргструктура',d:'Создайте предприятие, СПБиПК, РЭС/Службы и подразделения',done:s.enterprises.length>0},
+          {n:2,t:'Должности',d:'Заполните справочник должностей',done:s.positions.length>0},
+          {n:3,t:'Справочники СИЗ',d:'Занесите все виды СИЗ по категориям (одежда, обувь, голова, перчатки, расходники)',done:s.sizItems.length>0},
+          {n:4,t:'ТОН (Типовые нормы)',d:'Привяжите СИЗ к должностям — какие положены',done:s.norms.length>0},
+          {n:5,t:'Карточки персонала',d:'Создайте карточки сотрудников с привязкой к оргструктуре',done:s.employees.length>0},
+        ].map(s => <div key={s.n} style={{display:'flex',alignItems:'center',gap:14,padding:'10px 14px',borderRadius:8,background:s.done?'var(--green-l)':'var(--bg)',border:`1px solid ${s.done?'var(--green-l2)':'var(--border)'}`}}>
+          <div style={{width:32,height:32,borderRadius:'50%',background:s.done?'var(--green)':'var(--border)',color:'#fff',display:'flex',alignItems:'center',justifyContent:'center',fontWeight:700,fontSize:14,flexShrink:0}}>
+            {s.done ? <IC.check style={{width:16,height:16}}/> : s.n}
+          </div>
+          <div style={{flex:1}}><div style={{fontWeight:700,fontSize:13}}>{s.t}</div><div style={{fontSize:12,color:'var(--tx2)'}}>{s.d}</div></div>
+        </div>)}
+      </div>
+    </div></div>
+  </div>;
+};
 
-{tab==='movements'&&<div className="card"><div className="table-container"><table><thead><tr><th>Дата</th><th>Тип</th><th>СИЗ</th><th>Размер</th><th>Кол-во</th><th>Откуда</th><th>Куда</th><th>Сотрудник</th></tr></thead><tbody>
-{!movements.length?<tr><td colSpan="8"><div className="empty-state">Нет движений</div></td></tr>:movements.map(m=><tr key={m.id}>
-<td className="text-muted" style={{fontSize:12}}>{fmtDate(m.movement_date)}</td>
-<td><span className={m.movement_type==='receipt'?'badge badge-success':m.movement_type==='transfer'?'badge badge-info':m.movement_type==='issue'?'badge badge-warning':'badge badge-default'}>{{receipt:'Приход',transfer:'Перемещ.',issue:'Выдача',return:'Возврат',write_off:'Списание'}[m.movement_type]||m.movement_type}</span></td>
-<td style={{fontWeight:600}}>{m.item_name}</td>
-<td className="text-muted">{m.size_value||'—'}</td>
-<td style={{fontFamily:'JetBrains Mono,monospace'}}>{m.quantity} {m.unit}</td>
-<td className="text-muted" style={{fontSize:12}}>{m.from_warehouse_name||'—'}</td>
-<td className="text-muted" style={{fontSize:12}}>{m.to_warehouse_name||'—'}</td>
-<td>{m.last_name?fio(m):'—'}</td></tr>)}</tbody></table></div></div>}
-</>}</div></div>
+// ---- ORG STRUCTURE ----
+const OrgStructure = () => {
+  const s = useStore();
+  const [modal, setModal] = useState(null); // {type, data, parentId}
+  const [form, setForm] = useState({});
 
-{/* Модалка: Создать склад */}
-<Modal isOpen={showModal==='wh'} onClose={()=>setShowModal(null)} title="Новый склад" footer={<><button className="btn btn-outline" onClick={()=>setShowModal(null)}>Отмена</button><button className="btn btn-primary" onClick={saveWarehouse}>Создать</button></>}>
-<div className="form-group"><label>Название *</label><input className="form-control" value={form.name||''} onChange={e=>setForm({...form,name:e.target.value})}/></div>
-<div className="form-group"><label>Тип *</label><select className="form-control" value={form.warehouse_type||''} onChange={e=>setForm({...form,warehouse_type:e.target.value})}><option value="">—</option><option value="spbipk">СПБиПК</option><option value="res">РЭС/Служба</option></select></div>
-<div className="form-group"><label>Предприятие</label><select className="form-control" value={form.enterprise_id||''} onChange={e=>setForm({...form,enterprise_id:e.target.value||null})}><option value="">—</option>{enterprises.map(e=><option key={e.id} value={e.id}>{e.name}</option>)}</select></div>
-{form.warehouse_type==='spbipk'&&<div className="form-group"><label>СПБиПК</label><select className="form-control" value={form.spbipk_id||''} onChange={e=>setForm({...form,spbipk_id:e.target.value||null})}><option value="">—</option>{spbipkList.map(s=><option key={s.id} value={s.id}>{s.name}</option>)}</select></div>}
-{form.warehouse_type==='res'&&<div className="form-group"><label>РЭС/Служба</label><select className="form-control" value={form.res_unit_id||''} onChange={e=>setForm({...form,res_unit_id:e.target.value||null})}><option value="">—</option>{resUnits.map(r=><option key={r.id} value={r.id}>{r.name}</option>)}</select></div>}
-</Modal>
+  const save = () => {
+    if (!form.name?.trim()) return;
+    const item = { ...form, id: form.id || uid() };
+    if (modal.type === 'enterprise') {
+      if (form.id) s.setEnterprises(prev => prev.map(e => e.id === form.id ? item : e));
+      else s.setEnterprises(prev => [...prev, item]);
+    } else if (modal.type === 'spbipk') {
+      item.enterpriseId = modal.parentId;
+      if (form.id) s.setSpbipks(prev => prev.map(e => e.id === form.id ? item : e));
+      else s.setSpbipks(prev => [...prev, item]);
+    } else if (modal.type === 'res') {
+      item.enterpriseId = modal.parentId;
+      if (form.id) s.setResUnits(prev => prev.map(e => e.id === form.id ? item : e));
+      else s.setResUnits(prev => [...prev, item]);
+    } else if (modal.type === 'dept') {
+      item.resUnitId = modal.parentId;
+      if (form.id) s.setDepartments(prev => prev.map(e => e.id === form.id ? item : e));
+      else s.setDepartments(prev => [...prev, item]);
+    }
+    setModal(null); setForm({});
+    s.showToast('Сохранено');
+  };
 
-{/* Модалка: Приход */}
-<Modal isOpen={showModal==='receipt'} onClose={()=>setShowModal(null)} title="Приход на склад" footer={<><button className="btn btn-outline" onClick={()=>setShowModal(null)}>Отмена</button><button className="btn btn-primary" onClick={saveReceipt}>Оприходовать</button></>}>
-<div className="form-group"><label>СИЗ *</label><select className="form-control" value={form.siz_item_id||''} onChange={e=>setForm({...form,siz_item_id:e.target.value,size_value:''})}><option value="">Выберите</option>{items.map(i=><option key={i.id} value={i.id}>{i.category_name} → {i.name}</option>)}</select></div>
-{form.siz_item_id&&<div className="form-group"><label>Размер</label><select className="form-control" value={form.size_value||''} onChange={e=>setForm({...form,size_value:e.target.value})}><option value="">—</option>{getSizesForItem(form.siz_item_id).map(s=><option key={s.id} value={s.size_value}>{s.size_value}</option>)}</select></div>}
-<div className="form-row"><div className="form-group"><label>Кол-во *</label><input className="form-control" type="number" min="1" value={form.quantity} onChange={e=>setForm({...form,quantity:parseInt(e.target.value)||1})}/></div><div className="form-group"><label>Дата</label><input className="form-control" type="date" value={form.movement_date||''} onChange={e=>setForm({...form,movement_date:e.target.value})}/></div></div>
-<div className="form-group"><label>Документ</label><input className="form-control" value={form.document_reference||''} onChange={e=>setForm({...form,document_reference:e.target.value})}/></div>
-</Modal>
+  const del = (type, id) => {
+    if (type === 'enterprise') s.setEnterprises(p => p.filter(e => e.id !== id));
+    else if (type === 'spbipk') s.setSpbipks(p => p.filter(e => e.id !== id));
+    else if (type === 'res') s.setResUnits(p => p.filter(e => e.id !== id));
+    else if (type === 'dept') s.setDepartments(p => p.filter(e => e.id !== id));
+    s.showToast('Удалено');
+  };
 
-{/* Модалка: Перемещение */}
-<Modal isOpen={showModal==='transfer'} onClose={()=>setShowModal(null)} title="Перемещение между складами" footer={<><button className="btn btn-outline" onClick={()=>setShowModal(null)}>Отмена</button><button className="btn btn-primary" onClick={saveTransfer}>Переместить</button></>}>
-<div className="form-row"><div className="form-group"><label>Откуда *</label><select className="form-control" value={form.from_warehouse_id||''} onChange={e=>setForm({...form,from_warehouse_id:e.target.value})}><option value="">—</option>{warehouses.map(w=><option key={w.id} value={w.id}>{w.name}</option>)}</select></div><div className="form-group"><label>Куда *</label><select className="form-control" value={form.to_warehouse_id||''} onChange={e=>setForm({...form,to_warehouse_id:e.target.value})}><option value="">—</option>{warehouses.filter(w=>w.id!==form.from_warehouse_id).map(w=><option key={w.id} value={w.id}>{w.name}</option>)}</select></div></div>
-<div className="form-group"><label>СИЗ *</label><select className="form-control" value={form.siz_item_id||''} onChange={e=>setForm({...form,siz_item_id:e.target.value,size_value:''})}><option value="">Выберите</option>{items.map(i=><option key={i.id} value={i.id}>{i.category_name} → {i.name}</option>)}</select></div>
-{form.siz_item_id&&<div className="form-group"><label>Размер</label><select className="form-control" value={form.size_value||''} onChange={e=>setForm({...form,size_value:e.target.value})}><option value="">—</option>{getSizesForItem(form.siz_item_id).map(s=><option key={s.id} value={s.size_value}>{s.size_value}</option>)}</select></div>}
-<div className="form-row"><div className="form-group"><label>Кол-во *</label><input className="form-control" type="number" min="1" value={form.quantity} onChange={e=>setForm({...form,quantity:parseInt(e.target.value)||1})}/></div><div className="form-group"><label>Дата</label><input className="form-control" type="date" value={form.movement_date||''} onChange={e=>setForm({...form,movement_date:e.target.value})}/></div></div>
-<div className="form-group"><label>Документ</label><input className="form-control" value={form.document_reference||''} onChange={e=>setForm({...form,document_reference:e.target.value})}/></div>
-</Modal>
+  const labels = { enterprise: 'Предприятие', spbipk: 'СПБиПК', res: 'РЭС / Служба', dept: 'Подразделение' };
 
-{/* Модалка: Выдача */}
-<Modal isOpen={showModal==='issue'} onClose={()=>setShowModal(null)} title="Выдача сотруднику" footer={<><button className="btn btn-outline" onClick={()=>setShowModal(null)}>Отмена</button><button className="btn btn-primary" onClick={saveIssue}>Выдать</button></>}>
-<div className="form-group"><label>Сотрудник *</label><select className="form-control" value={form.employee_id||''} onChange={e=>setForm({...form,employee_id:e.target.value})}><option value="">Выберите</option>{employees.map(e=><option key={e.id} value={e.id}>{fio(e)} — {e.position_name||''}</option>)}</select></div>
-<div className="form-group"><label>СИЗ *</label><select className="form-control" value={form.siz_item_id||''} onChange={e=>setForm({...form,siz_item_id:e.target.value,size_value:''})}><option value="">Выберите</option>{items.map(i=><option key={i.id} value={i.id}>{i.category_name} → {i.name}</option>)}</select></div>
-{form.siz_item_id&&<div className="form-group"><label>Размер</label><select className="form-control" value={form.size_value||''} onChange={e=>setForm({...form,size_value:e.target.value})}><option value="">—</option>{getSizesForItem(form.siz_item_id).map(s=><option key={s.id} value={s.size_value}>{s.size_value}</option>)}</select></div>}
-<div className="form-row"><div className="form-group"><label>Кол-во *</label><input className="form-control" type="number" min="1" value={form.quantity} onChange={e=>setForm({...form,quantity:parseInt(e.target.value)||1})}/></div><div className="form-group"><label>Дата</label><input className="form-control" type="date" value={form.movement_date||''} onChange={e=>setForm({...form,movement_date:e.target.value})}/></div></div>
-<div className="form-group"><label>Документ</label><input className="form-control" value={form.document_reference||''} onChange={e=>setForm({...form,document_reference:e.target.value})}/></div>
-</Modal>
-</div>};
-  
-  // ============ ORG STRUCTURE (5 levels) ============
+  return <div>
+    <div className="page-top"><div><h1>Оргструктура</h1><div className="sub">Иерархия подразделений</div></div></div>
 
-const OrgStructure=()=>{const{hasPerm}=useAuth();const[tree,setTree]=useState([]);const[enterprises,setEnterprises]=useState([]);const[resUnits,setResUnits]=useState([]);const[spbipkList,setSpbipkList]=useState([]);const[expanded,setExpanded]=useState({});const[showModal,setShowModal]=useState(null);const[form,setForm]=useState({});const[loading,setLoading]=useState(true);const load=useCallback(()=>{Promise.all([API.get('/org/tree'),API.get('/org/enterprises'),API.get('/org/res-units'),API.get('/org/spbipk')]).then(([t,e,r,sp])=>{setTree(t);setEnterprises(e);setResUnits(r);setSpbipkList(sp);const ex={};t.forEach(o=>{ex[`o-${o.id}`]=true;o.enterprises?.forEach(e=>{ex[`e-${e.id}`]=true;e.res_units?.forEach(r=>{ex[`r-${r.id}`]=true})})});setExpanded(ex)}).catch(console.error).finally(()=>setLoading(false))},[]);useEffect(()=>{load()},[load]);const toggle=k=>setExpanded(p=>({...p,[k]:!p[k]}));
-const save=async()=>{try{if(showModal==='org'){if(form.id)await API.put(`/org/organizations/${form.id}`,form);else await API.post('/org/organizations',form)}if(showModal==='ent'){if(form.id)await API.put(`/org/enterprises/${form.id}`,form);else await API.post('/org/enterprises',form)}if(showModal==='spbipk'){if(form.id)await API.put(`/org/spbipk/${form.id}`,form);else await API.post('/org/spbipk',form)}if(showModal==='res'){if(form.id)await API.put(`/org/res-units/${form.id}`,form);else await API.post('/org/res-units',form)}if(showModal==='dept'){if(form.id)await API.put(`/org/departments/${form.id}`,form);else await API.post('/org/departments',form)}setShowModal(null);setForm({});load()}catch(e){alert(e?.response?.data?.error||'Ошибка')}};
-if(loading)return<RnLoader/>;const Nd=({icon:Icon,bg,color,name,code,count,countLabel,onEdit,onClick,isExpanded})=><div className="tree-item" onClick={onClick}><div className="flex gap-2" style={{alignItems:'center'}}>{onClick&&<span style={{fontSize:11,color:'var(--text-secondary)',width:12}}>{isExpanded?'▼':'▶'}</span>}<div style={{width:28,height:28,borderRadius:7,background:bg,display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}><Icon style={{width:14,height:14,color}}/></div><div><div style={{fontWeight:600,fontSize:13}}>{name}</div><div className="text-muted" style={{fontSize:11}}>{code?code+' · ':''}{count} {countLabel}</div></div></div>{onEdit&&<button className="btn btn-outline btn-sm" onClick={e=>{e.stopPropagation();onEdit()}}><I.edit style={{width:13,height:13}}/></button>}</div>;
-return<div>
-<div className="page-header"><h1>Оргструктура</h1>{hasPerm('can_create')&&<div className="flex gap-2" style={{flexWrap:'wrap'}}><button className="btn btn-outline btn-sm" onClick={()=>{setForm({});setShowModal('org')}}>+ Организация</button><button className="btn btn-outline btn-sm" onClick={()=>{setForm({});setShowModal('ent')}}>+ Предприятие</button><button className="btn btn-outline btn-sm" onClick={()=>{setForm({});setShowModal('spbipk')}}>+ СПБиПК</button><button className="btn btn-outline btn-sm" onClick={()=>{setForm({});setShowModal('res')}}>+ РЭС/Служба</button><button className="btn btn-primary btn-sm" onClick={()=>{setForm({});setShowModal('dept')}}>+ Подразделение</button></div>}</div>
-{!tree.length?<div className="card"><div className="empty-state"><div className="icon"><I.building style={{width:40,height:40}}/></div>Нет организаций</div></div>:tree.map(org=><div key={org.id} className="card" style={{marginBottom:14}}>
-<Nd icon={I.building} bg="#E8F0FA" color="var(--primary)" name={org.name} code={org.code} count={org.enterprises?.length||0} countLabel="предприятий" onEdit={hasPerm('can_edit')?()=>{setForm(org);setShowModal('org')}:null} onClick={()=>toggle(`o-${org.id}`)} isExpanded={expanded[`o-${org.id}`]}/>
-{expanded[`o-${org.id}`]&&org.enterprises?.map(ent=><div key={ent.id} className="tree-branch">
-<Nd icon={I.briefcase} bg="#E6F5EC" color="var(--success)" name={ent.name} code={ent.code} count={(ent.spbipk_list?.length||0)+(ent.res_units?.length||0)} countLabel="ед." onEdit={hasPerm('can_edit')?()=>{setForm(ent);setShowModal('ent')}:null} onClick={()=>toggle(`e-${ent.id}`)} isExpanded={expanded[`e-${ent.id}`]}/>
-{expanded[`e-${ent.id}`]&&<>{ent.spbipk_list?.map(sp=><div key={sp.id} className="tree-branch"><div className="tree-item"><div className="flex gap-2" style={{alignItems:'center'}}><div style={{width:28,height:28,borderRadius:7,background:'#F0E8FA',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}><I.layers style={{width:14,height:14,color:'#7C3AED'}}/></div><div><div style={{fontWeight:600,fontSize:13}}>{sp.name}</div><div className="text-muted" style={{fontSize:11}}>{sp.code?sp.code+' · ':''}СПБиПК — склад→РЭС</div></div></div>{hasPerm('can_edit')&&<button className="btn btn-outline btn-sm" onClick={()=>{setForm(sp);setShowModal('spbipk')}}><I.edit style={{width:13,height:13}}/></button>}</div></div>)}
-{ent.res_units?.map(r=><div key={r.id} className="tree-branch">
-<Nd icon={I.zap} bg="#FDF1E0" color="var(--warning)" name={r.name} code={r.code} count={r.departments?.length||0} countLabel="подразд." onEdit={hasPerm('can_edit')?()=>{setForm(r);setShowModal('res')}:null} onClick={()=>toggle(`r-${r.id}`)} isExpanded={expanded[`r-${r.id}`]}/>
-{expanded[`r-${r.id}`]&&r.departments?.map(d=><div key={d.id} className="tree-branch"><div className="tree-item"><div className="flex gap-2" style={{alignItems:'center'}}><div style={{width:24,height:24,borderRadius:6,background:'#E8F0FA',display:'flex',alignItems:'center',justifyContent:'center'}}><I.wrench style={{width:12,height:12,color:'var(--info)'}}/></div><div><div style={{fontWeight:600,fontSize:13}}>{d.name}</div>{d.code&&<div className="text-muted" style={{fontSize:11}}>{d.code}</div>}</div></div>{hasPerm('can_edit')&&<button className="btn btn-outline btn-sm" onClick={()=>{setForm(d);setShowModal('dept')}}><I.edit style={{width:13,height:13}}/></button>}</div></div>)}
-</div>)}</>}
-</div>)}
-</div>)}
-{/* Modals */}
-<Modal isOpen={showModal==='org'} onClose={()=>setShowModal(null)} title={form.id?'Редактировать организацию':'Новая организация'} footer={<><button className="btn btn-outline" onClick={()=>setShowModal(null)}>Отмена</button><button className="btn btn-primary" onClick={save}>Сохранить</button></>}><div className="form-group"><label>Название</label><input className="form-control" value={form.name||''} onChange={e=>setForm({...form,name:e.target.value})}/></div><div className="form-group"><label>Код</label><input className="form-control" value={form.code||''} onChange={e=>setForm({...form,code:e.target.value})}/></div></Modal>
-<Modal isOpen={showModal==='ent'} onClose={()=>setShowModal(null)} title={form.id?'Редактировать предприятие':'Новое предприятие'} footer={<><button className="btn btn-outline" onClick={()=>setShowModal(null)}>Отмена</button><button className="btn btn-primary" onClick={save}>Сохранить</button></>}><div className="form-group"><label>Название</label><input className="form-control" value={form.name||''} onChange={e=>setForm({...form,name:e.target.value})}/></div><div className="form-group"><label>Код</label><input className="form-control" value={form.code||''} onChange={e=>setForm({...form,code:e.target.value})}/></div><div className="form-group"><label>Организация</label><select className="form-control" value={form.organization_id||''} onChange={e=>setForm({...form,organization_id:e.target.value})}><option value="">—</option>{tree.map(o=><option key={o.id} value={o.id}>{o.name}</option>)}</select></div></Modal>
-<Modal isOpen={showModal==='spbipk'} onClose={()=>setShowModal(null)} title={form.id?'Редактировать СПБиПК':'Новый СПБиПК'} footer={<><button className="btn btn-outline" onClick={()=>setShowModal(null)}>Отмена</button><button className="btn btn-primary" onClick={save}>Сохранить</button></>}><div className="form-group"><label>Название</label><input className="form-control" value={form.name||''} onChange={e=>setForm({...form,name:e.target.value})}/></div><div className="form-group"><label>Код</label><input className="form-control" value={form.code||''} onChange={e=>setForm({...form,code:e.target.value})}/></div><div className="form-group"><label>Предприятие</label><select className="form-control" value={form.enterprise_id||''} onChange={e=>setForm({...form,enterprise_id:e.target.value})}><option value="">—</option>{enterprises.map(e=><option key={e.id} value={e.id}>{e.name}</option>)}</select></div></Modal>
-<Modal isOpen={showModal==='res'} onClose={()=>setShowModal(null)} title={form.id?'Редактировать РЭС/Службу':'Новый РЭС/Служба'} footer={<><button className="btn btn-outline" onClick={()=>setShowModal(null)}>Отмена</button><button className="btn btn-primary" onClick={save}>Сохранить</button></>}><div className="form-group"><label>Название</label><input className="form-control" value={form.name||''} onChange={e=>setForm({...form,name:e.target.value})}/></div><div className="form-group"><label>Код</label><input className="form-control" value={form.code||''} onChange={e=>setForm({...form,code:e.target.value})}/></div><div className="form-row"><div className="form-group"><label>Предприятие</label><select className="form-control" value={form.enterprise_id||''} onChange={e=>setForm({...form,enterprise_id:e.target.value})}><option value="">—</option>{enterprises.map(e=><option key={e.id} value={e.id}>{e.name}</option>)}</select></div><div className="form-group"><label>СПБиПК</label><select className="form-control" value={form.spbipk_id||''} onChange={e=>setForm({...form,spbipk_id:e.target.value||null})}><option value="">—</option>{spbipkList.filter(s=>!form.enterprise_id||s.enterprise_id===form.enterprise_id).map(s=><option key={s.id} value={s.id}>{s.name}</option>)}</select></div></div></Modal>
-<Modal isOpen={showModal==='dept'} onClose={()=>setShowModal(null)} title={form.id?'Редактировать подразделение':'Новое подразделение'} footer={<><button className="btn btn-outline" onClick={()=>setShowModal(null)}>Отмена</button><button className="btn btn-primary" onClick={save}>Сохранить</button></>}><div className="form-group"><label>Название</label><input className="form-control" value={form.name||''} onChange={e=>setForm({...form,name:e.target.value})}/></div><div className="form-group"><label>Код</label><input className="form-control" value={form.code||''} onChange={e=>setForm({...form,code:e.target.value})}/></div><div className="form-group"><label>РЭС/Служба</label><select className="form-control" value={form.res_unit_id||''} onChange={e=>setForm({...form,res_unit_id:e.target.value})}><option value="">—</option>{resUnits.map(r=><option key={r.id} value={r.id}>{r.name}</option>)}</select></div></Modal>
-</div>};
-// ============ ADMIN: USERS (with edit + delete by password 2233) ============
-const AdminUsers=()=>{const[users,setUsers]=useState([]);const[roles,setRoles]=useState([]);const[orgs,setOrgs]=useState([]);const[ents,setEnts]=useState([]);const[resU,setResU]=useState([]);const[showModal,setShowModal]=useState(false);const[form,setForm]=useState({});const[editMode,setEditMode]=useState(false);const[showDelete,setShowDelete]=useState(null);const[deletePassword,setDeletePassword]=useState('');const[deleteError,setDeleteError]=useState('');const[loading,setLoading]=useState(true);
-const load=useCallback(()=>{Promise.all([API.get('/admin/users'),API.get('/auth/roles'),API.get('/org/organizations'),API.get('/org/enterprises'),API.get('/org/res-units')]).then(([u,r,o,e,res])=>{setUsers(u);setRoles(r);setOrgs(o);setEnts(e);setResU(res)}).catch(console.error).finally(()=>setLoading(false))},[]);useEffect(()=>{load()},[load]);
-const saveNew=async()=>{try{await API.post('/auth/register',form);setShowModal(false);setForm({});load()}catch(e){alert(e?.response?.data?.error||'Ошибка')}};
-const saveEdit=async()=>{try{const payload={...form};delete payload.id;delete payload.username;delete payload.role_name;delete payload.role_level;delete payload.organization_name;delete payload.enterprise_name;delete payload.res_name;delete payload.last_login;delete payload.is_active;if(form.new_password)payload.new_password=form.new_password;await API.put(`/admin/users/${form.id}`,payload);setShowModal(false);setForm({});setEditMode(false);load()}catch(e){alert(e?.response?.data?.error||'Ошибка')}};
-const handleDelete=async(userId)=>{setDeleteError('');try{await API.del(`/admin/users/${userId}`,{confirm_password:deletePassword});setShowDelete(null);setDeletePassword('');load()}catch(e){setDeleteError(e?.response?.data?.error||'Ошибка удаления')}};
-const openEdit=(u)=>{setForm({...u,new_password:''});setEditMode(true);setShowModal(true)};
-const openNew=()=>{setForm({});setEditMode(false);setShowModal(true)};
-const lvlLabel=l=>({ia:'ИА',enterprise:'Предприятие',res:'РЭС/Служба',department:'Подразд.'}[l]||l||'—');
-if(loading)return<RnLoader/>;return<div>
-<div className="page-header"><h1>Пользователи ({users.length})</h1><button className="btn btn-primary" onClick={openNew}><I.plus style={{width:16,height:16}}/> Пользователь</button></div>
-<div className="card"><div className="table-container"><table><thead><tr><th>Логин</th><th>ФИО</th><th>Роль</th><th>Уровень</th><th>Привязка</th><th>Посл. вход</th><th>Статус</th><th></th></tr></thead>
-<tbody>{users.map(u=><tr key={u.id} style={{opacity:u.is_active?1:.5}}>
-<td style={{fontWeight:600,fontFamily:'JetBrains Mono,monospace'}}>{u.username}</td>
-<td>{u.full_name||'—'}</td>
-<td>{u.role_name||'—'}</td>
-<td><span className="badge badge-info">{lvlLabel(u.role_level)}</span></td>
-<td className="text-muted" style={{fontSize:12}}>{[u.organization_name,u.enterprise_name,u.res_name].filter(Boolean).join(' → ')||'—'}</td>
-<td className="text-muted" style={{fontSize:12}}>{fmtDateTime(u.last_login)}</td>
-<td>{u.is_active?<span className="badge badge-success">Активен</span>:<span className="badge badge-danger">Отключен</span>}</td>
-<td><div className="flex gap-2"><button className="btn btn-outline btn-sm" onClick={()=>openEdit(u)} title="Редактировать"><I.edit style={{width:14,height:14}}/></button><button className="btn btn-sm" style={{background:'#FDEAEA',color:'var(--error)',border:'1px solid #f5c6cb'}} onClick={()=>{setShowDelete(u);setDeletePassword('');setDeleteError('')}} title="Удалить"><I.trash style={{width:14,height:14}}/></button></div></td>
-</tr>)}</tbody></table></div></div>
+    <div className="card"><div className="card-h"><h3 style={{display:'flex',alignItems:'center',gap:8}}>
+      <div className="tree-icon org" style={{width:28,height:28}}><IC.building style={{width:14,height:14}}/></div>
+      {s.org.name} <span className="badge b-blue">{s.org.code}</span>
+    </h3></div>
+    <div className="card-body">
+      <div style={{marginBottom:12,display:'flex',gap:8}}>
+        <button className="btn btn-p btn-sm" onClick={()=>{setForm({});setModal({type:'enterprise'})}}><IC.plus style={{width:14,height:14}}/> Предприятие</button>
+      </div>
 
-{/* Create / Edit modal */}
-<Modal isOpen={showModal} onClose={()=>{setShowModal(false);setEditMode(false)}} title={editMode?`Редактировать: ${form.username}`:'Новый пользователь'} wide footer={<><button className="btn btn-outline" onClick={()=>{setShowModal(false);setEditMode(false)}}>Отмена</button><button className="btn btn-primary" onClick={editMode?saveEdit:saveNew}>Сохранить</button></>}>
-{!editMode&&<div className="form-row"><div className="form-group"><label>Логин *</label><input className="form-control" value={form.username||''} onChange={e=>setForm({...form,username:e.target.value})}/></div><div className="form-group"><label>Пароль *</label><input className="form-control" type="password" value={form.password||''} onChange={e=>setForm({...form,password:e.target.value})}/></div></div>}
-<div className="form-group"><label>ФИО *</label><input className="form-control" value={form.full_name||''} onChange={e=>setForm({...form,full_name:e.target.value})}/></div>
-<div className="form-row"><div className="form-group"><label>Email</label><input className="form-control" value={form.email||''} onChange={e=>setForm({...form,email:e.target.value})}/></div><div className="form-group"><label>Телефон</label><input className="form-control" value={form.phone||''} onChange={e=>setForm({...form,phone:e.target.value})}/></div></div>
-<div className="form-group"><label>Роль *</label><select className="form-control" value={form.role_id||''} onChange={e=>setForm({...form,role_id:e.target.value})}><option value="">—</option>{roles.map(r=><option key={r.id} value={r.id}>{r.display_name} ({lvlLabel(r.level)})</option>)}</select></div>
-<div style={{background:'var(--bg-app)',borderRadius:8,padding:14,marginBottom:12}}><div style={{fontSize:12,fontWeight:700,color:'var(--text-secondary)',marginBottom:10,textTransform:'uppercase',letterSpacing:'.4px'}}>Привязка к иерархии (видимость)</div>
-<div className="form-row"><div className="form-group"><label>Организация</label><select className="form-control" value={form.organization_id||''} onChange={e=>setForm({...form,organization_id:e.target.value||null})}><option value="">—</option>{orgs.map(o=><option key={o.id} value={o.id}>{o.name}</option>)}</select></div><div className="form-group"><label>Предприятие</label><select className="form-control" value={form.enterprise_id||''} onChange={e=>setForm({...form,enterprise_id:e.target.value||null,res_unit_id:null})}><option value="">—</option>{ents.map(e=><option key={e.id} value={e.id}>{e.name}</option>)}</select></div></div>
-<div className="form-row"><div className="form-group"><label>РЭС/Служба</label><select className="form-control" value={form.res_unit_id||''} onChange={e=>setForm({...form,res_unit_id:e.target.value||null})}><option value="">—</option>{resU.filter(r=>!form.enterprise_id||r.enterprise_id===form.enterprise_id).map(r=><option key={r.id} value={r.id}>{r.name}</option>)}</select></div></div></div>
-{editMode&&<div style={{background:'#FDF1E0',borderRadius:8,padding:14}}><div style={{fontSize:12,fontWeight:700,color:'#92400e',marginBottom:8,textTransform:'uppercase'}}>Сменить пароль (необязательно)</div><div className="form-group" style={{marginBottom:0}}><input className="form-control" type="password" placeholder="Новый пароль..." value={form.new_password||''} onChange={e=>setForm({...form,new_password:e.target.value})}/></div></div>}
-</Modal>
+      {s.enterprises.map(ent => {
+        const entSpb = s.spbipks.filter(sp => sp.enterpriseId === ent.id);
+        const entRes = s.resUnits.filter(r => r.enterpriseId === ent.id);
+        return <div key={ent.id} className="tree-node child">
+          <div className="tree-item">
+            <div style={{display:'flex',alignItems:'center',gap:10}}>
+              <div className="tree-icon ent" style={{width:28,height:28}}><IC.building style={{width:14,height:14}}/></div>
+              <div><div style={{fontWeight:700,fontSize:13}}>{ent.name}</div><div style={{fontSize:11,color:'var(--tx3)'}}>Предприятие</div></div>
+            </div>
+            <div style={{display:'flex',gap:4}}>
+              <button className="btn-icon" onClick={()=>{setForm({});setModal({type:'spbipk',parentId:ent.id})}} title="Добавить СПБиПК"><IC.plus style={{width:14,height:14}}/></button>
+              <button className="btn-icon" onClick={()=>{setForm({});setModal({type:'res',parentId:ent.id})}} title="Добавить РЭС/Служба"><IC.plus style={{width:14,height:14,color:'var(--green)'}}/></button>
+              <button className="btn-icon" onClick={()=>{setForm(ent);setModal({type:'enterprise'})}}><IC.edit style={{width:14,height:14}}/></button>
+              <button className="btn-icon" onClick={()=>del('enterprise',ent.id)}><IC.trash style={{width:14,height:14,color:'var(--red)'}}/></button>
+            </div>
+          </div>
 
-{/* Delete confirmation modal */}
-<Modal isOpen={!!showDelete} onClose={()=>setShowDelete(null)} title="Удаление пользователя" footer={<><button className="btn btn-outline" onClick={()=>setShowDelete(null)}>Отмена</button><button className="btn btn-danger" onClick={()=>handleDelete(showDelete?.id)}>Удалить</button></>}>
-<div style={{marginBottom:16}}>Вы уверены, что хотите деактивировать пользователя <strong>{showDelete?.full_name}</strong> ({showDelete?.username})?</div>
-<div className="confirm-delete"><label style={{display:'block',marginBottom:6}}>Введите пароль подтверждения для удаления:</label><input className="form-control" type="password" placeholder="Пароль подтверждения..." value={deletePassword} onChange={e=>setDeletePassword(e.target.value)} onKeyDown={e=>e.key==='Enter'&&handleDelete(showDelete?.id)}/>{deleteError&&<div style={{color:'var(--error)',fontSize:13,marginTop:8,fontWeight:500}}>{deleteError}</div>}</div>
-</Modal></div>};
-// ============ ADMIN: AUDIT ============
-const AdminAudit=()=>{const[logs,setLogs]=useState([]);const[filters,setFilters]=useState({table_name:'',action:''});const[loading,setLoading]=useState(true);const load=useCallback(()=>{const p=new URLSearchParams();Object.entries(filters).forEach(([k,v])=>{if(v)p.append(k,v)});API.get(`/admin/audit?${p}`).then(setLogs).catch(console.error).finally(()=>setLoading(false))},[filters]);useEffect(()=>{load()},[load]);const actionLabel=a=>({create:'Создание',update:'Изменение',delete:'Удаление'}[a]||a);const actionBadge=a=>({create:'badge badge-success',update:'badge badge-warning',delete:'badge badge-danger'}[a]||'badge');const tblLabel=t=>({employees:'Сотрудники',siz_items:'СИЗ',siz_transactions:'Транзакции',positions:'Должности',siz_categories:'Категории',users:'Пользователи',spbipk:'СПБиПК',departments:'Подразделения',res_units:'РЭС/Службы'}[t]||t);if(loading)return<RnLoader/>;return<div>
-<div className="page-header"><h1>Журнал аудита</h1><span className="text-muted">Последние 100</span></div>
-<div className="card" style={{marginBottom:16}}><div className="form-row"><div className="form-group"><select className="form-control" value={filters.table_name} onChange={e=>setFilters({...filters,table_name:e.target.value})}><option value="">Все таблицы</option><option value="employees">Сотрудники</option><option value="siz_items">СИЗ</option><option value="siz_transactions">Транзакции</option><option value="positions">Должности</option><option value="users">Пользователи</option><option value="spbipk">СПБиПК</option><option value="departments">Подразделения</option></select></div><div className="form-group"><select className="form-control" value={filters.action} onChange={e=>setFilters({...filters,action:e.target.value})}><option value="">Все действия</option><option value="create">Создание</option><option value="update">Изменение</option><option value="delete">Удаление</option></select></div></div></div>
-<div className="card"><div className="table-container"><table><thead><tr><th>Дата/время</th><th>Пользователь</th><th>Действие</th><th>Таблица</th><th>Изменения</th></tr></thead><tbody>{!logs.length?<tr><td colSpan="5"><div className="empty-state"><div className="icon"><I.scroll style={{width:36,height:36}}/></div>Нет записей</div></td></tr>:logs.map(l=><tr key={l.id}><td className="text-muted" style={{whiteSpace:'nowrap',fontFamily:'JetBrains Mono,monospace',fontSize:12}}>{fmtDateTime(l.created_at)}</td><td style={{fontWeight:600}}>{l.user_name||l.username||'—'}</td><td><span className={actionBadge(l.action)}>{actionLabel(l.action)}</span></td><td>{tblLabel(l.table_name)}</td><td>{l.changes&&<details><summary>Просмотр</summary><pre>{JSON.stringify(l.changes,null,2)}</pre></details>}</td></tr>)}</tbody></table></div></div></div>};
+          {entSpb.map(sp => <div key={sp.id} className="tree-node child">
+            <div className="tree-item">
+              <div style={{display:'flex',alignItems:'center',gap:10}}>
+                <div className="tree-icon spb" style={{width:26,height:26}}><IC.warehouse style={{width:13,height:13}}/></div>
+                <div><div style={{fontWeight:600,fontSize:13}}>{sp.name}</div><div style={{fontSize:11,color:'var(--tx3)'}}>СПБиПК (склад)</div></div>
+              </div>
+              <div style={{display:'flex',gap:4}}>
+                <button className="btn-icon" onClick={()=>{setForm(sp);setModal({type:'spbipk',parentId:ent.id})}}><IC.edit style={{width:14,height:14}}/></button>
+                <button className="btn-icon" onClick={()=>del('spbipk',sp.id)}><IC.trash style={{width:14,height:14,color:'var(--red)'}}/></button>
+              </div>
+            </div>
+          </div>)}
 
-// ============ MAIN APP ============
-const App=()=>{const{user,logout,hasPerm,isLevel}=useAuth();const{path,navigate}=useRoute();useEffect(()=>{const el=document.getElementById('initialLoader');if(el){el.classList.add('hidden');setTimeout(()=>el.remove(),600)}},[]);if(!user)return<LoginPage/>;if(path==='/login'){navigate('/');return null}
-const empMatch=path.match(/^\/employees\/(.+)$/);let content;
-if(path==='/'||path==='')content=<Dashboard/>;
-else if(path==='/employees')content=<Employees navigate={navigate}/>;
-else if(empMatch)content=<EmployeeCard id={empMatch[1]} navigate={navigate}/>;
-else if(path==='/transactions')content=<Transactions navigate={navigate}/>;
-else if(path==='/directories')content=<Directories/>;
-else if(path==='/positions')content=<Positions/>;
-else if(path==='/ton')content=<TonPage/>;
-else if(path==='/warehouses')content=<WarehousePage/>;
-else if(path==='/org-structure')content=<OrgStructure/>;
-else if(path==='/admin/users'&&isLevel(['ia']))content=<AdminUsers/>;
-else if(path==='/admin/audit'&&isLevel(['ia']))content=<AdminAudit/>;
-else content=<Dashboard/>;
-const NL=({to,icon:Icon,children})=><a href={`#${to}`} className={`nav-link ${path===to?'active':''}`}><Icon style={{width:18,height:18,flexShrink:0}}/>{children}</a>;
-return<div className="app-layout">
-<aside className="sidebar">
-<div className="sidebar-header"><div className="logo-icon"><I.shield style={{width:20,height:20,color:'#fff'}}/></div><div><div className="logo-text">СИЗ</div><div className="logo-sub">Учёт и движение</div></div></div>
-<div className="sidebar-user"><div className="avatar"><I.users style={{width:16,height:16}}/></div><div><div className="uname">{user.full_name}</div><div className="role">{user.role_display_name}</div></div></div>
-<nav>
-<div className="nav-section">Основное</div>
-<NL to="/" icon={I.dashboard}>Панель управления</NL>
-<NL to="/employees" icon={I.users}>Сотрудники</NL>
-<NL to="/transactions" icon={I.activity}>Движение СИЗ</NL>
-<NL to="/warehouses" icon={I.package}>Склады</NL>
-<div className="nav-section">Справочники</div>
-<NL to="/directories" icon={I.folder}>Категории СИЗ</NL>
-<NL to="/positions" icon={I.briefcase}>Должности</NL>
-<NL to="/ton" icon={I.scroll}>ТОН</NL>
-<NL to="/org-structure" icon={I.building}>Оргструктура</NL>
-{isLevel(['ia'])&&<><div className="nav-section">Администрирование</div><NL to="/admin/users" icon={I.userCog}>Пользователи</NL><NL to="/admin/audit" icon={I.scroll}>Журнал аудита</NL></>}
-</nav>
-<div className="sidebar-footer"><button onClick={()=>{logout();navigate('/login')}} className="btn btn-outline" style={{width:'100%',color:'#fff',borderColor:'rgba(255,255,255,.15)',justifyContent:'center',gap:8}}><I.logOut style={{width:16,height:16}}/> Выйти</button></div>
-</aside>
-<main className="main-content">{content}</main>
-</div>};
+          {entRes.map(ru => {
+            const ruDepts = s.departments.filter(d => d.resUnitId === ru.id);
+            return <div key={ru.id} className="tree-node child">
+              <div className="tree-item">
+                <div style={{display:'flex',alignItems:'center',gap:10}}>
+                  <div className="tree-icon res" style={{width:26,height:26}}><IC.users style={{width:13,height:13}}/></div>
+                  <div><div style={{fontWeight:600,fontSize:13}}>{ru.name}</div><div style={{fontSize:11,color:'var(--tx3)'}}>РЭС / Служба</div></div>
+                </div>
+                <div style={{display:'flex',gap:4}}>
+                  <button className="btn-icon" onClick={()=>{setForm({});setModal({type:'dept',parentId:ru.id})}} title="Добавить подразделение"><IC.plus style={{width:14,height:14}}/></button>
+                  <button className="btn-icon" onClick={()=>{setForm(ru);setModal({type:'res',parentId:ent.id})}}><IC.edit style={{width:14,height:14}}/></button>
+                  <button className="btn-icon" onClick={()=>del('res',ru.id)}><IC.trash style={{width:14,height:14,color:'var(--red)'}}/></button>
+                </div>
+              </div>
+              {ruDepts.map(dp => <div key={dp.id} className="tree-node child">
+                <div className="tree-item">
+                  <div style={{display:'flex',alignItems:'center',gap:10}}>
+                    <div className="tree-icon dep" style={{width:24,height:24}}><IC.folder style={{width:12,height:12}}/></div>
+                    <div style={{fontWeight:600,fontSize:13}}>{dp.name}</div>
+                  </div>
+                  <div style={{display:'flex',gap:4}}>
+                    <button className="btn-icon" onClick={()=>{setForm(dp);setModal({type:'dept',parentId:ru.id})}}><IC.edit style={{width:14,height:14}}/></button>
+                    <button className="btn-icon" onClick={()=>del('dept',dp.id)}><IC.trash style={{width:14,height:14,color:'var(--red)'}}/></button>
+                  </div>
+                </div>
+              </div>)}
+            </div>;
+          })}
+        </div>;
+      })}
 
-ReactDOM.createRoot(document.getElementById('root')).render(<AuthProvider><App/></AuthProvider>);
+      {!s.enterprises.length && <Empty icon={IC.building} text="Добавьте первое предприятие"/>}
+    </div></div>
+
+    <Modal open={!!modal} onClose={()=>setModal(null)} title={`${form.id?'Редактировать':'Добавить'} — ${labels[modal?.type]||''}`}
+      footer={<><button className="btn btn-o" onClick={()=>setModal(null)}>Отмена</button><button className="btn btn-p" onClick={save}>Сохранить</button></>}>
+      <div className="fg"><label>Название</label><input className="fc" value={form.name||''} onChange={e=>setForm({...form,name:e.target.value})} placeholder="Введите название"/></div>
+      {modal?.type === 'enterprise' && <div className="fg"><label>Код</label><input className="fc" value={form.code||''} onChange={e=>setForm({...form,code:e.target.value})} placeholder="Короткий код"/></div>}
+    </Modal>
+  </div>;
+};
+
+// ---- POSITIONS ----
+const Positions = () => {
+  const s = useStore();
+  const [modal, setModal] = useState(false);
+  const [form, setForm] = useState({});
+  const [search, setSearch] = useState('');
+
+  const save = () => {
+    if (!form.name?.trim()) return;
+    const item = { ...form, id: form.id || uid() };
+    if (form.id) s.setPositions(prev => prev.map(p => p.id === form.id ? item : p));
+    else s.setPositions(prev => [...prev, item]);
+    setModal(false); setForm({}); s.showToast('Должность сохранена');
+  };
+
+  const del = id => { s.setPositions(p => p.filter(x => x.id !== id)); s.showToast('Удалено'); };
+  const filtered = s.positions.filter(p => !search || p.name.toLowerCase().includes(search.toLowerCase()));
+
+  return <div>
+    <div className="page-top"><div><h1>Должности</h1><div className="sub">Справочник должностей</div></div>
+      <button className="btn btn-p" onClick={()=>{setForm({});setModal(true)}}><IC.plus style={{width:16,height:16}}/> Добавить</button>
+    </div>
+    <div className="card"><div className="card-h"><SearchInput value={search} onChange={setSearch} placeholder="Поиск должности..."/></div>
+      <div className="card-body np"><div className="tbl-wrap"><table><thead><tr><th>Название</th><th>Код</th><th style={{width:80}}>Действия</th></tr></thead>
+        <tbody>{filtered.length ? filtered.map(p => <tr key={p.id}><td style={{fontWeight:600}}>{p.name}</td><td><span className="badge b-gray">{p.code||'—'}</span></td>
+          <td><div style={{display:'flex',gap:4}}><button className="btn-icon" onClick={()=>{setForm(p);setModal(true)}}><IC.edit style={{width:14,height:14}}/></button><button className="btn-icon" onClick={()=>del(p.id)}><IC.trash style={{width:14,height:14,color:'var(--red)'}}/></button></div></td>
+        </tr>) : <tr><td colSpan="3"><Empty icon={IC.briefcase} text="Нет должностей"/></td></tr>}</tbody>
+      </table></div></div>
+    </div>
+    <Modal open={modal} onClose={()=>setModal(false)} title={form.id ? 'Редактировать должность' : 'Новая должность'}
+      footer={<><button className="btn btn-o" onClick={()=>setModal(false)}>Отмена</button><button className="btn btn-p" onClick={save}>Сохранить</button></>}>
+      <div className="fg"><label>Название должности</label><input className="fc" value={form.name||''} onChange={e=>setForm({...form,name:e.target.value})} placeholder="Электромонтёр"/></div>
+      <div className="fg"><label>Код</label><input className="fc" value={form.code||''} onChange={e=>setForm({...form,code:e.target.value})} placeholder="ЭМ-01"/></div>
+    </Modal>
+  </div>;
+};
+
+// ---- SIZ DIRECTORIES ----
+const Directories = () => {
+  const s = useStore();
+  const [tab, setTab] = useState('clothes');
+  const [modal, setModal] = useState(false);
+  const [form, setForm] = useState({});
+  const [search, setSearch] = useState('');
+  const cat = catByKey(tab);
+
+  const save = () => {
+    if (!form.name?.trim()) return;
+    const item = { ...form, id: form.id || uid(), category: tab };
+    if (form.id) s.setSizItems(prev => prev.map(x => x.id === form.id ? item : x));
+    else s.setSizItems(prev => [...prev, item]);
+    setModal(false); setForm({}); s.showToast('СИЗ сохранён');
+  };
+
+  const del = id => { s.setSizItems(p => p.filter(x => x.id !== id)); s.showToast('Удалено'); };
+  const items = s.sizItems.filter(i => i.category === tab && (!search || i.name.toLowerCase().includes(search.toLowerCase()) || (i.code||'').toLowerCase().includes(search.toLowerCase())));
+
+  return <div>
+    <div className="page-top"><div><h1>Справочники СИЗ</h1><div className="sub">Реестр средств защиты по категориям</div></div>
+      <button className="btn btn-p" onClick={()=>{setForm({});setModal(true)}}><IC.plus style={{width:16,height:16}}/> Добавить в {cat?.name}</button>
+    </div>
+
+    <div className="tabs">
+      {CATEGORIES.map(c => {
+        const CatIcon = IC[c.icon];
+        const count = s.sizItems.filter(i => i.category === c.key).length;
+        return <button key={c.key} className={`tab ${tab===c.key?'active':''}`} onClick={()=>{setTab(c.key);setSearch('')}}>
+          <span style={{display:'flex',alignItems:'center',gap:6}}><CatIcon style={{width:15,height:15}}/> {c.name} <span className="badge b-gray" style={{marginLeft:4}}>{count}</span></span>
+        </button>;
+      })}
+    </div>
+
+    <div className="card"><div className="card-h"><SearchInput value={search} onChange={setSearch} placeholder="Поиск по коду или названию..."/></div>
+      <div className="card-body np"><div className="tbl-wrap"><table><thead><tr>
+        <th>Код</th><th>Наименование</th><th>Пол</th><th>Сезон</th><th>Срок эксп. (лет)</th>
+        {cat?.hasSizes && <th>Размеры</th>}
+        {!cat?.hasSizes && <th>Ед. измерения</th>}
+        <th style={{width:80}}>Действия</th>
+      </tr></thead>
+      <tbody>{items.length ? items.map(it => <tr key={it.id}>
+        <td><span className="badge b-blue">{it.code||'—'}</span></td>
+        <td style={{fontWeight:600}}>{it.name}</td>
+        <td>{it.gender||'—'}</td>
+        <td><span className={`badge ${it.season==='Зима'?'b-blue':it.season==='Лето'?'b-amber':'b-gray'}`}>{it.season||'—'}</span></td>
+        <td style={{fontFamily:'JetBrains Mono',fontSize:12}}>{it.exploitYears||'—'}</td>
+        <td>{cat?.hasSizes ? (cat.sizeType==='clothing'?'По размерной сетке':'35-49') : (cat?.sizeLabel||'—')}</td>
+        <td><div style={{display:'flex',gap:4}}><button className="btn-icon" onClick={()=>{setForm(it);setModal(true)}}><IC.edit style={{width:14,height:14}}/></button><button className="btn-icon" onClick={()=>del(it.id)}><IC.trash style={{width:14,height:14,color:'var(--red)'}}/></button></div></td>
+      </tr>) : <tr><td colSpan="7"><Empty icon={IC.shield} text={`Нет записей в категории ${cat?.name}`}/></td></tr>}</tbody>
+      </table></div></div>
+    </div>
+
+    <Modal open={modal} onClose={()=>setModal(false)} title={`${form.id?'Редактировать':'Добавить'} — ${cat?.name}`}
+      footer={<><button className="btn btn-o" onClick={()=>setModal(false)}>Отмена</button><button className="btn btn-p" onClick={save}>Сохранить</button></>}>
+      <div className="fr">
+        <div className="fg"><label>Код</label><input className="fc" value={form.code||''} onChange={e=>setForm({...form,code:e.target.value})} placeholder="001"/></div>
+        <div className="fg" style={{flex:2}}><label>Наименование</label><input className="fc" value={form.name||''} onChange={e=>setForm({...form,name:e.target.value})} placeholder="Костюм хлопчатобумажный"/></div>
+      </div>
+      <div className="fr">
+        <div className="fg"><label>Пол</label><select className="fc" value={form.gender||''} onChange={e=>setForm({...form,gender:e.target.value})}><option value="">— Выбрать —</option>{GENDERS.map(g=><option key={g}>{g}</option>)}</select></div>
+        <div className="fg"><label>Сезон</label><select className="fc" value={form.season||''} onChange={e=>setForm({...form,season:e.target.value})}><option value="">— Выбрать —</option>{SEASONS.map(g=><option key={g}>{g}</option>)}</select></div>
+        <div className="fg"><label>Срок эксплуатации (лет)</label><input className="fc" type="number" min="0" step="0.5" value={form.exploitYears||''} onChange={e=>setForm({...form,exploitYears:e.target.value})}/></div>
+      </div>
+    </Modal>
+  </div>;
+};
+
+// ---- ТОН (Типовые нормы выдачи) ----
+const TonPage = () => {
+  const s = useStore();
+  const [selPos, setSelPos] = useState('');
+  const [modal, setModal] = useState(false);
+  const [modalCat, setModalCat] = useState('clothes');
+
+  const posNorms = selPos ? s.norms.filter(n => n.positionId === selPos) : [];
+  const assignedIds = new Set(posNorms.map(n => n.sizItemId));
+
+  const toggleNorm = (sizId) => {
+    if (assignedIds.has(sizId)) {
+      s.setNorms(prev => prev.filter(n => !(n.positionId === selPos && n.sizItemId === sizId)));
+    } else {
+      s.setNorms(prev => [...prev, { id: uid(), positionId: selPos, sizItemId: sizId }]);
+    }
+  };
+
+  const catItems = s.sizItems.filter(i => i.category === modalCat);
+  const posName = s.positions.find(p => p.id === selPos)?.name || '';
+
+  return <div>
+    <div className="page-top"><div><h1>ТОН — Типовые нормы выдачи</h1><div className="sub">Привязка СИЗ к должностям</div></div></div>
+
+    <div className="card"><div className="card-body">
+      <div className="fg"><label>Выберите должность</label>
+        <select className="fc" value={selPos} onChange={e=>setSelPos(e.target.value)} style={{maxWidth:400}}>
+          <option value="">— Выберите должность —</option>
+          {s.positions.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+        </select>
+      </div>
+
+      {selPos && <div style={{marginTop:16}}>
+        <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:16}}>
+          <h3 style={{fontSize:16,fontWeight:700}}>Положенные СИЗ для: <span style={{color:'var(--blue)'}}>{posName}</span></h3>
+          <button className="btn btn-p" onClick={()=>setModal(true)}><IC.link style={{width:16,height:16}}/> Подключить СИЗ</button>
+        </div>
+
+        {CATEGORIES.map(cat => {
+          const catNorms = posNorms.filter(n => s.sizItems.find(i => i.id === n.sizItemId)?.category === cat.key);
+          if (!catNorms.length) return null;
+          const CatIcon = IC[cat.icon];
+          return <div key={cat.key} style={{marginBottom:16}}>
+            <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:8}}>
+              <div className={`cat-icon ${cat.cls}`} style={{width:28,height:28}}><CatIcon style={{width:14,height:14}}/></div>
+              <span style={{fontWeight:700,fontSize:13}}>{cat.name}</span>
+              <span className="badge b-gray">{catNorms.length}</span>
+            </div>
+            <div className="ppe-grid">
+              {catNorms.map(n => {
+                const item = s.sizItems.find(i => i.id === n.sizItemId);
+                if (!item) return null;
+                return <div key={n.id} className="ppe-card assigned">
+                  <div className="ppe-dot"/>
+                  <div className="ppe-name">{item.name}</div>
+                  <div className="ppe-meta">{item.code} | {item.season||'—'} | {item.exploitYears||'?'} г.</div>
+                </div>;
+              })}
+            </div>
+          </div>;
+        })}
+
+        {!posNorms.length && <Empty icon={IC.link} text="Нет привязанных СИЗ. Нажмите «Подключить СИЗ»"/>}
+      </div>}
+
+      {!selPos && <Empty icon={IC.briefcase} text="Выберите должность для настройки норм"/>}
+    </div></div>
+
+    <Modal open={modal} onClose={()=>setModal(false)} title={`Подключение СИЗ — ${posName}`} wide
+      footer={<button className="btn btn-p" onClick={()=>setModal(false)}>Готово</button>}>
+      <div className="tabs" style={{marginBottom:16}}>
+        {CATEGORIES.map(c => {
+          const CatIcon = IC[c.icon];
+          return <button key={c.key} className={`tab ${modalCat===c.key?'active':''}`} onClick={()=>setModalCat(c.key)}>
+            <span style={{display:'flex',alignItems:'center',gap:6}}><CatIcon style={{width:14,height:14}}/> {c.name}</span>
+          </button>;
+        })}
+      </div>
+      {catItems.length ? <div style={{display:'flex',flexDirection:'column',gap:6}}>
+        {catItems.map(it => {
+          const isOn = assignedIds.has(it.id);
+          return <div key={it.id} onClick={()=>toggleNorm(it.id)}
+            style={{display:'flex',alignItems:'center',gap:12,padding:'10px 14px',borderRadius:8,cursor:'pointer',
+              border:`2px solid ${isOn?'var(--green)':'var(--border)'}`,background:isOn?'var(--green-l)':'#fff',transition:'all .15s'}}>
+            <div style={{width:22,height:22,borderRadius:6,border:`2px solid ${isOn?'var(--green)':'var(--border2)'}`,background:isOn?'var(--green)':'#fff',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>
+              {isOn && <IC.check style={{width:14,height:14,color:'#fff'}}/>}
+            </div>
+            <div style={{flex:1}}>
+              <div style={{fontWeight:700,fontSize:13}}>{it.name}</div>
+              <div style={{fontSize:11,color:'var(--tx2)'}}>{it.code} | {it.gender||'—'} | {it.season||'—'} | {it.exploitYears||'?'} г.</div>
+            </div>
+          </div>;
+        })}
+      </div> : <Empty icon={IC.shield} text={`Нет СИЗ в категории. Сначала заполните справочник.`}/>}
+    </Modal>
+  </div>;
+};
+
+// ---- EMPLOYEES ----
+const EmployeesPage = ({navigate}) => {
+  const s = useStore();
+  const [modal, setModal] = useState(false);
+  const [form, setForm] = useState({});
+  const [search, setSearch] = useState('');
+  const [viewMode, setViewMode] = useState('table'); // table | matrix
+
+  const entName = id => s.enterprises.find(e=>e.id===id)?.name||'—';
+  const resName = id => s.resUnits.find(e=>e.id===id)?.name||'—';
+  const deptName = id => s.departments.find(e=>e.id===id)?.name||'—';
+  const posName = id => s.positions.find(e=>e.id===id)?.name||'—';
+
+  const save = () => {
+    if (!form.fio?.trim()) return;
+    const item = { ...form, id: form.id || uid() };
+    if (form.id) s.setEmployees(prev => prev.map(e => e.id === form.id ? item : e));
+    else s.setEmployees(prev => [...prev, item]);
+    setModal(false); setForm({}); s.showToast('Карточка сохранена');
+  };
+
+  const del = id => { s.setEmployees(p => p.filter(e => e.id !== id)); s.showToast('Удалено'); };
+
+  const filtered = s.employees.filter(e =>
+    !search || e.fio?.toLowerCase().includes(search.toLowerCase()) ||
+    posName(e.positionId)?.toLowerCase().includes(search.toLowerCase())
+  );
+
+  // Departments belonging to selected RES
+  const resDepts = form.resUnitId ? s.departments.filter(d => d.resUnitId === form.resUnitId) : [];
+  // RES belonging to selected enterprise
+  const entResUnits = form.enterpriseId ? s.resUnits.filter(r => r.enterpriseId === form.enterpriseId) : [];
+
+  // All SIZ items for matrix view
+  const allSiz = s.sizItems;
+
+  return <div>
+    <div className="page-top"><div><h1>Карточки персонала</h1><div className="sub">Реестр сотрудников и выданных СИЗ</div></div>
+      <div style={{display:'flex',gap:8}}>
+        <button className={`btn ${viewMode==='table'?'btn-p':'btn-o'} btn-sm`} onClick={()=>setViewMode('table')}>Таблица</button>
+        <button className={`btn ${viewMode==='matrix'?'btn-p':'btn-o'} btn-sm`} onClick={()=>setViewMode('matrix')}>Матрица СИЗ</button>
+        <button className="btn btn-p" onClick={()=>{setForm({});setModal(true)}}><IC.plus style={{width:16,height:16}}/> Создать карточку</button>
+      </div>
+    </div>
+
+    <div className="card" style={{marginBottom:16}}><div className="card-body" style={{padding:'12px 20px'}}>
+      <SearchInput value={search} onChange={setSearch} placeholder="Поиск по ФИО или должности..."/>
+    </div></div>
+
+    {viewMode === 'table' && <div className="card"><div className="card-body np"><div className="tbl-wrap"><table><thead><tr>
+      <th>ФИО</th><th>Предприятие</th><th>РЭС/Служба</th><th>Подразделение</th><th>Должность</th><th>Размер одежды</th><th>Размер обуви</th><th style={{width:100}}>Действия</th>
+    </tr></thead>
+    <tbody>{filtered.length ? filtered.map(e => <tr key={e.id}>
+      <td><span style={{fontWeight:700,cursor:'pointer',color:'var(--blue)'}} onClick={()=>navigate(`/employee/${e.id}`)}>{e.fio}</span></td>
+      <td>{entName(e.enterpriseId)}</td><td>{resName(e.resUnitId)}</td><td>{deptName(e.departmentId)}</td>
+      <td><span className="badge b-blue">{posName(e.positionId)}</span></td>
+      <td style={{fontSize:12,fontFamily:'JetBrains Mono'}}>{e.clothingSize||'—'}</td>
+      <td style={{fontSize:12,fontFamily:'JetBrains Mono'}}>{e.shoeSize||'—'}</td>
+      <td><div style={{display:'flex',gap:4}}>
+        <button className="btn-icon" onClick={()=>navigate(`/employee/${e.id}`)} title="Просмотр"><IC.eye style={{width:14,height:14}}/></button>
+        <button className="btn-icon" onClick={()=>{setForm(e);setModal(true)}}><IC.edit style={{width:14,height:14}}/></button>
+        <button className="btn-icon" onClick={()=>del(e.id)}><IC.trash style={{width:14,height:14,color:'var(--red)'}}/></button>
+      </div></td>
+    </tr>) : <tr><td colSpan="8"><Empty icon={IC.users} text="Нет сотрудников"/></td></tr>}</tbody>
+    </table></div></div></div>}
+
+    {viewMode === 'matrix' && <MatrixView employees={filtered} navigate={navigate}/>}
+
+    <Modal open={modal} onClose={()=>setModal(false)} title={form.id ? 'Редактировать карточку' : 'Новая карточка'} wide
+      footer={<><button className="btn btn-o" onClick={()=>setModal(false)}>Отмена</button><button className="btn btn-p" onClick={save}>Сохранить</button></>}>
+      <div className="fr">
+        <div className="fg"><label>1. Организация</label><input className="fc" value={s.org.name} disabled/></div>
+        <div className="fg"><label>2. Предприятие</label>
+          <select className="fc" value={form.enterpriseId||''} onChange={e=>setForm({...form,enterpriseId:e.target.value,resUnitId:'',departmentId:''})}>
+            <option value="">— Выбрать —</option>
+            {s.enterprises.map(e=><option key={e.id} value={e.id}>{e.name}</option>)}
+          </select>
+        </div>
+      </div>
+      <div className="fr">
+        <div className="fg"><label>3. РЭС / Служба</label>
+          <select className="fc" value={form.resUnitId||''} onChange={e=>setForm({...form,resUnitId:e.target.value,departmentId:''})}>
+            <option value="">— Выбрать —</option>
+            {entResUnits.map(r=><option key={r.id} value={r.id}>{r.name}</option>)}
+          </select>
+        </div>
+        <div className="fg"><label>4. Подразделение</label>
+          <select className="fc" value={form.departmentId||''} onChange={e=>setForm({...form,departmentId:e.target.value})}>
+            <option value="">— Выбрать —</option>
+            {resDepts.map(d=><option key={d.id} value={d.id}>{d.name}</option>)}
+          </select>
+        </div>
+      </div>
+      <div className="fr">
+        <div className="fg" style={{flex:2}}><label>5. ФИО</label><input className="fc" value={form.fio||''} onChange={e=>setForm({...form,fio:e.target.value})} placeholder="Иванов Иван Иванович"/></div>
+        <div className="fg"><label>6. Должность</label>
+          <select className="fc" value={form.positionId||''} onChange={e=>setForm({...form,positionId:e.target.value})}>
+            <option value="">— Выбрать —</option>
+            {s.positions.map(p=><option key={p.id} value={p.id}>{p.name}</option>)}
+          </select>
+        </div>
+      </div>
+      <div className="fr">
+        <div className="fg"><label>7. Размер одежды</label>
+          <select className="fc" value={form.clothingSize||''} onChange={e=>setForm({...form,clothingSize:e.target.value})}>
+            <option value="">— Выбрать —</option>
+            {CLOTHING_SIZES.map(sz=><option key={sz}>{sz}</option>)}
+          </select>
+        </div>
+        <div className="fg"><label>8. Размер обуви</label>
+          <select className="fc" value={form.shoeSize||''} onChange={e=>setForm({...form,shoeSize:e.target.value})}>
+            <option value="">— Выбрать —</option>
+            {SHOE_SIZES.map(sz=><option key={sz}>{sz}</option>)}
+          </select>
+        </div>
+      </div>
+    </Modal>
+  </div>;
+};
+
+// ---- MATRIX VIEW (Personnel + all SIZ columns with green/red) ----
+const MatrixView = ({employees, navigate}) => {
+  const s = useStore();
+
+  // Group SIZ items by category
+  const grouped = CATEGORIES.map(cat => ({
+    ...cat,
+    items: s.sizItems.filter(i => i.category === cat.key),
+  })).filter(g => g.items.length > 0);
+
+  const allItems = grouped.flatMap(g => g.items);
+
+  return <div className="card"><div className="card-body np"><div className="tbl-wrap" style={{maxHeight:'70vh',overflow:'auto'}}>
+    <table className="ptbl"><thead>
+      <tr>
+        <th className="name-col" rowSpan="2" style={{textAlign:'left'}}>ФИО / Должность</th>
+        {grouped.map(g => <th key={g.key} colSpan={g.items.length} style={{background:g.key==='clothes'?'#EDE9FE':g.key==='shoes'?'#FEF3C7':g.key==='head'?'#E0E7FF':g.key==='gloves'?'#FCE7F3':'#ECFDF5',textAlign:'center'}}>
+          {g.name}
+        </th>)}
+      </tr>
+      <tr>
+        {allItems.map(it => <th key={it.id} style={{writingMode:'vertical-lr',transform:'rotate(180deg)',minWidth:30,maxWidth:36,height:120,fontSize:9,padding:'6px 2px',lineHeight:1.2}}>{it.name}</th>)}
+      </tr>
+    </thead>
+    <tbody>
+      {employees.length ? employees.map(emp => {
+        const empNorms = s.norms.filter(n => n.positionId === emp.positionId);
+        const normSizIds = new Set(empNorms.map(n => n.sizItemId));
+        const empIssued = s.issued.filter(i => i.employeeId === emp.id && i.status === 'active');
+        const issuedMap = {};
+        empIssued.forEach(i => { issuedMap[i.sizItemId] = i; });
+
+        return <tr key={emp.id}>
+          <td className="name-col" style={{background:'#fff'}}>
+            <div style={{cursor:'pointer'}} onClick={()=>navigate(`/employee/${emp.id}`)}>
+              <div style={{fontWeight:700,fontSize:12,color:'var(--blue)'}}>{emp.fio}</div>
+              <div style={{fontSize:10,color:'var(--tx3)'}}>{s.positions.find(p=>p.id===emp.positionId)?.name||'—'}</div>
+            </div>
+          </td>
+          {allItems.map(it => {
+            const isNorm = normSizIds.has(it.id);
+            const iss = issuedMap[it.id];
+            const expired = iss && iss.expiryDate && isExpired(iss.expiryDate);
+            const expSoon = iss && iss.expiryDate && isExpiringSoon(iss.expiryDate);
+            let cls = isNorm ? (iss ? (expired ? 'siz-exp' : 'siz-ok') : 'siz-no') : '';
+            let text = '';
+            if (isNorm) {
+              if (iss) {
+                text = expired ? '!' : (expSoon ? '~' : '+');
+              } else {
+                text = '—';
+              }
+            }
+            return <td key={it.id} className={cls} title={isNorm ? (iss ? `Выдано ${fmtDate(iss.issuedDate)}${iss.expiryDate?' до '+fmtDate(iss.expiryDate):''}` : 'Не выдано (положено)') : ''}>
+              {text}
+            </td>;
+          })}
+        </tr>;
+      }) : <tr><td colSpan={allItems.length+1}><Empty icon={IC.users} text="Нет сотрудников"/></td></tr>}
+    </tbody>
+    </table>
+  </div></div></div>;
+};
+
+// ---- EMPLOYEE CARD (detailed view) ----
+const EmployeeCard = ({id, navigate}) => {
+  const s = useStore();
+  const emp = s.employees.find(e => e.id === id);
+  const [issueModal, setIssueModal] = useState(false);
+  const [issueForm, setIssueForm] = useState({});
+
+  if (!emp) return <div><button className="btn btn-o" onClick={()=>navigate('/employees')}><IC.arrowLeft style={{width:16,height:16}}/> Назад</button><Empty icon={IC.user} text="Сотрудник не найден"/></div>;
+
+  const posName = s.positions.find(p => p.id === emp.positionId)?.name || '—';
+  const entName = s.enterprises.find(e => e.id === emp.enterpriseId)?.name || '—';
+  const resName = s.resUnits.find(r => r.id === emp.resUnitId)?.name || '—';
+  const deptName = s.departments.find(d => d.id === emp.departmentId)?.name || '—';
+
+  const empNorms = s.norms.filter(n => n.positionId === emp.positionId);
+  const normSizIds = new Set(empNorms.map(n => n.sizItemId));
+  const empIssued = s.issued.filter(i => i.employeeId === emp.id && i.status === 'active');
+  const issuedMap = {};
+  empIssued.forEach(i => { issuedMap[i.sizItemId] = i; });
+
+  const issueSiz = () => {
+    if (!issueForm.sizItemId || !issueForm.issuedDate) return;
+    const sizItem = s.sizItems.find(i => i.id === issueForm.sizItemId);
+    const expiry = sizItem?.exploitYears ? addYears(issueForm.issuedDate, parseFloat(sizItem.exploitYears)) : '';
+    const item = {
+      id: uid(),
+      employeeId: emp.id,
+      sizItemId: issueForm.sizItemId,
+      issuedDate: issueForm.issuedDate,
+      expiryDate: expiry,
+      status: 'active',
+    };
+    s.setIssued(prev => [...prev, item]);
+    setIssueModal(false); setIssueForm({});
+    s.showToast('СИЗ выдан');
+  };
+
+  const returnSiz = (issuedId) => {
+    s.setIssued(prev => prev.map(i => i.id === issuedId ? {...i, status:'returned', returnedDate: new Date().toISOString().split('T')[0]} : i));
+    s.showToast('СИЗ возвращён');
+  };
+
+  return <div>
+    <div className="breadcrumb">
+      <span onClick={()=>navigate('/employees')}>Персонал</span> / <span style={{color:'var(--tx1)',cursor:'default'}}>{emp.fio}</span>
+    </div>
+    <div className="page-top"><div><h1>{emp.fio}</h1><div className="sub">{posName}</div></div>
+      <button className="btn btn-p" onClick={()=>setIssueModal(true)}><IC.plus style={{width:16,height:16}}/> Выдать СИЗ</button>
+    </div>
+
+    <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:16,marginBottom:20}}>
+      <div className="card"><div className="card-h"><h3>Данные сотрудника</h3></div><div className="card-body">
+        {[
+          ['Организация', s.org.name],
+          ['Предприятие', entName],
+          ['РЭС / Служба', resName],
+          ['Подразделение', deptName],
+          ['Должность', posName],
+          ['Размер одежды', emp.clothingSize || '—'],
+          ['Размер обуви', emp.shoeSize || '—'],
+        ].map(([l,v],i)=><div key={i} style={{display:'flex',justifyContent:'space-between',padding:'6px 0',borderBottom:i<6?'1px solid var(--border)':'none'}}>
+          <span style={{fontSize:12,color:'var(--tx2)',fontWeight:600}}>{l}</span>
+          <span style={{fontSize:13,fontWeight:600}}>{v}</span>
+        </div>)}
+      </div></div>
+      <div className="card"><div className="card-h"><h3>Статистика СИЗ</h3></div><div className="card-body">
+        <div className="stats" style={{marginBottom:0}}>
+          <div className="stat" style={{padding:14}}><div className="stat-ic gr" style={{width:36,height:36}}><IC.check style={{width:18,height:18}}/></div><div><div className="stat-val" style={{fontSize:22}}>{empIssued.length}</div><div className="stat-lbl">Выдано</div></div></div>
+          <div className="stat" style={{padding:14}}><div className="stat-ic bl" style={{width:36,height:36}}><IC.scroll style={{width:18,height:18}}/></div><div><div className="stat-val" style={{fontSize:22}}>{empNorms.length}</div><div className="stat-lbl">Положено</div></div></div>
+          <div className="stat" style={{padding:14}}><div className="stat-ic rd" style={{width:36,height:36}}><IC.clock style={{width:18,height:18}}/></div><div><div className="stat-val" style={{fontSize:22}}>{empIssued.filter(i=>i.expiryDate&&isExpired(i.expiryDate)).length}</div><div className="stat-lbl">Просрочено</div></div></div>
+        </div>
+      </div></div>
+    </div>
+
+    <div className="card"><div className="card-h"><h3>Все категории СИЗ</h3></div><div className="card-body">
+      {CATEGORIES.map(cat => {
+        const catSiz = s.sizItems.filter(i => i.category === cat.key);
+        if (!catSiz.length) return null;
+        const CatIcon = IC[cat.icon];
+
+        return <div key={cat.key} style={{marginBottom:20}}>
+          <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:10}}>
+            <div className={`cat-icon ${cat.cls}`}><CatIcon style={{width:18,height:18}}/></div>
+            <span style={{fontWeight:700,fontSize:14}}>{cat.name}</span>
+          </div>
+          <div className="ppe-grid">
+            {catSiz.map(it => {
+              const isNorm = normSizIds.has(it.id);
+              const iss = issuedMap[it.id];
+              const expired = iss && iss.expiryDate && isExpired(iss.expiryDate);
+              const cls = isNorm ? 'assigned' : 'not-assigned';
+
+              return <div key={it.id} className={`ppe-card ${cls}`}>
+                <div className="ppe-dot"/>
+                <div className="ppe-name">{it.name}</div>
+                <div className="ppe-meta">{it.code||'—'} | {it.gender||'—'} | {it.season||'—'}</div>
+                {isNorm && <div className="ppe-dates">
+                  {iss ? <>
+                    <div style={{color:expired?'var(--red)':'var(--green)'}}>Выдано: {fmtDate(iss.issuedDate)}</div>
+                    <div style={{color:expired?'var(--red)':'var(--tx2)'}}>Срок до: {fmtDate(iss.expiryDate)}</div>
+                    {expired && <span className="badge b-red" style={{marginTop:4}}>ПРОСРОЧЕНО</span>}
+                    <button className="btn btn-o btn-sm" style={{marginTop:6,fontSize:11}} onClick={()=>returnSiz(iss.id)}>Вернуть</button>
+                  </> : <div style={{color:'var(--red)',fontWeight:600}}>Не выдано</div>}
+                </div>}
+                {!isNorm && <div className="ppe-meta" style={{marginTop:6,fontStyle:'italic'}}>Не положено</div>}
+              </div>;
+            })}
+          </div>
+        </div>;
+      })}
+    </div></div>
+
+    <Modal open={issueModal} onClose={()=>setIssueModal(false)} title="Выдать СИЗ"
+      footer={<><button className="btn btn-o" onClick={()=>setIssueModal(false)}>Отмена</button><button className="btn btn-g" onClick={issueSiz}>Выдать</button></>}>
+      <div className="fg"><label>СИЗ (из положенных)</label>
+        <select className="fc" value={issueForm.sizItemId||''} onChange={e=>setIssueForm({...issueForm,sizItemId:e.target.value})}>
+          <option value="">— Выбрать СИЗ —</option>
+          {empNorms.map(n => {
+            const it = s.sizItems.find(i => i.id === n.sizItemId);
+            if (!it) return null;
+            const already = issuedMap[it.id];
+            return <option key={n.id} value={it.id} disabled={!!already}>{it.name} ({catByKey(it.category)?.name}) {already?'(уже выдан)':''}</option>;
+          })}
+        </select>
+      </div>
+      <div className="fg"><label>Дата выдачи</label><input className="fc" type="date" value={issueForm.issuedDate||''} onChange={e=>setIssueForm({...issueForm,issuedDate:e.target.value})}/></div>
+    </Modal>
+  </div>;
+};
+
+// ═══════════════════════════════════════
+// MAIN APP + ROUTING
+// ═══════════════════════════════════════
+const App = () => {
+  const s = useStore();
+  const [path, setPath] = useState(window.location.hash.replace('#','') || '/');
+  useEffect(() => {
+    const h = () => setPath(window.location.hash.replace('#','') || '/');
+    window.addEventListener('hashchange', h);
+    return () => window.removeEventListener('hashchange', h);
+  }, []);
+  const navigate = to => { window.location.hash = to; };
+
+  useEffect(() => {
+    const el = document.getElementById('loader');
+    if (el) { setTimeout(()=>el.classList.add('hide'),600); setTimeout(()=>el.remove(),1100); }
+  }, []);
+
+  const empMatch = path.match(/^\/employee\/(.+)$/);
+  let content;
+  if (path === '/' || path === '') content = <Dashboard/>;
+  else if (path === '/org') content = <OrgStructure/>;
+  else if (path === '/positions') content = <Positions/>;
+  else if (path === '/directories') content = <Directories/>;
+  else if (path === '/ton') content = <TonPage/>;
+  else if (path === '/employees') content = <EmployeesPage navigate={navigate}/>;
+  else if (empMatch) content = <EmployeeCard id={empMatch[1]} navigate={navigate}/>;
+  else content = <Dashboard/>;
+
+  const NL = ({to, icon:Icon, children}) => (
+    <div className={`sb-link ${path===to?'active':''}`} onClick={()=>navigate(to)}>
+      <Icon style={{width:18,height:18}}/>{children}
+    </div>
+  );
+
+  return <div className="app">
+    <aside className="sidebar">
+      <div className="sb-logo">
+        <div className="sb-logo-icon"><IC.shield style={{width:22,height:22,color:'#fff'}}/></div>
+        <div><div className="sb-logo-text">СИЗ</div><div className="sb-logo-sub">Учёт и движение</div></div>
+      </div>
+      <nav className="sb-nav">
+        <div className="sb-section">Основное</div>
+        <NL to="/" icon={IC.home}>Панель управления</NL>
+        <NL to="/employees" icon={IC.users}>Карточки персонала</NL>
+
+        <div className="sb-section">Справочники</div>
+        <NL to="/directories" icon={IC.shield}>Категории СИЗ</NL>
+        <NL to="/positions" icon={IC.briefcase}>Должности</NL>
+        <NL to="/ton" icon={IC.scroll}>ТОН (Нормы выдачи)</NL>
+
+        <div className="sb-section">Структура</div>
+        <NL to="/org" icon={IC.building}>Оргструктура</NL>
+      </nav>
+      <div className="sb-footer">
+        <div style={{fontSize:11,color:'rgba(255,255,255,.25)',textAlign:'center'}}>СИЗ v2.0 — 2026</div>
+      </div>
+    </aside>
+    <main className="main">{content}</main>
+    {s.toast && <div className={`toast ${s.toast.type}`}>{s.toast.type==='success' && <IC.check style={{width:16,height:16}}/>}{s.toast.msg}</div>}
+  </div>;
+};
+
+// ═══════════════════════════════════════
+// RENDER
+// ═══════════════════════════════════════
+ReactDOM.createRoot(document.getElementById('root')).render(<StoreProvider><App/></StoreProvider>);
 </script>
 </body>
 </html>
