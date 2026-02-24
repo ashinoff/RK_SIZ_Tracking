@@ -478,6 +478,20 @@ const Warehouses = () => {
   const canTransfer = isLevel('ia', 'spbipk', 'res');
   const canReceipt = isLevel('ia');
 
+  const CLOTHING_SIZES = ['40-42/158-164','40-42/170-176','40-42/182-188','40-42/194-200','44-46/158-164','44-46/170-176','44-46/182-188','44-46/194-200','48-50/158-164','48-50/170-176','48-50/182-188','48-50/194-200','52-54/158-164','52-54/170-176','52-54/182-188','52-54/194-200','56-58/158-164','56-58/170-176','56-58/182-188','56-58/194-200','60-62/158-164','60-62/170-176','60-62/182-188','60-62/194-200','64-66/158-164','64-66/170-176','64-66/182-188','64-66/194-200','68-70/158-164','68-70/170-176','68-70/182-188','68-70/194-200','72-74/158-164','72-74/170-176','72-74/182-188','72-74/194-200'];
+  const SHOE_SIZES = Array.from({length:15},(_,i)=>String(35+i));
+
+  const getSelectedItemCategory = (itemId) => {
+    const it = items.find(i => i.id === itemId);
+    if (!it) return null;
+    const cn = (it.category_name || '').toLowerCase();
+    if (cn.includes('одежд') || cn.includes('cloth')) return 'clothing';
+    if (cn.includes('обувь') || cn.includes('shoe')) return 'shoes';
+    if (cn.includes('голов') || cn.includes('head')) return 'head';
+    if (cn.includes('перчат') || cn.includes('glove')) return 'gloves';
+    return 'other';
+  };
+
   if (loading) return <Loader />;
 
   return <div>
@@ -555,13 +569,26 @@ const Warehouses = () => {
     <Modal open={receiptModal} onClose={() => setReceiptModal(false)} title="Оприходование"
       footer={<><button className="btn btn-o" onClick={() => setReceiptModal(false)}>Отмена</button><button className="btn btn-g" onClick={doReceipt}>Оприходовать</button></>}>
       <div className="fg"><label>СИЗ</label>
-        <select className="fc" value={tf.siz_item_id || ''} onChange={e => setTf({ ...tf, siz_item_id: e.target.value })}>
+        <select className="fc" value={tf.siz_item_id || ''} onChange={e => {
+          const id = e.target.value;
+          const cat = getSelectedItemCategory(id);
+          const autoSize = (cat === 'head' || cat === 'gloves') ? 'Универсальный' : '';
+          setTf({ ...tf, siz_item_id: id, size_value: autoSize });
+        }}>
           <option value="">— Выберите —</option>
           {items.map(i => <option key={i.id} value={i.id}>{i.name} ({i.category_name || '—'})</option>)}
         </select>
       </div>
       <div className="fr">
-        <div className="fg"><label>Размер (если есть)</label><input className="fc" value={tf.size_value || ''} onChange={e => setTf({ ...tf, size_value: e.target.value })} /></div>
+        <div className="fg"><label>Размер</label>
+          {(() => {
+            const cat = getSelectedItemCategory(tf.siz_item_id);
+            if (cat === 'clothing') return <select className="fc" value={tf.size_value || ''} onChange={e => setTf({...tf, size_value: e.target.value})}><option value="">-- Выберите размер --</option>{CLOTHING_SIZES.map(s => <option key={s} value={s}>{s}</option>)}</select>;
+            if (cat === 'shoes') return <select className="fc" value={tf.size_value || ''} onChange={e => setTf({...tf, size_value: e.target.value})}><option value="">-- Выберите размер --</option>{SHOE_SIZES.map(s => <option key={s} value={s}>{s}</option>)}</select>;
+            if (cat === 'head' || cat === 'gloves') return <input className="fc" value="Универсальный" disabled onChange={() => {}} />;
+            return <input className="fc" value={tf.size_value || ''} onChange={e => setTf({...tf, size_value: e.target.value})} placeholder="Введите вручную" />;
+          })()}
+        </div>
         <div className="fg"><label>Количество</label><input className="fc" type="number" min="1" value={tf.quantity || ''} onChange={e => setTf({ ...tf, quantity: e.target.value })} /></div>
       </div>
       <div className="fg"><label>Документ-основание</label><input className="fc" value={tf.doc || ''} onChange={e => setTf({ ...tf, doc: e.target.value })} placeholder="Накладная №..." /></div>
