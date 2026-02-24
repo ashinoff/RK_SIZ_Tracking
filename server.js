@@ -1089,6 +1089,10 @@ async function initDB() {
     // === Add spbipk_id to users if missing ===
     await pool.query("ALTER TABLE users ADD COLUMN IF NOT EXISTS spbipk_id UUID REFERENCES spbipk(id)");
 
+    // === Fix level constraint to include spbipk ===
+    await pool.query(`ALTER TABLE roles DROP CONSTRAINT IF EXISTS roles_level_check`);
+    await pool.query(`ALTER TABLE roles ADD CONSTRAINT roles_level_check CHECK (level IN ('ia','enterprise','spbipk','res'))`);
+
     // === ROLES ===
     await pool.query(`
       INSERT INTO roles (name, display_name, level, description, general_permissions) VALUES
