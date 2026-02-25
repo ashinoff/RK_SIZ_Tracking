@@ -1112,9 +1112,10 @@ async function initDB() {
     console.log('Roles seeded');
 
     // === ORGANIZATION ===
+    await pool.query(`ALTER TABLE organizations ADD CONSTRAINT IF NOT EXISTS organizations_code_unique UNIQUE (code)`).catch(()=>{});
     await pool.query(`
       INSERT INTO organizations (name, code) VALUES ('Россети-Юг', 'Кубаньэнерго')
-      ON CONFLICT DO NOTHING
+      ON CONFLICT (code) DO NOTHING
     `);
     console.log('Organization "Россети-Юг" ready');
 
