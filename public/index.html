@@ -315,7 +315,8 @@ const OrgStructure = () => {
     if (delPass !== '2233') { setDelErr('Неверный пароль'); return; }
     try {
       const t = delModal.type;
-      if (t === 'enterprise') await apiPut(`/org/enterprises/${delModal.id}`, {is_active: false});
+      if (t === 'organization') await apiPut(`/org/organizations/${delModal.id}`, {is_active: false});
+      else if (t === 'enterprise') await apiPut(`/org/enterprises/${delModal.id}`, {is_active: false});
       else if (t === 'spbipk') await apiPut(`/org/spbipk/${delModal.id}`, {is_active: false});
       else if (t === 'res') await apiPut(`/org/res-units/${delModal.id}`, {is_active: false});
       else if (t === 'dept') await apiPut(`/org/departments/${delModal.id}`, {is_active: false});
@@ -350,7 +351,7 @@ const OrgStructure = () => {
     } catch (e) { showToast(e.message, 'error'); }
   };
 
-  const labels = { enterprise: 'Предприятие', spbipk: 'СПБиПК', res: 'РЭС / Служба', dept: 'Подразделение', warehouse: 'Склад' };
+  const labels = { organization: 'Организация', enterprise: 'Предприятие', spbipk: 'СПБиПК', res: 'РЭС / Служба', dept: 'Подразделение', warehouse: 'Склад' };
 
   if (loading) return <Loader />;
 
@@ -362,7 +363,10 @@ const OrgStructure = () => {
         <div className="tree-icon org" style={{ width: 28, height: 28 }}><IC.building style={{ width: 14, height: 14 }} /></div>
         {o.name} <span className="badge b-blue">{o.code}</span>
       </h3>
-      {canEdit && <button className="btn btn-p btn-sm" onClick={() => { setForm({}); setModal({ type: 'enterprise', orgId: o.id }); }}><IC.plus style={{ width: 14, height: 14 }} /> Предприятие</button>}
+      <div style={{display:'flex',gap:6}}>
+        {canEdit && <button className="btn btn-p btn-sm" onClick={() => { setForm({}); setModal({ type: 'enterprise', orgId: o.id }); }}><IC.plus style={{ width: 14, height: 14 }} /> Предприятие</button>}
+        {canEdit && <button className="btn btn-d btn-sm" onClick={() => { setDelModal({type:'organization',id:o.id,name:o.name}); setDelPass(''); setDelErr(''); }}><IC.trash style={{ width: 14, height: 14 }} /> Удалить</button>}
+      </div>
       </div>
       <div className="card-body">
         {/* IA Warehouses */}
