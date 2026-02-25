@@ -406,9 +406,13 @@ app.delete('/api/siz/items/:id', auth, perm('can_delete'), async (req, res) => {
 app.get('/api/positions', auth, async (req, res) => {
   try {
     res.json((await db(`SELECT p.*,
+      r.name as res_name, d.name as department_name,
       (SELECT COUNT(*) FROM position_siz_norms n WHERE n.position_id=p.id AND n.is_active=true) as norms_count,
       (SELECT COUNT(*) FROM employees e WHERE e.position_id=p.id AND e.is_active=true) as employees_count
-      FROM positions p WHERE p.is_active=true ORDER BY p.name`)).rows);
+      FROM positions p
+      LEFT JOIN res_units r ON p.res_unit_id=r.id
+      LEFT JOIN departments d ON p.department_id=d.id
+      WHERE p.is_active=true ORDER BY p.name`)).rows);
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 app.post('/api/positions', auth, perm('can_create'), levelCheck(['ia', 'spbipk']), async (req, res) => {
@@ -832,6 +836,61 @@ app.get('/api/admin/audit', auth, levelCheck(['ia', 'enterprise']), async (req, 
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
+// ============ BULK IMPORT ============
+
+app.post('/api/import/employees', auth, perm('can_create'), levelCheck(['ia', 'spbipk']), async (req, res) => {
+  try {
+    const { rows } = req.body;
+    if (!rows?.length) return res.status(400).json({ error: 'Нет данных' });
+    let imported = 0;
+    for (const r of rows) {
+      if (!r.last_name) continue;
+      await db(`INSERT INTO employees (last_name, first_name, middle_name, employee_number, enterprise_id, res_unit_id, department_id, position_id, clothing_size, shoe_size)
+        VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)`,
+        [r.last_name, r.first_name||null, r.middle_name||null, r.employee_number||null,
+         r.enterprise_id||null, r.res_unit_id||null, r.department_id||null, r.position_id||null,
+         r.clothing_size||null, r.shoe_size||null]);
+      imported++;
+    }
+    await audit(req.user.id, 'employees', null, 'bulk_import', { count: imported }, req.ip);
+    res.json({ imported });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.post('/api/import/positions', auth, perm('can_create'), levelCheck(['ia', 'spbipk']), async (req, res) => {
+  try {
+    const { rows } = req.body;
+    if (!rows?.length) return res.status(400).json({ error: 'Нет данных' });
+    let imported = 0;
+    for (const r of rows) {
+      if (!r.name) continue;
+      await db(`INSERT INTO positions (name, code, res_unit_id, department_id) VALUES ($1,$2,$3,$4) ON CONFLICT DO NOTHING`,
+        [r.name, r.code||null, r.res_unit_id||null, r.department_id||null]);
+      imported++;
+    }
+    await audit(req.user.id, 'positions', null, 'bulk_import', { count: imported }, req.ip);
+    res.json({ imported });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.post('/api/import/siz-items', auth, perm('can_create'), levelCheck(['ia', 'spbipk']), async (req, res) => {
+  try {
+    const { rows } = req.body;
+    if (!rows?.length) return res.status(400).json({ error: 'Нет данных' });
+    let imported = 0;
+    for (const r of rows) {
+      if (!r.name) continue;
+      await db(`INSERT INTO siz_items (name, code, category_id, gender, season, exploitation_years, unit)
+        VALUES ($1,$2,$3,$4,$5,$6,$7)`,
+        [r.name, r.code||null, r.category_id||null, r.gender||null, r.season||null,
+         r.exploitation_years?parseFloat(r.exploitation_years):null, r.unit||'шт']);
+      imported++;
+    }
+    await audit(req.user.id, 'siz_items', null, 'bulk_import', { count: imported }, req.ip);
+    res.json({ imported });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
 // ============ HEALTH ============
 app.get('/api/health', (req, res) => res.json({ status: 'ok', timestamp: new Date().toISOString() }));
 
@@ -1088,6 +1147,16 @@ async function initDB() {
 
     // === Add spbipk_id to users if missing ===
     await pool.query("ALTER TABLE users ADD COLUMN IF NOT EXISTS spbipk_id UUID REFERENCES spbipk(id)");
+
+    // === Add missing columns to employees ===
+    await pool.query("ALTER TABLE employees ADD COLUMN IF NOT EXISTS clothing_size VARCHAR(30)");
+    await pool.query("ALTER TABLE employees ADD COLUMN IF NOT EXISTS shoe_size VARCHAR(10)");
+    await pool.query("ALTER TABLE employees ADD COLUMN IF NOT EXISTS head_size VARCHAR(10)");
+    await pool.query("ALTER TABLE employees ADD COLUMN IF NOT EXISTS glove_size VARCHAR(10)");
+
+    // === Add res_unit_id and department_id to positions ===
+    await pool.query("ALTER TABLE positions ADD COLUMN IF NOT EXISTS res_unit_id UUID REFERENCES res_units(id)");
+    await pool.query("ALTER TABLE positions ADD COLUMN IF NOT EXISTS department_id UUID REFERENCES departments(id)");
 
     // === Fix level constraint to include spbipk ===
     await pool.query(`ALTER TABLE roles DROP CONSTRAINT IF EXISTS roles_level_check`);
