@@ -531,16 +531,19 @@ const Warehouses = () => {
   const [movements, setMovements] = useState([]);
   const [tab, setTab] = useState('stock');
   const [items, setItems] = useState([]);
+  const [categories, setCategories] = useState([]);
   const [transferModal, setTransferModal] = useState(false);
   const [receiptModal, setReceiptModal] = useState(false);
   const [tf, setTf] = useState({});
   const [loading, setLoading] = useState(true);
   const [stockCollapsed, setStockCollapsed] = useState({});
+  const [rcptCat, setRcptCat] = useState('');
+  const [rcptSearch, setRcptSearch] = useState('');
 
   const load = () => {
     setLoading(true);
-    Promise.all([apiGet('/warehouses'), apiGet('/siz/items')]).then(([wh, it]) => {
-      setWarehouses(wh); setItems(it); setLoading(false);
+    Promise.all([apiGet('/warehouses'), apiGet('/siz/items'), apiGet('/siz/categories')]).then(([wh, it, cats]) => {
+      setWarehouses(wh); setItems(it); setCategories(cats); setLoading(false);
       if (wh.length && !selected) { setSelected(wh[0].id); loadStock(wh[0].id); }
     });
   };
@@ -554,7 +557,6 @@ const Warehouses = () => {
 
   const whTypeLabel = { ia: 'ИА', spbipk: 'СПБиПК', res: 'РЭС' };
 
-  // Determine valid transfer targets based on role
   const getTransferTargets = () => {
     const src = warehouses.find(w => w.id === selected);
     if (!src) return [];
@@ -577,7 +579,7 @@ const Warehouses = () => {
     if (!tf.siz_item_id || !tf.quantity) return;
     try {
       await apiPost(`/warehouses/${selected}/receipt`, { siz_item_id: tf.siz_item_id, size_value: tf.size_value || '', quantity: parseInt(tf.quantity), document_reference: tf.doc || '' });
-      showToast('Приход оформлен'); setReceiptModal(false); setTf({}); loadStock(selected);
+      showToast('Приход оформлен'); setReceiptModal(false); setTf({}); setRcptCat(''); setRcptSearch(''); loadStock(selected);
     } catch (e) { showToast(e.message, 'error'); }
   };
 
@@ -590,13 +592,22 @@ const Warehouses = () => {
   const getSelectedItemCategory = (itemId) => {
     const it = items.find(i => i.id === itemId);
     if (!it) return null;
-    const cn = (it.category_name || '').toLowerCase();
-    if (cn.includes('одежд') || cn.includes('cloth')) return 'clothing';
-    if (cn.includes('обувь') || cn.includes('shoe')) return 'shoes';
-    if (cn.includes('голов') || cn.includes('head')) return 'head';
-    if (cn.includes('перчат') || cn.includes('glove')) return 'gloves';
+    const cn = (it.category_code || it.category_name || '').toLowerCase();
+    if (cn.includes('одежд') || cn === 'clothes') return 'clothing';
+    if (cn.includes('обувь') || cn === 'shoes') return 'shoes';
+    if (cn.includes('каск') || cn === 'helmets') return 'head';
+    if (cn.includes('перчат') || cn === 'gloves') return 'gloves';
     return 'other';
   };
+
+  // Фильтрованные СИЗ для модалки прихода
+  const filteredReceiptItems = items.filter(i => {
+    if (rcptCat && i.category_id !== rcptCat) return false;
+    if (rcptSearch && !i.name.toLowerCase().includes(rcptSearch.toLowerCase()) && !(i.code||'').toLowerCase().includes(rcptSearch.toLowerCase())) return false;
+    return true;
+  });
+
+  const expLabel = (m) => m ? (m >= 12 ? (m % 12 === 0 ? `${m/12} г.` : `${m} мес.`) : `${m} мес.`) : '';
 
   if (loading) return <Loader />;
 
@@ -614,7 +625,7 @@ const Warehouses = () => {
 
     {selected && <>
       <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
-        {canReceipt && <button className="btn btn-g btn-sm" onClick={() => { setTf({}); setReceiptModal(true); }}><IC.plus style={{ width: 14, height: 14 }} /> Приход</button>}
+        {canReceipt && <button className="btn btn-g btn-sm" onClick={() => { setTf({}); setRcptCat(''); setRcptSearch(''); setReceiptModal(true); }}><IC.plus style={{ width: 14, height: 14 }} /> Приход</button>}
         {canTransfer && <button className="btn btn-p btn-sm" onClick={() => { setTf({}); setTransferModal(true); }}><IC.arrowRight style={{ width: 14, height: 14 }} /> Переместить</button>}
         <button className="btn btn-o btn-sm" onClick={() => exportExcel(stock.map(s => ({'Категория':s.category_name,'Наименование':s.item_name,'Код':s.item_code,'Размер':s.size_value,'Кол-во':s.quantity,'Ед.':s.unit})), 'Остатки.xlsx', 'Остатки')}>Экспорт остатков</button>
         <button className="btn btn-o btn-sm" onClick={() => exportExcel(movements.map(m => ({'Тип':m.movement_type,'СИЗ':m.item_name,'Кол-во':m.quantity,'Откуда':m.from_warehouse_name,'Куда':m.to_warehouse_name,'Дата':m.movement_date,'Кто':m.moved_by_name})), 'Перемещения.xlsx', 'Перемещения')}>Экспорт движений</button>
@@ -707,19 +718,40 @@ const Warehouses = () => {
     </Modal>
 
     {/* Receipt modal */}
-    <Modal open={receiptModal} onClose={() => setReceiptModal(false)} title="Оприходование"
+    <Modal open={receiptModal} onClose={() => setReceiptModal(false)} title="Оприходование" wide
       footer={<><button className="btn btn-o" onClick={() => setReceiptModal(false)}>Отмена</button><button className="btn btn-g" onClick={doReceipt}>Оприходовать</button></>}>
-      <div className="fg"><label>СИЗ</label>
+
+      <div style={{display:'flex',gap:8,marginBottom:12,flexWrap:'wrap'}}>
+        {categories.map(c => <button key={c.id}
+          className={`btn btn-sm ${rcptCat === c.id ? 'btn-p' : 'btn-o'}`}
+          onClick={() => { setRcptCat(rcptCat === c.id ? '' : c.id); setTf({...tf, siz_item_id: ''}); }}
+          style={{fontSize:11,padding:'4px 12px'}}>
+          {c.name}
+        </button>)}
+        {rcptCat && <button className="btn btn-sm btn-o" onClick={() => { setRcptCat(''); setTf({...tf, siz_item_id: ''}); }} style={{fontSize:11,padding:'4px 12px',color:'var(--red)'}}>✕ Сбросить</button>}
+      </div>
+
+      <div className="fg"><label>Поиск СИЗ</label>
+        <input className="fc" placeholder="Введите название или код..." value={rcptSearch} onChange={e => { setRcptSearch(e.target.value); setTf({...tf, siz_item_id: ''}); }} />
+      </div>
+
+      <div className="fg"><label>Наименование СИЗ *</label>
         <select className="fc" value={tf.siz_item_id || ''} onChange={e => {
           const id = e.target.value;
           const cat = getSelectedItemCategory(id);
           const autoSize = (cat === 'head' || cat === 'gloves') ? 'Универсальный' : '';
           setTf({ ...tf, siz_item_id: id, size_value: autoSize });
         }}>
-          <option value="">— Выберите —</option>
-          {items.map(i => <option key={i.id} value={i.id}>{i.name} ({i.category_name || '—'})</option>)}
+          <option value="">{filteredReceiptItems.length ? `— Выберите (${filteredReceiptItems.length}) —` : '— Нет результатов —'}</option>
+          {filteredReceiptItems.map(i => <option key={i.id} value={i.id}>{i.name}{i.code ? ` [${i.code}]` : ''}{expLabel(i.exploitation_months) ? ` — ${expLabel(i.exploitation_months)}` : ''}</option>)}
         </select>
       </div>
+
+      {tf.siz_item_id && <div style={{padding:8,background:'var(--green-l)',borderRadius:6,marginBottom:12,fontSize:12}}>
+        <strong style={{color:'var(--green)'}}>Выбрано:</strong> {items.find(i=>i.id===tf.siz_item_id)?.name}
+        {items.find(i=>i.id===tf.siz_item_id)?.category_name && <span className="badge b-blue" style={{marginLeft:6,fontSize:10}}>{items.find(i=>i.id===tf.siz_item_id)?.category_name}</span>}
+      </div>}
+
       <div className="fr">
         <div className="fg"><label>Размер</label>
           {(() => {
