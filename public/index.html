@@ -749,6 +749,10 @@ const Positions = () => {
   const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(true);
   const canEdit = isLevel('ia', 'spbipk');
+  // Фильтры таблицы
+  const [fEnt, setFEnt] = useState('');
+  const [fRes, setFRes] = useState('');
+  const [fDep, setFDep] = useState('');
 
   const load = () => {
     Promise.all([apiGet('/positions'), apiGet('/org/enterprises'), apiGet('/org/res-units'), apiGet('/org/departments')])
@@ -759,16 +763,27 @@ const Positions = () => {
   const save = async () => {
     if (!form.name?.trim()) return showToast('Введите название должности', 'error');
     if (!form.enterprise_id) return showToast('Выберите предприятие', 'error');
+    if (!form.res_unit_id) return showToast('Выберите РЭС / Службу', 'error');
     try {
-      const body = { name: form.name, code: form.code, enterprise_id: form.enterprise_id || null, res_unit_id: form.res_unit_id || null, department_id: form.department_id || null };
+      const body = { name: form.name, code: form.code, enterprise_id: form.enterprise_id, res_unit_id: form.res_unit_id, department_id: form.department_id || null };
       if (form.id) await apiPut(`/positions/${form.id}`, body);
       else await apiPost('/positions', body);
       setModal(false); setForm({}); showToast('Сохранено'); load();
     } catch (e) { showToast(e.message, 'error'); }
   };
 
-  const filtered = positions.filter(p => !search || p.name.toLowerCase().includes(search.toLowerCase()));
-  // Каскадная фильтрация для формы
+  // Каскадная фильтрация таблицы
+  const fResUnits = fEnt ? resUnits.filter(r => r.enterprise_id === fEnt) : resUnits;
+  const fDeps = fRes ? departments.filter(d => d.res_unit_id === fRes) : departments;
+  const filtered = positions.filter(p => {
+    if (search && !p.name.toLowerCase().includes(search.toLowerCase())) return false;
+    if (fEnt && p.enterprise_id !== fEnt) return false;
+    if (fRes && p.res_unit_id !== fRes) return false;
+    if (fDep && p.department_id !== fDep) return false;
+    return true;
+  });
+
+  // Каскадная фильтрация формы
   const formResUnits = form.enterprise_id ? resUnits.filter(r => r.enterprise_id === form.enterprise_id) : [];
   const formDeps = form.res_unit_id ? departments.filter(d => d.res_unit_id === form.res_unit_id) : [];
 
@@ -791,13 +806,30 @@ const Positions = () => {
         <button className="btn btn-o btn-sm" onClick={() => exportExcel(positions.map(p => ({'Должность':p.name,'Код':p.code,'Предприятие':p.enterprise_name,'РЭС/Служба':p.res_name,'Подразделение':p.department_name,'Нормы':p.norms_count,'Сотрудников':p.employees_count})), 'Должности.xlsx', 'Должности')}>Экспорт Excel</button>
       </div>
     </div>
-    <div className="card"><div className="card-h"><SearchInput value={search} onChange={setSearch} placeholder="Поиск..." /></div>
+    <div className="card">
+      <div className="filter-bar" style={{borderBottom:'1px solid var(--border)'}}>
+        <SearchInput value={search} onChange={setSearch} placeholder="Поиск по названию..." />
+        <select className="fc" style={{width:'auto',padding:'6px 28px 6px 10px',fontSize:12}} value={fEnt} onChange={e => { setFEnt(e.target.value); setFRes(''); setFDep(''); }}>
+          <option value="">Все предприятия</option>
+          {enterprises.map(ent => <option key={ent.id} value={ent.id}>{ent.name}</option>)}
+        </select>
+        {fEnt && <select className="fc" style={{width:'auto',padding:'6px 28px 6px 10px',fontSize:12}} value={fRes} onChange={e => { setFRes(e.target.value); setFDep(''); }}>
+          <option value="">Все РЭС / Службы</option>
+          {fResUnits.filter(r => r.enterprise_id === fEnt).map(r => <option key={r.id} value={r.id}>{r.name}</option>)}
+        </select>}
+        {fRes && fDeps.length > 0 && <select className="fc" style={{width:'auto',padding:'6px 28px 6px 10px',fontSize:12}} value={fDep} onChange={e => setFDep(e.target.value)}>
+          <option value="">Все подразделения</option>
+          {fDeps.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
+        </select>}
+        {(fEnt || fRes || fDep) && <button className="btn btn-o btn-sm" onClick={() => { setFEnt(''); setFRes(''); setFDep(''); }}>Сбросить</button>}
+        <span style={{fontSize:11,color:'var(--tx3)',marginLeft:'auto'}}>Найдено: {filtered.length}</span>
+      </div>
       <div className="card-body np"><div className="tbl-wrap"><table><thead><tr><th>Название</th><th>Код</th><th>Предприятие</th><th>РЭС/Служба</th><th>Подразделение</th><th>Нормы</th><th>Сотр.</th>{canEdit && <th style={{ width: 80 }}>Действия</th>}</tr></thead>
         <tbody>{filtered.length ? filtered.map(p => <tr key={p.id}>
           <td style={{ fontWeight: 600 }}>{p.name}</td>
           <td><span className="badge b-gray">{p.code || '—'}</span></td>
-          <td style={{fontSize:12}}>{p.enterprise_name || '—'}</td>
-          <td style={{fontSize:12}}>{p.res_name || '—'}</td>
+          <td style={{fontSize:12}}>{p.enterprise_name || <span style={{color:'var(--red)'}}>не привязано</span>}</td>
+          <td style={{fontSize:12}}>{p.res_name || <span style={{color:'var(--red)'}}>не привязано</span>}</td>
           <td style={{fontSize:12}}>{p.department_name || '—'}</td>
           <td>{p.norms_count || 0}</td>
           <td>{p.employees_count || 0}</td>
@@ -811,30 +843,45 @@ const Positions = () => {
         <div className="fg" style={{flex:2}}><label>Название *</label><input className="fc" value={form.name || ''} onChange={e => setForm({ ...form, name: e.target.value })} /></div>
         <div className="fg"><label>Код</label><input className="fc" value={form.code || ''} onChange={e => setForm({ ...form, code: e.target.value })} /></div>
       </div>
-      <div className="fg"><label>Предприятие *</label>
-        <select className="fc" value={form.enterprise_id||''} onChange={e => setForm({...form, enterprise_id: e.target.value, res_unit_id: '', department_id: ''})}>
-          <option value="">— Выберите предприятие —</option>
-          {enterprises.map(ent => <option key={ent.id} value={ent.id}>{ent.name}</option>)}
-        </select>
+
+      <div style={{marginTop:4,marginBottom:12,padding:12,background:'var(--blue-l)',borderRadius:8}}>
+        <div style={{fontSize:11,fontWeight:700,color:'var(--blue)',marginBottom:10,textTransform:'uppercase',letterSpacing:'.5px'}}>Привязка к оргструктуре</div>
+
+        <div className="fg" style={{marginBottom:10}}>
+          <label>1. Предприятие *</label>
+          <select className="fc" value={form.enterprise_id||''} onChange={e => setForm({...form, enterprise_id: e.target.value, res_unit_id: '', department_id: ''})}>
+            <option value="">— Выберите предприятие —</option>
+            {enterprises.map(ent => <option key={ent.id} value={ent.id}>{ent.name}</option>)}
+          </select>
+        </div>
+
+        {form.enterprise_id && <div className="fg" style={{marginBottom:10}}>
+          <label>2. РЭС / Служба *</label>
+          <select className="fc" value={form.res_unit_id||''} onChange={e => setForm({...form, res_unit_id: e.target.value, department_id: ''})}>
+            <option value="">— Выберите РЭС / Службу —</option>
+            {formResUnits.map(r => <option key={r.id} value={r.id}>{r.name}</option>)}
+          </select>
+          {formResUnits.length === 0 && <div style={{fontSize:11,color:'var(--amber)',marginTop:4}}>⚠ В этом предприятии нет РЭС/Служб. Сначала создайте их в Оргструктуре.</div>}
+        </div>}
+
+        {form.res_unit_id && <div className="fg" style={{marginBottom:4}}>
+          <label>3. Подразделение (необязательно)</label>
+          <select className="fc" value={form.department_id||''} onChange={e => setForm({...form, department_id: e.target.value})}>
+            <option value="">— Без подразделения —</option>
+            {formDeps.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
+          </select>
+          {formDeps.length === 0 && <div style={{fontSize:11,color:'var(--tx3)',marginTop:4}}>В этом РЭС/Службе нет подразделений</div>}
+        </div>}
+
+        {form.enterprise_id && <div style={{marginTop:10,padding:8,background:'#fff',borderRadius:6,fontSize:12,display:'flex',alignItems:'center',gap:6}}>
+          <IC.mapPin style={{width:14,height:14,color:'var(--blue)',flexShrink:0}} />
+          <span style={{fontWeight:600,color:'var(--tx1)'}}>
+            {enterprises.find(e=>e.id===form.enterprise_id)?.name || ''}
+            {form.res_unit_id && <span style={{color:'var(--blue)'}}>{` → ${formResUnits.find(r=>r.id===form.res_unit_id)?.name || ''}`}</span>}
+            {form.department_id && <span style={{color:'var(--green)'}}>{` → ${formDeps.find(d=>d.id===form.department_id)?.name || ''}`}</span>}
+          </span>
+        </div>}
       </div>
-      {form.enterprise_id && <div className="fg"><label>РЭС / Служба</label>
-        <select className="fc" value={form.res_unit_id||''} onChange={e => setForm({...form, res_unit_id: e.target.value, department_id: ''})}>
-          <option value="">— Не выбрано —</option>
-          {formResUnits.map(r => <option key={r.id} value={r.id}>{r.name}</option>)}
-        </select>
-        {form.enterprise_id && formResUnits.length === 0 && <div style={{fontSize:11,color:'var(--tx3)',marginTop:4}}>В этом предприятии нет РЭС/Служб</div>}
-      </div>}
-      {form.res_unit_id && formDeps.length > 0 && <div className="fg"><label>Подразделение</label>
-        <select className="fc" value={form.department_id||''} onChange={e => setForm({...form, department_id: e.target.value})}>
-          <option value="">— Не выбрано —</option>
-          {formDeps.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
-        </select>
-      </div>}
-      {form.enterprise_id && <div style={{marginTop:12,padding:10,background:'var(--blue-l)',borderRadius:8,fontSize:11,color:'var(--blue)'}}>
-        <strong>Привязка:</strong> {enterprises.find(e=>e.id===form.enterprise_id)?.name || ''}
-        {form.res_unit_id && ` → ${formResUnits.find(r=>r.id===form.res_unit_id)?.name || ''}`}
-        {form.department_id && ` → ${formDeps.find(d=>d.id===form.department_id)?.name || ''}`}
-      </div>}
     </Modal>
   </div>;
 };
@@ -860,7 +907,9 @@ const Directories = () => {
   const save = async () => {
     if (!form.name?.trim()) return;
     try {
-      const body = { name: form.name, code: form.code, unit: form.unit, gender: form.gender, season: form.season, exploitation_years: form.exploitation_years ? parseFloat(form.exploitation_years) : null, category_id: selCat };
+      const expMonths = form.exploitation_months ? parseInt(form.exploitation_months) : null;
+      const expYears = expMonths ? +(expMonths / 12).toFixed(2) : null;
+      const body = { name: form.name, code: form.code, unit: form.unit, gender: form.gender, season: form.season, exploitation_months: expMonths, exploitation_years: expYears, category_id: selCat };
       if (form.id) await apiPut(`/siz/items/${form.id}`, body);
       else await apiPost('/siz/items', body);
       setModal(false); setForm({}); showToast('Сохранено');
@@ -900,17 +949,20 @@ const Directories = () => {
     </div>
     <div className="card"><div className="card-h"><SearchInput value={search} onChange={setSearch} /></div>
       <div className="card-body np"><div className="tbl-wrap"><table><thead><tr>
-        <th>Код</th><th>Наименование</th><th>Пол</th><th>Сезон</th><th>Срок эксп. (лет)</th><th>Ед.</th>{canEdit && <th>Действия</th>}
+        <th>Код</th><th>Наименование</th><th>Пол</th><th>Сезон</th><th>Срок эксп.</th><th>Ед.</th>{canEdit && <th>Действия</th>}
       </tr></thead><tbody>
-        {filtered.length ? filtered.map(i => <tr key={i.id}>
+        {filtered.length ? filtered.map(i => {
+          const em = i.exploitation_months;
+          const expLabel = em ? (em >= 12 ? (em % 12 === 0 ? `${em/12} г.` : `${em} мес.`) : `${em} мес.`) : '—';
+          return <tr key={i.id}>
           <td><span className="badge b-blue">{i.code || '—'}</span></td>
           <td style={{ fontWeight: 600 }}>{i.name}</td>
           <td>{i.gender || '—'}</td>
           <td><span className={`badge ${i.season === 'Зима' ? 'b-blue' : i.season === 'Лето' ? 'b-amber' : 'b-gray'}`}>{i.season || '—'}</span></td>
-          <td style={{ fontFamily: 'JetBrains Mono' }}>{i.exploitation_years || '—'}</td>
+          <td style={{ fontFamily: 'JetBrains Mono' }}>{expLabel}</td>
           <td>{i.unit || 'шт'}</td>
-          {canEdit && <td><button className="btn-icon" onClick={() => { setForm({ id: i.id, name: i.name, code: i.code, unit: i.unit, gender: i.gender, season: i.season, exploitation_years: i.exploitation_years }); setModal(true); }}><IC.edit style={{ width: 14, height: 14 }} /></button></td>}
-        </tr>) : <tr><td colSpan="7"><Empty icon={IC.shield} text="Нет записей" /></td></tr>}
+          {canEdit && <td><button className="btn-icon" onClick={() => { setForm({ id: i.id, name: i.name, code: i.code, unit: i.unit, gender: i.gender, season: i.season, exploitation_months: i.exploitation_months || (i.exploitation_years ? Math.round(i.exploitation_years * 12) : '') }); setModal(true); }}><IC.edit style={{ width: 14, height: 14 }} /></button></td>}
+        </tr>; }) : <tr><td colSpan="7"><Empty icon={IC.shield} text="Нет записей" /></td></tr>}
       </tbody></table></div></div>
     </div>
     <Modal open={modal} onClose={() => setModal(false)} title={form.id ? 'Редактировать' : 'Добавить СИЗ'}
@@ -922,7 +974,9 @@ const Directories = () => {
       <div className="fr">
         <div className="fg"><label>Пол</label><select className="fc" value={form.gender || ''} onChange={e => setForm({ ...form, gender: e.target.value })}><option value="">—</option>{GENDERS.map(g => <option key={g}>{g}</option>)}</select></div>
         <div className="fg"><label>Сезон</label><select className="fc" value={form.season || ''} onChange={e => setForm({ ...form, season: e.target.value })}><option value="">—</option>{SEASONS.map(g => <option key={g}>{g}</option>)}</select></div>
-        <div className="fg"><label>Срок эксп. (лет)</label><input className="fc" type="number" step="0.5" value={form.exploitation_years || ''} onChange={e => setForm({ ...form, exploitation_years: e.target.value })} /></div>
+        <div className="fg"><label>Срок эксплуатации (мес.)</label><input className="fc" type="number" min="1" step="1" value={form.exploitation_months || ''} onChange={e => setForm({ ...form, exploitation_months: e.target.value })} placeholder="12" />
+          {form.exploitation_months > 0 && <div style={{fontSize:11,color:'var(--tx3)',marginTop:3}}>= {form.exploitation_months >= 12 ? `${(form.exploitation_months / 12).toFixed(1)} г.` : `${form.exploitation_months} мес.`}</div>}
+        </div>
       </div>
       <div className="fg"><label>Единица измерения</label><input className="fc" value={form.unit || ''} onChange={e => setForm({ ...form, unit: e.target.value })} placeholder="шт" /></div>
     </Modal>
@@ -972,9 +1026,9 @@ const TonPage = () => {
     </div>
     <div className="card"><div className="card-body">
       <div className="fg"><label>Должность</label>
-        <select className="fc" value={selPos} onChange={e => setSelPos(e.target.value)} style={{ maxWidth: 400 }}>
-          <option value="">— Выберите —</option>
-          {positions.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+        <select className="fc" value={selPos} onChange={e => setSelPos(e.target.value)} style={{ maxWidth: 500 }}>
+          <option value="">— Выберите должность —</option>
+          {positions.map(p => <option key={p.id} value={p.id}>{p.name}{p.res_name ? ` (${p.res_name})` : ''}{p.department_name ? ` → ${p.department_name}` : ''}</option>)}
         </select>
       </div>
 
@@ -1039,6 +1093,13 @@ const EmployeesPage = ({ navigate }) => {
   const filtered = employees.filter(e => !search || `${e.last_name} ${e.first_name} ${e.middle_name}`.toLowerCase().includes(search.toLowerCase()));
   const filteredRes = form.enterprise_id ? resUnits.filter(r => r.enterprise_id === form.enterprise_id) : resUnits;
   const filteredDeps = form.res_unit_id ? departments.filter(d => d.res_unit_id === form.res_unit_id) : departments;
+  // Фильтрация должностей по выбранной оргструктуре
+  const filteredPositions = positions.filter(p => {
+    if (form.enterprise_id && p.enterprise_id && p.enterprise_id !== form.enterprise_id) return false;
+    if (form.res_unit_id && p.res_unit_id && p.res_unit_id !== form.res_unit_id) return false;
+    if (form.department_id && p.department_id && p.department_id !== form.department_id) return false;
+    return true;
+  });
 
   if (loading) return <Loader />;
 
@@ -1092,12 +1153,12 @@ const EmployeesPage = ({ navigate }) => {
         <div className="fg"><label>Отчество</label><input className="fc" value={form.middle_name || ''} onChange={e => setForm({ ...form, middle_name: e.target.value })} /></div>
       </div>
       <div className="fr">
-        <div className="fg"><label>Предприятие</label><select className="fc" value={form.enterprise_id || ''} onChange={e => setForm({ ...form, enterprise_id: e.target.value, res_unit_id: '', department_id: '' })}><option value="">—</option>{enterprises.map(x => <option key={x.id} value={x.id}>{x.name}</option>)}</select></div>
-        <div className="fg"><label>РЭС/Служба</label><select className="fc" value={form.res_unit_id || ''} onChange={e => setForm({ ...form, res_unit_id: e.target.value, department_id: '' })}><option value="">—</option>{filteredRes.map(x => <option key={x.id} value={x.id}>{x.name}</option>)}</select></div>
-        <div className="fg"><label>Подразделение</label><select className="fc" value={form.department_id || ''} onChange={e => setForm({ ...form, department_id: e.target.value })}><option value="">—</option>{filteredDeps.map(x => <option key={x.id} value={x.id}>{x.name}</option>)}</select></div>
+        <div className="fg"><label>Предприятие</label><select className="fc" value={form.enterprise_id || ''} onChange={e => setForm({ ...form, enterprise_id: e.target.value, res_unit_id: '', department_id: '', position_id: '' })}><option value="">—</option>{enterprises.map(x => <option key={x.id} value={x.id}>{x.name}</option>)}</select></div>
+        <div className="fg"><label>РЭС/Служба</label><select className="fc" value={form.res_unit_id || ''} onChange={e => setForm({ ...form, res_unit_id: e.target.value, department_id: '', position_id: '' })}><option value="">—</option>{filteredRes.map(x => <option key={x.id} value={x.id}>{x.name}</option>)}</select></div>
+        <div className="fg"><label>Подразделение</label><select className="fc" value={form.department_id || ''} onChange={e => setForm({ ...form, department_id: e.target.value, position_id: '' })}><option value="">—</option>{filteredDeps.map(x => <option key={x.id} value={x.id}>{x.name}</option>)}</select></div>
       </div>
       <div className="fr">
-        <div className="fg"><label>Должность</label><select className="fc" value={form.position_id || ''} onChange={e => setForm({ ...form, position_id: e.target.value })}><option value="">—</option>{positions.map(x => <option key={x.id} value={x.id}>{x.name}</option>)}</select></div>
+        <div className="fg"><label>Должность</label><select className="fc" value={form.position_id || ''} onChange={e => setForm({ ...form, position_id: e.target.value })}><option value="">— Сначала выберите предприятие и РЭС —</option>{filteredPositions.map(x => <option key={x.id} value={x.id}>{x.name}{x.res_name ? ` (${x.res_name})` : ''}{x.department_name ? ` → ${x.department_name}` : ''}</option>)}</select></div>
         <div className="fg"><label>Размер одежды</label><select className="fc" value={form.clothing_size || ''} onChange={e => setForm({ ...form, clothing_size: e.target.value })}><option value="">-- Выберите --</option>{CLOTHING_SIZES_G.map(s => <option key={s} value={s}>{s}</option>)}</select></div>
         <div className="fg"><label>Размер обуви</label><select className="fc" value={form.shoe_size || ''} onChange={e => setForm({ ...form, shoe_size: e.target.value })}><option value="">-- Выберите --</option>{SHOE_SIZES_G.map(s => <option key={s} value={s}>{s}</option>)}</select></div>
       </div>
@@ -1287,10 +1348,11 @@ const SizCardsPage = ({ navigate }) => {
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
   const [locationFilter, setLocationFilter] = useState('');
-  const [modal, setModal] = useState(null); // 'create' | 'batch'
+  const [modal, setModal] = useState(null); // 'create' | 'batch' | 'batch_issue'
   const [form, setForm] = useState({});
   const [items, setItems] = useState([]);
   const [warehouses, setWarehouses] = useState([]);
+  const [employees, setEmployees] = useState([]);
   const canEdit = isLevel('ia', 'spbipk', 'res');
 
   const load = async () => {
@@ -1311,7 +1373,7 @@ const SizCardsPage = ({ navigate }) => {
 
   useEffect(() => { load(); }, [statusFilter, locationFilter]);
   useEffect(() => {
-    Promise.all([apiGet('/siz/items'), apiGet('/warehouses')]).then(([i, w]) => { setItems(i); setWarehouses(w); });
+    Promise.all([apiGet('/siz/items'), apiGet('/warehouses'), apiGet('/employees')]).then(([i, w, e]) => { setItems(i); setWarehouses(w); setEmployees(e); });
   }, []);
 
   const handleSearch = () => load();
@@ -1334,19 +1396,27 @@ const SizCardsPage = ({ navigate }) => {
   };
 
   const createCard = async () => {
-    if (!form.siz_item_id || !form.warehouse_id) return showToast('Выберите СИЗ и склад', 'error');
     try {
-      if (modal === 'batch') {
+      if (modal === 'batch_issue') {
+        if (!form.siz_item_id || !form.warehouse_id || !form.employee_id || !form.quantity) return showToast('Заполните все поля', 'error');
+        const r = await apiPost('/siz-cards/batch-issue', form);
+        showToast(`${r.message}`);
+      } else if (modal === 'batch') {
+        if (!form.siz_item_id || !form.warehouse_id) return showToast('Выберите СИЗ и склад', 'error');
         const qty = parseInt(form.quantity) || 1;
         await apiPost('/siz-cards/batch', { ...form, quantity: qty });
         showToast(`Создано карточек: ${qty}`);
       } else {
+        if (!form.siz_item_id || !form.warehouse_id) return showToast('Выберите СИЗ и склад', 'error');
         await apiPost('/siz-cards', form);
         showToast('Карточка создана');
       }
       setModal(null); setForm({}); load();
     } catch(e) { showToast(e.message, 'error'); }
   };
+
+  const selectedItem = items.find(i => i.id === form.siz_item_id);
+  const expLabel = (m) => m ? (m >= 12 ? (m % 12 === 0 ? `${m/12} г.` : `${m} мес.`) : `${m} мес.`) : '—';
 
   const fioShort = (c) => c.last_name ? `${c.last_name} ${(c.first_name||'')[0]||''}.${(c.middle_name||'')[0]||''}.` : '—';
 
@@ -1356,7 +1426,8 @@ const SizCardsPage = ({ navigate }) => {
     <div className="page-top"><div><h1>Карточки СИЗ</h1><div className="sub">Индивидуальный учёт средств защиты</div></div>
       <div style={{display:'flex',gap:8}}>
         {canEdit && <button className="btn btn-p" onClick={() => { setForm({}); setModal('create'); }}><IC.plus style={{width:16,height:16}} /> Создать</button>}
-        {canEdit && <button className="btn btn-o btn-sm" onClick={() => { setForm({quantity:1}); setModal('batch'); }}><IC.plus style={{width:14,height:14}} /> Пакетное создание</button>}
+        {canEdit && <button className="btn btn-g btn-sm" onClick={() => { setForm({quantity:1}); setModal('batch_issue'); }}>Пакетная выдача</button>}
+        {canEdit && <button className="btn btn-o btn-sm" onClick={() => { setForm({quantity:1}); setModal('batch'); }}>Пакетное создание</button>}
       </div>
     </div>
 
@@ -1409,12 +1480,12 @@ const SizCardsPage = ({ navigate }) => {
       </tbody></table></div></div>
     </div>
 
-    {modal && <Modal open onClose={() => setModal(null)} title={modal === 'batch' ? 'Пакетное создание карточек' : 'Создать карточку СИЗ'}
+    {modal && modal !== 'batch_issue' && <Modal open onClose={() => setModal(null)} title={modal === 'batch' ? 'Пакетное создание карточек' : 'Создать карточку СИЗ'}
       footer={<><button className="btn btn-o" onClick={() => setModal(null)}>Отмена</button><button className="btn btn-p" onClick={createCard}>Создать</button></>}>
       <div className="fg"><label>Наименование СИЗ *</label>
         <select className="fc" value={form.siz_item_id||''} onChange={e => setForm({...form, siz_item_id: e.target.value})}>
           <option value="">Выберите...</option>
-          {items.map(i => <option key={i.id} value={i.id}>{i.category_name ? `[${i.category_name}] ` : ''}{i.name}</option>)}
+          {items.map(i => <option key={i.id} value={i.id}>{i.category_name ? `[${i.category_name}] ` : ''}{i.name}{i.exploitation_months ? ` (${expLabel(i.exploitation_months)})` : ''}</option>)}
         </select>
       </div>
       <div className="fr">
@@ -1432,6 +1503,53 @@ const SizCardsPage = ({ navigate }) => {
         <div className="fg"><label>Документ</label><input className="fc" value={form.document_reference||''} onChange={e => setForm({...form, document_reference: e.target.value})} placeholder="Накладная, акт..." /></div>
       </div>
       <div className="fg"><label>Примечания</label><textarea className="fc" value={form.notes||''} onChange={e => setForm({...form, notes: e.target.value})} /></div>
+    </Modal>}
+
+    {modal === 'batch_issue' && <Modal open onClose={() => setModal(null)} title="Пакетная выдача СИЗ" wide
+      footer={<><button className="btn btn-o" onClick={() => setModal(null)}>Отмена</button><button className="btn btn-g" onClick={createCard}>Выдать</button></>}>
+      <div style={{padding:12,background:'var(--blue-l)',borderRadius:8,marginBottom:16,fontSize:12,color:'var(--blue)'}}>
+        <strong>Последовательные таймеры:</strong> при выдаче нескольких одинаковых СИЗ каждая единица начинает «тикать» по очереди. Например, 12 перчаток (срок 1 мес.) = первая истекает через 1 мес., вторая через 2 мес., ... последняя через 12 мес.
+      </div>
+      <div className="fg"><label>Сотрудник *</label>
+        <select className="fc" value={form.employee_id||''} onChange={e => setForm({...form, employee_id: e.target.value})}>
+          <option value="">Выберите...</option>
+          {employees.map(e => <option key={e.id} value={e.id}>{e.last_name} {e.first_name} {e.middle_name}{e.position_name ? ` (${e.position_name})` : ''}</option>)}
+        </select>
+      </div>
+      <div className="fg"><label>Наименование СИЗ *</label>
+        <select className="fc" value={form.siz_item_id||''} onChange={e => setForm({...form, siz_item_id: e.target.value})}>
+          <option value="">Выберите...</option>
+          {items.map(i => <option key={i.id} value={i.id}>{i.category_name ? `[${i.category_name}] ` : ''}{i.name}{i.exploitation_months ? ` (${expLabel(i.exploitation_months)})` : ''}</option>)}
+        </select>
+      </div>
+      <div className="fr">
+        <div className="fg"><label>Склад (откуда) *</label>
+          <select className="fc" value={form.warehouse_id||''} onChange={e => setForm({...form, warehouse_id: e.target.value})}>
+            <option value="">Выберите...</option>
+            {warehouses.map(w => <option key={w.id} value={w.id}>{w.name}{w.res_name ? ` (${w.res_name})` : ''}</option>)}
+          </select>
+        </div>
+        <div className="fg"><label>Количество *</label><input className="fc" type="number" min="1" max="100" value={form.quantity||1} onChange={e => setForm({...form, quantity: e.target.value})} /></div>
+      </div>
+      <div className="fr">
+        <div className="fg"><label>Дата выдачи</label><input className="fc" type="date" value={form.movement_date||''} onChange={e => setForm({...form, movement_date: e.target.value})} /></div>
+        <div className="fg"><label>Документ</label><input className="fc" value={form.document_reference||''} onChange={e => setForm({...form, document_reference: e.target.value})} /></div>
+      </div>
+      {selectedItem && form.quantity > 0 && <div style={{marginTop:12,padding:12,background:'var(--green-l)',borderRadius:8,fontSize:12}}>
+        <div style={{fontWeight:700,color:'var(--green)',marginBottom:6}}>Предварительный расчёт сроков:</div>
+        {Array.from({length: Math.min(parseInt(form.quantity)||1, 12)}, (_, idx) => {
+          const em = selectedItem.exploitation_months || 12;
+          const startM = idx * em;
+          const endM = (idx + 1) * em;
+          return <div key={idx} style={{display:'flex',gap:8,padding:'2px 0',borderBottom:'1px solid rgba(0,0,0,.06)'}}>
+            <span style={{fontFamily:'JetBrains Mono',color:'var(--tx2)',width:20}}>#{idx+1}</span>
+            <span>начало: <strong>+{startM} мес.</strong></span>
+            <span style={{color:'var(--tx3)'}}>→</span>
+            <span>конец: <strong>+{endM} мес.</strong></span>
+          </div>;
+        })}
+        {(parseInt(form.quantity)||0) > 12 && <div style={{color:'var(--tx3)',marginTop:4}}>...и ещё {(parseInt(form.quantity)||0) - 12} шт.</div>}
+      </div>}
     </Modal>}
   </div>;
 };
@@ -1514,7 +1632,7 @@ const SizCardDetail = ({ id, navigate }) => {
 
     <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:16,marginBottom:20}}>
       <div className="card"><div className="card-h"><h3>Информация о СИЗ</h3></div><div className="card-body">
-        {[['Номер карточки', card.card_number],['Наименование', card.item_name],['Категория', card.category_name],['Код', card.item_code],['Размер', card.size_value || '—'],['Пол', card.item_gender || '—'],['Сезон', card.season || '—'],['Срок эксплуатации', card.exploitation_years ? `${card.exploitation_years} лет` : '—']].map(([l,v],i) =>
+        {[['Номер карточки', card.card_number],['Наименование', card.item_name],['Категория', card.category_name],['Код', card.item_code],['Размер', card.size_value || '—'],['Пол', card.item_gender || '—'],['Сезон', card.season || '—'],['Срок эксплуатации', card.exploitation_years ? (card.exploitation_years >= 1 ? `${card.exploitation_years} г.` : `${Math.round(card.exploitation_years * 12)} мес.`) : '—']].map(([l,v],i) =>
           <div key={i} style={{display:'flex',justifyContent:'space-between',padding:'6px 0',borderBottom:i<7?'1px solid var(--border)':'none'}}>
             <span style={{fontSize:12,color:'var(--tx2)',fontWeight:600}}>{l}</span>
             <span style={{fontSize:13,fontWeight:600}}>{v || '—'}</span>
