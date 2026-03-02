@@ -741,6 +741,7 @@ const Warehouses = () => {
 const Positions = () => {
   const { isLevel, showToast } = useAuth();
   const [positions, setPositions] = useState([]);
+  const [enterprises, setEnterprises] = useState([]);
   const [resUnits, setResUnits] = useState([]);
   const [departments, setDepartments] = useState([]);
   const [modal, setModal] = useState(false);
@@ -750,15 +751,16 @@ const Positions = () => {
   const canEdit = isLevel('ia', 'spbipk');
 
   const load = () => {
-    Promise.all([apiGet('/positions'), apiGet('/org/res-units'), apiGet('/org/departments')])
-      .then(([p, r, d]) => { setPositions(p); setResUnits(r); setDepartments(d); setLoading(false); });
+    Promise.all([apiGet('/positions'), apiGet('/org/enterprises'), apiGet('/org/res-units'), apiGet('/org/departments')])
+      .then(([p, e, r, d]) => { setPositions(p); setEnterprises(e); setResUnits(r); setDepartments(d); setLoading(false); });
   };
   useEffect(load, []);
 
   const save = async () => {
-    if (!form.name?.trim()) return;
+    if (!form.name?.trim()) return showToast('Введите название должности', 'error');
+    if (!form.enterprise_id) return showToast('Выберите предприятие', 'error');
     try {
-      const body = { name: form.name, code: form.code, res_unit_id: form.res_unit_id || null, department_id: form.department_id || null };
+      const body = { name: form.name, code: form.code, enterprise_id: form.enterprise_id || null, res_unit_id: form.res_unit_id || null, department_id: form.department_id || null };
       if (form.id) await apiPut(`/positions/${form.id}`, body);
       else await apiPost('/positions', body);
       setModal(false); setForm({}); showToast('Сохранено'); load();
@@ -766,49 +768,73 @@ const Positions = () => {
   };
 
   const filtered = positions.filter(p => !search || p.name.toLowerCase().includes(search.toLowerCase()));
-  const filteredDeps = form.res_unit_id ? departments.filter(d => d.res_unit_id === form.res_unit_id) : departments;
+  // Каскадная фильтрация для формы
+  const formResUnits = form.enterprise_id ? resUnits.filter(r => r.enterprise_id === form.enterprise_id) : [];
+  const formDeps = form.res_unit_id ? departments.filter(d => d.res_unit_id === form.res_unit_id) : [];
 
   if (loading) return <Loader />;
 
   return <div>
-    <div className="page-top"><div><h1>Должности</h1><div className="sub">Справочник должностей</div></div>
+    <div className="page-top"><div><h1>Должности</h1><div className="sub">Справочник должностей с привязкой к оргструктуре</div></div>
       <div style={{display:'flex',gap:8}}>
         {canEdit && <button className="btn btn-p" onClick={() => { setForm({}); setModal(true); }}><IC.plus style={{ width: 16, height: 16 }} /> Добавить</button>}
         {canEdit && <ImportBtn label="Импорт Excel" onImport={async (rows) => {
           const mapped = rows.map(r => ({
             name: r['Должность'] || r['Название'] || r['name'] || '',
             code: r['Код'] || r['code'] || '',
+            enterprise_id: enterprises.find(e => e.name === (r['Предприятие'] || r['enterprise']))?.id || null,
             res_unit_id: resUnits.find(u => u.name === (r['РЭС/Служба'] || r['РЭС'] || r['res_unit']))?.id || null,
             department_id: departments.find(d => d.name === (r['Подразделение'] || r['department']))?.id || null,
           }));
           try { const res = await apiPost('/import/positions', { rows: mapped }); showToast(`Импортировано: ${res.imported}`); load(); } catch(e) { showToast(e.message,'error'); }
         }}/>}
-        <button className="btn btn-o btn-sm" onClick={() => exportExcel(positions.map(p => ({'Должность':p.name,'Код':p.code,'РЭС/Служба':p.res_name,'Подразделение':p.department_name,'Нормы':p.norms_count,'Сотрудников':p.employees_count})), 'Должности.xlsx', 'Должности')}>Экспорт Excel</button>
+        <button className="btn btn-o btn-sm" onClick={() => exportExcel(positions.map(p => ({'Должность':p.name,'Код':p.code,'Предприятие':p.enterprise_name,'РЭС/Служба':p.res_name,'Подразделение':p.department_name,'Нормы':p.norms_count,'Сотрудников':p.employees_count})), 'Должности.xlsx', 'Должности')}>Экспорт Excel</button>
       </div>
     </div>
     <div className="card"><div className="card-h"><SearchInput value={search} onChange={setSearch} placeholder="Поиск..." /></div>
-      <div className="card-body np"><div className="tbl-wrap"><table><thead><tr><th>Название</th><th>Код</th><th>РЭС/Служба</th><th>Подразделение</th><th>Нормы</th><th>Сотрудников</th>{canEdit && <th style={{ width: 80 }}>Действия</th>}</tr></thead>
+      <div className="card-body np"><div className="tbl-wrap"><table><thead><tr><th>Название</th><th>Код</th><th>Предприятие</th><th>РЭС/Служба</th><th>Подразделение</th><th>Нормы</th><th>Сотр.</th>{canEdit && <th style={{ width: 80 }}>Действия</th>}</tr></thead>
         <tbody>{filtered.length ? filtered.map(p => <tr key={p.id}>
           <td style={{ fontWeight: 600 }}>{p.name}</td>
           <td><span className="badge b-gray">{p.code || '—'}</span></td>
+          <td style={{fontSize:12}}>{p.enterprise_name || '—'}</td>
           <td style={{fontSize:12}}>{p.res_name || '—'}</td>
           <td style={{fontSize:12}}>{p.department_name || '—'}</td>
           <td>{p.norms_count || 0}</td>
           <td>{p.employees_count || 0}</td>
-          {canEdit && <td><button className="btn-icon" onClick={() => { setForm({ id: p.id, name: p.name, code: p.code, res_unit_id: p.res_unit_id, department_id: p.department_id }); setModal(true); }}><IC.edit style={{ width: 14, height: 14 }} /></button></td>}
-        </tr>) : <tr><td colSpan="7"><Empty icon={IC.briefcase} text="Нет должностей" /></td></tr>}</tbody>
+          {canEdit && <td><button className="btn-icon" onClick={() => { setForm({ id: p.id, name: p.name, code: p.code, enterprise_id: p.enterprise_id, res_unit_id: p.res_unit_id, department_id: p.department_id }); setModal(true); }}><IC.edit style={{ width: 14, height: 14 }} /></button></td>}
+        </tr>) : <tr><td colSpan="8"><Empty icon={IC.briefcase} text="Нет должностей" /></td></tr>}</tbody>
       </table></div></div>
     </div>
     <Modal open={modal} onClose={() => setModal(false)} title={form.id ? 'Редактировать' : 'Новая должность'}
       footer={<><button className="btn btn-o" onClick={() => setModal(false)}>Отмена</button><button className="btn btn-p" onClick={save}>Сохранить</button></>}>
       <div className="fr">
-        <div className="fg" style={{flex:2}}><label>Название</label><input className="fc" value={form.name || ''} onChange={e => setForm({ ...form, name: e.target.value })} /></div>
+        <div className="fg" style={{flex:2}}><label>Название *</label><input className="fc" value={form.name || ''} onChange={e => setForm({ ...form, name: e.target.value })} /></div>
         <div className="fg"><label>Код</label><input className="fc" value={form.code || ''} onChange={e => setForm({ ...form, code: e.target.value })} /></div>
       </div>
-      <div className="fr">
-        <div className="fg"><label>РЭС / Служба</label><select className="fc" value={form.res_unit_id||''} onChange={e => setForm({...form, res_unit_id: e.target.value, department_id:''})}><option value="">— Все —</option>{resUnits.map(r => <option key={r.id} value={r.id}>{r.name}</option>)}</select></div>
-        <div className="fg"><label>Подразделение</label><select className="fc" value={form.department_id||''} onChange={e => setForm({...form, department_id: e.target.value})}><option value="">— Все —</option>{filteredDeps.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}</select></div>
+      <div className="fg"><label>Предприятие *</label>
+        <select className="fc" value={form.enterprise_id||''} onChange={e => setForm({...form, enterprise_id: e.target.value, res_unit_id: '', department_id: ''})}>
+          <option value="">— Выберите предприятие —</option>
+          {enterprises.map(ent => <option key={ent.id} value={ent.id}>{ent.name}</option>)}
+        </select>
       </div>
+      {form.enterprise_id && <div className="fg"><label>РЭС / Служба</label>
+        <select className="fc" value={form.res_unit_id||''} onChange={e => setForm({...form, res_unit_id: e.target.value, department_id: ''})}>
+          <option value="">— Не выбрано —</option>
+          {formResUnits.map(r => <option key={r.id} value={r.id}>{r.name}</option>)}
+        </select>
+        {form.enterprise_id && formResUnits.length === 0 && <div style={{fontSize:11,color:'var(--tx3)',marginTop:4}}>В этом предприятии нет РЭС/Служб</div>}
+      </div>}
+      {form.res_unit_id && formDeps.length > 0 && <div className="fg"><label>Подразделение</label>
+        <select className="fc" value={form.department_id||''} onChange={e => setForm({...form, department_id: e.target.value})}>
+          <option value="">— Не выбрано —</option>
+          {formDeps.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
+        </select>
+      </div>}
+      {form.enterprise_id && <div style={{marginTop:12,padding:10,background:'var(--blue-l)',borderRadius:8,fontSize:11,color:'var(--blue)'}}>
+        <strong>Привязка:</strong> {enterprises.find(e=>e.id===form.enterprise_id)?.name || ''}
+        {form.res_unit_id && ` → ${formResUnits.find(r=>r.id===form.res_unit_id)?.name || ''}`}
+        {form.department_id && ` → ${formDeps.find(d=>d.id===form.department_id)?.name || ''}`}
+      </div>}
     </Modal>
   </div>;
 };
