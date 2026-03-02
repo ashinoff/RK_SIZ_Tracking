@@ -122,6 +122,20 @@ textarea.fc{resize:vertical;min-height:80px}
 ::-webkit-scrollbar{width:6px;height:6px}::-webkit-scrollbar-track{background:transparent}
 ::-webkit-scrollbar-thumb{background:#D1D5DB;border-radius:3px}::-webkit-scrollbar-thumb:hover{background:#9CA3AF}
 @media(max-width:768px){.sidebar{width:0;overflow:hidden}.main{margin-left:0;padding:16px}.stats{grid-template-columns:1fr 1fr}.fr{flex-direction:column}}
+.status-badge{display:inline-flex;align-items:center;gap:5px;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700;white-space:nowrap}
+.status-badge.st-issued{background:#DBEAFE;color:#1D4ED8}
+.status-badge.st-in_stock{background:#D1FAE5;color:#047857}
+.status-badge.st-expired{background:#FEE2E2;color:#DC2626}
+.status-badge.st-written_off{background:#F3F4F6;color:#6B7280}
+.status-badge.st-returned{background:#FEF3C7;color:#92400E}
+tr.row-expired{background:#FEF2F2}
+tr.row-expired td{color:#991B1B}
+.days-badge{font-size:11px;font-weight:600;padding:2px 8px;border-radius:12px;display:inline-block}
+.days-badge.ok{background:#D1FAE5;color:#047857}
+.days-badge.warn{background:#FEF3C7;color:#92400E}
+.days-badge.danger{background:#FEE2E2;color:#DC2626}
+.filter-bar{display:flex;gap:10px;flex-wrap:wrap;align-items:center;padding:12px 20px}
+.filter-bar select{padding:6px 28px 6px 10px;font-size:12px;border-radius:6px;border:1.5px solid var(--border);background:#fff}
 </style>
 </head>
 <body>
@@ -159,6 +173,9 @@ const IC={
   logout:p=><svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>,
   clock:p=><svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>,
   chevDown:p=><svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 12 15 18 9"/></svg>,
+  tag:p=><svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2H2v10l9.29 9.29c.94.94 2.48.94 3.42 0l6.58-6.58c.94-.94.94-2.48 0-3.42L12 2Z"/><path d="M7 7h.01"/></svg>,
+  alertTriangle:p=><svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>,
+  mapPin:p=><svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>,
 };
 
 // ═══════ API LAYER ═══════
@@ -300,6 +317,7 @@ const LoginPage = () => {
 const Dashboard = () => {
   const { user, isLevel } = useAuth();
   const [stats, setStats] = useState({ employees: 0, positions: 0, warehouses: 0, items: 0 });
+  const [cardStats, setCardStats] = useState({ total: 0, issued: 0, in_stock: 0, expired: 0 });
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -308,8 +326,10 @@ const Dashboard = () => {
       apiGet('/positions').catch(() => []),
       apiGet('/warehouses').catch(() => []),
       apiGet('/siz/items').catch(() => []),
-    ]).then(([emp, pos, wh, items]) => {
+      apiGet('/siz-cards-stats').catch(() => ({ total: 0, issued: 0, in_stock: 0, expired: 0 })),
+    ]).then(([emp, pos, wh, items, cs]) => {
       setStats({ employees: emp.length, positions: pos.length, warehouses: wh.length, items: items.length });
+      setCardStats(cs);
       setLoading(false);
     });
   }, []);
@@ -322,9 +342,9 @@ const Dashboard = () => {
     </div>
     <div className="stats">
       <div className="stat"><div className="stat-ic bl"><IC.users style={{width:22,height:22}}/></div><div><div className="stat-val">{stats.employees}</div><div className="stat-lbl">Сотрудников</div></div></div>
-      <div className="stat"><div className="stat-ic gr"><IC.shield style={{width:22,height:22}}/></div><div><div className="stat-val">{stats.items}</div><div className="stat-lbl">Наименований СИЗ</div></div></div>
+      <div className="stat"><div className="stat-ic gr"><IC.tag style={{width:22,height:22}}/></div><div><div className="stat-val">{cardStats.total}</div><div className="stat-lbl">Карточек СИЗ</div></div></div>
       <div className="stat"><div className="stat-ic am"><IC.briefcase style={{width:22,height:22}}/></div><div><div className="stat-val">{stats.positions}</div><div className="stat-lbl">Должностей</div></div></div>
-      <div className="stat"><div className="stat-ic rd"><IC.warehouse style={{width:22,height:22}}/></div><div><div className="stat-val">{stats.warehouses}</div><div className="stat-lbl">Складов</div></div></div>
+      <div className="stat"><div className="stat-ic rd"><IC.alertTriangle style={{width:22,height:22}}/></div><div><div className="stat-val">{cardStats.expired}</div><div className="stat-lbl">Просрочено СИЗ</div></div></div>
     </div>
     <div className="card"><div className="card-h"><h3>Зона видимости: {levelLabels[user?.role_level]}</h3></div><div className="card-body">
       <p style={{color:'var(--tx2)',fontSize:13}}>
@@ -1065,11 +1085,16 @@ const EmployeeCard = ({ id, navigate }) => {
   const { isLevel, showToast } = useAuth();
   const [emp, setEmp] = useState(null);
   const [issued, setIssued] = useState([]);
+  const [cards, setCards] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    Promise.all([apiGet(`/employees/${id}`), apiGet(`/employee-siz/${id}`)]).then(([e, iss]) => {
-      setEmp(e); setIssued(iss); setLoading(false);
+    Promise.all([
+      apiGet(`/employees/${id}`),
+      apiGet(`/employee-siz/${id}`),
+      apiGet(`/siz-cards/by-employee/${id}`).catch(() => [])
+    ]).then(([e, iss, crds]) => {
+      setEmp(e); setIssued(iss); setCards(crds); setLoading(false);
     }).catch(() => setLoading(false));
   }, [id]);
 
@@ -1077,6 +1102,13 @@ const EmployeeCard = ({ id, navigate }) => {
   if (!emp) return <div><button className="btn btn-o" onClick={() => navigate('/employees')}><IC.arrowLeft style={{ width: 16, height: 16 }} /> Назад</button><Empty icon={IC.user} text="Сотрудник не найден" /></div>;
 
   const fio = `${emp.last_name || ''} ${emp.first_name || ''} ${emp.middle_name || ''}`.trim();
+
+  const daysLeft = (card) => {
+    if (!card.exploitation_end) return null;
+    return Math.ceil((new Date(card.exploitation_end) - new Date()) / (1000*60*60*24));
+  };
+  const daysClass = (d) => { if (d === null) return ''; if (d < 0) return 'danger'; if (d < 30) return 'warn'; return 'ok'; };
+  const expiredCount = cards.filter(c => { const dl = daysLeft(c); return dl !== null && dl < 0; }).length;
 
   return <div>
     <div className="breadcrumb"><span onClick={() => navigate('/employees')}>Персонал</span> / <span style={{ color: 'var(--tx1)', cursor: 'default' }}>{fio}</span></div>
@@ -1092,13 +1124,30 @@ const EmployeeCard = ({ id, navigate }) => {
       </div></div>
       <div className="card"><div className="card-h"><h3>СИЗ на руках</h3></div><div className="card-body">
         <div className="stats" style={{ marginBottom: 0 }}>
-          <div className="stat" style={{ padding: 14 }}><div className="stat-ic gr" style={{ width: 36, height: 36 }}><IC.check style={{ width: 18, height: 18 }} /></div><div><div className="stat-val" style={{ fontSize: 22 }}>{issued.length}</div><div className="stat-lbl">Выдано</div></div></div>
+          <div className="stat" style={{ padding: 14 }}><div className="stat-ic gr" style={{ width: 36, height: 36 }}><IC.check style={{ width: 18, height: 18 }} /></div><div><div className="stat-val" style={{ fontSize: 22 }}>{cards.length || issued.length}</div><div className="stat-lbl">Выдано</div></div></div>
           <div className="stat" style={{ padding: 14 }}><div className="stat-ic bl" style={{ width: 36, height: 36 }}><IC.scroll style={{ width: 18, height: 18 }} /></div><div><div className="stat-val" style={{ fontSize: 22 }}>{emp.norms?.length || 0}</div><div className="stat-lbl">Положено</div></div></div>
+          {expiredCount > 0 && <div className="stat" style={{ padding: 14 }}><div className="stat-ic rd" style={{ width: 36, height: 36 }}><IC.alertTriangle style={{ width: 18, height: 18 }} /></div><div><div className="stat-val" style={{ fontSize: 22 }}>{expiredCount}</div><div className="stat-lbl">Просрочено</div></div></div>}
         </div>
       </div></div>
     </div>
 
-    <div className="card"><div className="card-h"><h3>Выданные СИЗ</h3></div><div className="card-body np"><div className="tbl-wrap"><table><thead><tr>
+    {cards.length > 0 ? <div className="card"><div className="card-h"><h3>Карточки СИЗ (индивидуальный учёт)</h3></div><div className="card-body np"><div className="tbl-wrap"><table><thead><tr>
+      <th>Номер</th><th>Категория</th><th>Наименование</th><th>Размер</th><th>Дата выдачи</th><th>Срок до</th><th>Осталось</th>
+    </tr></thead><tbody>
+      {cards.map(c => {
+        const dl = daysLeft(c);
+        return <tr key={c.id} className={dl !== null && dl < 0 ? 'row-expired' : ''}>
+          <td><span className="badge b-blue" style={{fontFamily:'JetBrains Mono',fontSize:11,cursor:'pointer'}} onClick={() => navigate('/siz-card/'+c.id)}>{c.card_number}</span></td>
+          <td><span className="badge b-gray">{c.category_name || '—'}</span></td>
+          <td style={{ fontWeight: 600 }}>{c.item_name}</td>
+          <td>{c.size_value || '—'}</td>
+          <td style={{fontFamily:'JetBrains Mono',fontSize:12}}>{c.issue_date || '—'}</td>
+          <td style={{fontFamily:'JetBrains Mono',fontSize:12}}>{c.exploitation_end || '—'}</td>
+          <td>{dl !== null ? <span className={`days-badge ${daysClass(dl)}`}>{dl < 0 ? `${Math.abs(dl)} дн. просрочка` : `${dl} дн.`}</span> : '—'}</td>
+        </tr>;
+      })}
+    </tbody></table></div></div></div>
+    : <div className="card"><div className="card-h"><h3>Выданные СИЗ</h3></div><div className="card-body np"><div className="tbl-wrap"><table><thead><tr>
       <th>Категория</th><th>Наименование</th><th>Размер</th><th>Кол-во</th><th>Дата выдачи</th><th>Склад</th>
     </tr></thead><tbody>
       {issued.length ? issued.map(i => <tr key={i.id}>
@@ -1109,7 +1158,7 @@ const EmployeeCard = ({ id, navigate }) => {
         <td>{i.issued_date}</td>
         <td style={{ fontSize: 12, color: 'var(--tx2)' }}>{i.warehouse_name || '—'}</td>
       </tr>) : <tr><td colSpan="6"><Empty icon={IC.shield} text="Нет выданных СИЗ" /></td></tr>}
-    </tbody></table></div></div></div>
+    </tbody></table></div></div></div>}
 
     {emp.norms?.length > 0 && <div className="card" style={{ marginTop: 16 }}><div className="card-h"><h3>Положенные по ТОН</h3></div><div className="card-body np"><div className="tbl-wrap"><table><thead><tr>
       <th>Категория</th><th>Наименование</th><th>Кол-во</th><th>Ед.</th>
@@ -1203,6 +1252,335 @@ const AdminUsers = () => {
 };
 
 // ═══════ MAIN APP ═══════
+// ═══════ SIZ CARDS PAGE ═══════
+const SizCardsPage = ({ navigate }) => {
+  const { user, isLevel, showToast } = useAuth();
+  const [cards, setCards] = useState([]);
+  const [stats, setStats] = useState({});
+  const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState('');
+  const [statusFilter, setStatusFilter] = useState('');
+  const [locationFilter, setLocationFilter] = useState('');
+  const [modal, setModal] = useState(null); // 'create' | 'batch'
+  const [form, setForm] = useState({});
+  const [items, setItems] = useState([]);
+  const [warehouses, setWarehouses] = useState([]);
+  const canEdit = isLevel('ia', 'spbipk', 'res');
+
+  const load = async () => {
+    setLoading(true);
+    try {
+      const params = new URLSearchParams();
+      if (statusFilter) params.set('status', statusFilter);
+      if (locationFilter) params.set('location_type', locationFilter);
+      if (search) params.set('search', search);
+      const [c, s] = await Promise.all([
+        apiGet('/siz-cards?' + params.toString()),
+        apiGet('/siz-cards-stats')
+      ]);
+      setCards(c); setStats(s);
+    } catch(e) { showToast(e.message, 'error'); }
+    setLoading(false);
+  };
+
+  useEffect(() => { load(); }, [statusFilter, locationFilter]);
+  useEffect(() => {
+    Promise.all([apiGet('/siz/items'), apiGet('/warehouses')]).then(([i, w]) => { setItems(i); setWarehouses(w); });
+  }, []);
+
+  const handleSearch = () => load();
+  const handleKeyDown = (e) => { if (e.key === 'Enter') load(); };
+
+  const daysLeft = (card) => {
+    if (!card.exploitation_end || card.status !== 'issued') return null;
+    const diff = Math.ceil((new Date(card.exploitation_end) - new Date()) / (1000*60*60*24));
+    return diff;
+  };
+
+  const daysClass = (d) => { if (d === null) return ''; if (d < 0) return 'danger'; if (d < 30) return 'warn'; return 'ok'; };
+
+  const statusLabel = { in_stock: 'На складе', issued: 'Выдано', expired: 'Просрочено', written_off: 'Списано', returned: 'Возвращено' };
+  const locationLabel = { warehouse: 'Склад', employee: 'Сотрудник', written_off: 'Списано' };
+
+  const getDisplayStatus = (card) => {
+    if (card.status === 'issued' && card.exploitation_end && new Date(card.exploitation_end) < new Date()) return 'expired';
+    return card.status;
+  };
+
+  const createCard = async () => {
+    if (!form.siz_item_id || !form.warehouse_id) return showToast('Выберите СИЗ и склад', 'error');
+    try {
+      if (modal === 'batch') {
+        const qty = parseInt(form.quantity) || 1;
+        await apiPost('/siz-cards/batch', { ...form, quantity: qty });
+        showToast(`Создано карточек: ${qty}`);
+      } else {
+        await apiPost('/siz-cards', form);
+        showToast('Карточка создана');
+      }
+      setModal(null); setForm({}); load();
+    } catch(e) { showToast(e.message, 'error'); }
+  };
+
+  const fioShort = (c) => c.last_name ? `${c.last_name} ${(c.first_name||'')[0]||''}.${(c.middle_name||'')[0]||''}.` : '—';
+
+  if (loading && !cards.length) return <Loader />;
+
+  return <div>
+    <div className="page-top"><div><h1>Карточки СИЗ</h1><div className="sub">Индивидуальный учёт средств защиты</div></div>
+      <div style={{display:'flex',gap:8}}>
+        {canEdit && <button className="btn btn-p" onClick={() => { setForm({}); setModal('create'); }}><IC.plus style={{width:16,height:16}} /> Создать</button>}
+        {canEdit && <button className="btn btn-o btn-sm" onClick={() => { setForm({quantity:1}); setModal('batch'); }}><IC.plus style={{width:14,height:14}} /> Пакетное создание</button>}
+      </div>
+    </div>
+
+    <div className="stats">
+      <div className="stat"><div className="stat-ic bl"><IC.tag style={{width:22,height:22}}/></div><div><div className="stat-val">{stats.total||0}</div><div className="stat-lbl">Всего карточек</div></div></div>
+      <div className="stat"><div className="stat-ic gr"><IC.check style={{width:22,height:22}}/></div><div><div className="stat-val">{stats.issued||0}</div><div className="stat-lbl">Выдано</div></div></div>
+      <div className="stat"><div className="stat-ic am"><IC.warehouse style={{width:22,height:22}}/></div><div><div className="stat-val">{stats.in_stock||0}</div><div className="stat-lbl">На складах</div></div></div>
+      <div className="stat" style={{cursor:'pointer'}} onClick={() => setStatusFilter('expired')}><div className="stat-ic rd"><IC.alertTriangle style={{width:22,height:22}}/></div><div><div className="stat-val">{stats.expired||0}</div><div className="stat-lbl">Просрочено</div></div></div>
+    </div>
+
+    <div className="card">
+      <div className="filter-bar">
+        <SearchInput value={search} onChange={setSearch} placeholder="Поиск по номеру, названию, ФИО..." />
+        <button className="btn btn-p btn-sm" onClick={handleSearch}>Найти</button>
+        <select className="fc" style={{width:'auto',padding:'6px 28px 6px 10px',fontSize:12}} value={statusFilter} onChange={e => setStatusFilter(e.target.value)}>
+          <option value="">Все статусы</option>
+          <option value="in_stock">На складе</option>
+          <option value="issued">Выдано</option>
+          <option value="expired">Просрочено</option>
+          <option value="written_off">Списано</option>
+        </select>
+        <select className="fc" style={{width:'auto',padding:'6px 28px 6px 10px',fontSize:12}} value={locationFilter} onChange={e => setLocationFilter(e.target.value)}>
+          <option value="">Все места</option>
+          <option value="warehouse">Склад</option>
+          <option value="employee">Сотрудник</option>
+        </select>
+        {(statusFilter || locationFilter) && <button className="btn btn-o btn-sm" onClick={() => { setStatusFilter(''); setLocationFilter(''); }}>Сбросить</button>}
+      </div>
+      <div className="card-body np"><div className="tbl-wrap"><table><thead><tr>
+        <th>Номер</th><th>Наименование СИЗ</th><th>Размер</th><th>Статус</th><th>Местонахождение</th><th>Срок</th><th>Действия</th>
+      </tr></thead><tbody>
+        {cards.length ? cards.map(c => {
+          const ds = getDisplayStatus(c);
+          const dl = daysLeft(c);
+          return <tr key={c.id} className={ds === 'expired' ? 'row-expired' : ''}>
+            <td><span className="badge b-blue" style={{fontFamily:'JetBrains Mono',fontSize:11,cursor:'pointer'}} onClick={() => navigate('/siz-card/'+c.id)}>{c.card_number}</span></td>
+            <td style={{fontWeight:600}}>{c.item_name}</td>
+            <td>{c.size_value || '—'}</td>
+            <td><span className={`status-badge st-${ds}`}>{statusLabel[ds] || ds}</span></td>
+            <td style={{fontSize:12}}>
+              {c.location_type === 'employee' && <span style={{cursor:'pointer',color:'var(--blue)'}} onClick={() => navigate('/employee/'+c.employee_id)}>{fioShort(c)}</span>}
+              {c.location_type === 'warehouse' && <span>{c.warehouse_name || '—'}</span>}
+              {c.location_type === 'written_off' && <span style={{color:'var(--tx3)'}}>Списано</span>}
+              {c.enterprise_name && <div style={{fontSize:10,color:'var(--tx3)'}}>{c.enterprise_name}{c.res_name ? ` → ${c.res_name}` : ''}</div>}
+            </td>
+            <td>{dl !== null ? <span className={`days-badge ${daysClass(dl)}`}>{dl < 0 ? `${Math.abs(dl)} дн. просрочка` : `${dl} дн.`}</span> : '—'}</td>
+            <td><button className="btn-icon" onClick={() => navigate('/siz-card/'+c.id)}><IC.eye style={{width:16,height:16}}/></button></td>
+          </tr>;
+        }) : <tr><td colSpan="7"><Empty icon={IC.tag} text="Нет карточек СИЗ" /></td></tr>}
+      </tbody></table></div></div>
+    </div>
+
+    {modal && <Modal open onClose={() => setModal(null)} title={modal === 'batch' ? 'Пакетное создание карточек' : 'Создать карточку СИЗ'}
+      footer={<><button className="btn btn-o" onClick={() => setModal(null)}>Отмена</button><button className="btn btn-p" onClick={createCard}>Создать</button></>}>
+      <div className="fg"><label>Наименование СИЗ *</label>
+        <select className="fc" value={form.siz_item_id||''} onChange={e => setForm({...form, siz_item_id: e.target.value})}>
+          <option value="">Выберите...</option>
+          {items.map(i => <option key={i.id} value={i.id}>{i.category_name ? `[${i.category_name}] ` : ''}{i.name}</option>)}
+        </select>
+      </div>
+      <div className="fr">
+        <div className="fg"><label>Размер</label><input className="fc" value={form.size_value||''} onChange={e => setForm({...form, size_value: e.target.value})} /></div>
+        <div className="fg"><label>Склад *</label>
+          <select className="fc" value={form.warehouse_id||''} onChange={e => setForm({...form, warehouse_id: e.target.value})}>
+            <option value="">Выберите...</option>
+            {warehouses.map(w => <option key={w.id} value={w.id}>{w.name}{w.res_name ? ` (${w.res_name})` : ''}</option>)}
+          </select>
+        </div>
+      </div>
+      {modal === 'batch' && <div className="fg"><label>Количество *</label><input className="fc" type="number" min="1" max="500" value={form.quantity||1} onChange={e => setForm({...form, quantity: e.target.value})} /></div>}
+      <div className="fr">
+        <div className="fg"><label>Дата изготовления</label><input className="fc" type="date" value={form.manufacture_date||''} onChange={e => setForm({...form, manufacture_date: e.target.value})} /></div>
+        <div className="fg"><label>Документ</label><input className="fc" value={form.document_reference||''} onChange={e => setForm({...form, document_reference: e.target.value})} placeholder="Накладная, акт..." /></div>
+      </div>
+      <div className="fg"><label>Примечания</label><textarea className="fc" value={form.notes||''} onChange={e => setForm({...form, notes: e.target.value})} /></div>
+    </Modal>}
+  </div>;
+};
+
+// ═══════ SIZ CARD DETAIL ═══════
+const SizCardDetail = ({ id, navigate }) => {
+  const { user, isLevel, showToast } = useAuth();
+  const [card, setCard] = useState(null);
+  const [movements, setMovements] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [modal, setModal] = useState(null); // 'issue' | 'return' | 'transfer' | 'write_off'
+  const [form, setForm] = useState({});
+  const [employees, setEmployees] = useState([]);
+  const [warehouses, setWarehouses] = useState([]);
+  const canEdit = isLevel('ia', 'spbipk', 'res');
+
+  const load = async () => {
+    try {
+      const [c, m] = await Promise.all([apiGet(`/siz-cards/${id}`), apiGet(`/siz-cards/${id}/movements`)]);
+      setCard(c); setMovements(m); setLoading(false);
+    } catch(e) { showToast(e.message, 'error'); setLoading(false); }
+  };
+  useEffect(() => { load(); Promise.all([apiGet('/employees'), apiGet('/warehouses')]).then(([e, w]) => { setEmployees(e); setWarehouses(w); }); }, [id]);
+
+  const daysLeft = () => {
+    if (!card?.exploitation_end || card.status !== 'issued') return null;
+    return Math.ceil((new Date(card.exploitation_end) - new Date()) / (1000*60*60*24));
+  };
+
+  const isExpired = () => {
+    const dl = daysLeft();
+    return dl !== null && dl < 0;
+  };
+
+  const statusLabel = { in_stock: 'На складе', issued: 'Выдано', expired: 'Просрочено', written_off: 'Списано' };
+  const moveLabel = { receipt: 'Поступление', issue: 'Выдача', return: 'Возврат', transfer: 'Перемещение', write_off: 'Списание' };
+
+  const doAction = async () => {
+    try {
+      if (modal === 'issue') {
+        if (!form.employee_id) return showToast('Выберите сотрудника', 'error');
+        await apiPost(`/siz-cards/${id}/issue`, form);
+        showToast('СИЗ выдано сотруднику');
+      } else if (modal === 'return') {
+        if (!form.warehouse_id) return showToast('Выберите склад', 'error');
+        await apiPost(`/siz-cards/${id}/return`, form);
+        showToast('СИЗ возвращено на склад');
+      } else if (modal === 'transfer') {
+        if (!form.to_warehouse_id) return showToast('Выберите склад назначения', 'error');
+        await apiPost(`/siz-cards/${id}/transfer`, form);
+        showToast('СИЗ перемещено');
+      } else if (modal === 'write_off') {
+        await apiPost(`/siz-cards/${id}/write-off`, form);
+        showToast('СИЗ списано');
+      }
+      setModal(null); setForm({}); load();
+    } catch(e) { showToast(e.message, 'error'); }
+  };
+
+  if (loading) return <Loader />;
+  if (!card) return <div><button className="btn btn-o" onClick={() => navigate('/siz-cards')}><IC.arrowLeft style={{width:16,height:16}}/> Назад</button><Empty icon={IC.tag} text="Карточка не найдена" /></div>;
+
+  const dl = daysLeft();
+  const dispStatus = isExpired() ? 'expired' : card.status;
+  const fio = card.last_name ? `${card.last_name} ${card.first_name || ''} ${card.middle_name || ''}`.trim() : null;
+
+  return <div>
+    <div className="breadcrumb"><span onClick={() => navigate('/siz-cards')}>Карточки СИЗ</span> / <span style={{color:'var(--tx1)',cursor:'default'}}>{card.card_number}</span></div>
+    <div className="page-top"><div>
+      <h1 style={{display:'flex',alignItems:'center',gap:12}}>{card.card_number} <span className={`status-badge st-${dispStatus}`}>{statusLabel[dispStatus] || card.status}</span></h1>
+      <div className="sub">{card.item_name}{card.category_name ? ` — ${card.category_name}` : ''}</div>
+    </div>
+      {canEdit && <div style={{display:'flex',gap:8,flexWrap:'wrap'}}>
+        {card.status === 'in_stock' && <button className="btn btn-p btn-sm" onClick={() => { setForm({}); setModal('issue'); }}>Выдать</button>}
+        {card.status === 'in_stock' && <button className="btn btn-o btn-sm" onClick={() => { setForm({}); setModal('transfer'); }}>Переместить</button>}
+        {(card.status === 'issued' || isExpired()) && <button className="btn btn-o btn-sm" onClick={() => { setForm({}); setModal('return'); }}>Вернуть</button>}
+        {card.status !== 'written_off' && <button className="btn btn-d btn-sm" onClick={() => { setForm({}); setModal('write_off'); }}>Списать</button>}
+      </div>}
+    </div>
+
+    <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:16,marginBottom:20}}>
+      <div className="card"><div className="card-h"><h3>Информация о СИЗ</h3></div><div className="card-body">
+        {[['Номер карточки', card.card_number],['Наименование', card.item_name],['Категория', card.category_name],['Код', card.item_code],['Размер', card.size_value || '—'],['Пол', card.item_gender || '—'],['Сезон', card.season || '—'],['Срок эксплуатации', card.exploitation_years ? `${card.exploitation_years} лет` : '—']].map(([l,v],i) =>
+          <div key={i} style={{display:'flex',justifyContent:'space-between',padding:'6px 0',borderBottom:i<7?'1px solid var(--border)':'none'}}>
+            <span style={{fontSize:12,color:'var(--tx2)',fontWeight:600}}>{l}</span>
+            <span style={{fontSize:13,fontWeight:600}}>{v || '—'}</span>
+          </div>)}
+      </div></div>
+      <div className="card"><div className="card-h"><h3>Местонахождение</h3></div><div className="card-body">
+        {[
+          ['Статус', <span className={`status-badge st-${dispStatus}`}>{statusLabel[dispStatus] || card.status}</span>],
+          ['Тип расположения', card.location_type === 'employee' ? 'У сотрудника' : card.location_type === 'warehouse' ? 'На складе' : 'Списано'],
+          card.location_type === 'employee' ? ['Сотрудник', fio ? <span style={{cursor:'pointer',color:'var(--blue)',fontWeight:600}} onClick={() => navigate('/employee/'+card.employee_id)}>{fio}</span> : '—'] : null,
+          card.location_type === 'employee' ? ['Должность', card.position_name || '—'] : null,
+          card.location_type === 'warehouse' ? ['Склад', card.warehouse_name || '—'] : null,
+          ['Предприятие', card.enterprise_name || '—'],
+          ['РЭС / Служба', card.res_name || '—'],
+          ['Подразделение', card.department_name || '—'],
+        ].filter(Boolean).map(([l,v],i) =>
+          <div key={i} style={{display:'flex',justifyContent:'space-between',padding:'6px 0',borderBottom:'1px solid var(--border)',alignItems:'center'}}>
+            <span style={{fontSize:12,color:'var(--tx2)',fontWeight:600}}>{l}</span>
+            <span style={{fontSize:13,fontWeight:600}}>{v || '—'}</span>
+          </div>)}
+        {card.status === 'issued' && <div style={{marginTop:12,padding:12,borderRadius:8,background:isExpired()?'var(--red-l)':dl!==null&&dl<30?'var(--amber-l)':'var(--green-l)'}}>
+          <div style={{fontSize:11,fontWeight:700,color:'var(--tx2)',marginBottom:4}}>СРОКИ ЭКСПЛУАТАЦИИ</div>
+          <div style={{display:'flex',justifyContent:'space-between',fontSize:12,marginBottom:2}}>
+            <span>Дата выдачи:</span><span style={{fontWeight:700}}>{card.issue_date || '—'}</span></div>
+          <div style={{display:'flex',justifyContent:'space-between',fontSize:12,marginBottom:2}}>
+            <span>Начало эксплуатации:</span><span style={{fontWeight:700}}>{card.exploitation_start || '—'}</span></div>
+          <div style={{display:'flex',justifyContent:'space-between',fontSize:12,marginBottom:2}}>
+            <span>Конец эксплуатации:</span><span style={{fontWeight:700}}>{card.exploitation_end || '—'}</span></div>
+          <div style={{display:'flex',justifyContent:'space-between',fontSize:12,marginTop:6,paddingTop:6,borderTop:'1px solid rgba(0,0,0,.1)'}}>
+            <span style={{fontWeight:700}}>Осталось:</span>
+            <span className={`days-badge ${dl<0?'danger':dl<30?'warn':'ok'}`} style={{fontSize:12}}>
+              {dl < 0 ? `Просрочено на ${Math.abs(dl)} дн.` : `${dl} дн.`}
+            </span>
+          </div>
+        </div>}
+      </div></div>
+    </div>
+
+    <div className="card"><div className="card-h"><h3>История перемещений</h3></div><div className="card-body np"><div className="tbl-wrap"><table><thead><tr>
+      <th>Дата</th><th>Тип</th><th>Откуда</th><th>Куда</th><th>Кем</th><th>Документ</th><th>Примечания</th>
+    </tr></thead><tbody>
+      {movements.length ? movements.map(m => <tr key={m.id}>
+        <td style={{fontFamily:'JetBrains Mono',fontSize:12}}>{m.movement_date}</td>
+        <td><span className="badge b-blue">{moveLabel[m.movement_type] || m.movement_type}</span></td>
+        <td style={{fontSize:12}}>
+          {m.from_warehouse_name && <span>{m.from_warehouse_name}</span>}
+          {m.from_employee_last && <span>{m.from_employee_last} {(m.from_employee_first||'')[0]}.</span>}
+          {!m.from_warehouse_name && !m.from_employee_last && '—'}
+        </td>
+        <td style={{fontSize:12}}>
+          {m.to_warehouse_name && <span>{m.to_warehouse_name}</span>}
+          {m.to_employee_last && <span>{m.to_employee_last} {(m.to_employee_first||'')[0]}.</span>}
+          {!m.to_warehouse_name && !m.to_employee_last && '—'}
+        </td>
+        <td style={{fontSize:12,color:'var(--tx2)'}}>{m.moved_by_name || '—'}</td>
+        <td style={{fontSize:12}}>{m.document_reference || '—'}</td>
+        <td style={{fontSize:12,color:'var(--tx2)'}}>{m.notes || '—'}</td>
+      </tr>) : <tr><td colSpan="7"><Empty icon={IC.clock} text="Нет записей о перемещениях" /></td></tr>}
+    </tbody></table></div></div></div>
+
+    {modal && <Modal open onClose={() => setModal(null)} title={
+      modal === 'issue' ? 'Выдать СИЗ сотруднику' : modal === 'return' ? 'Вернуть СИЗ на склад' :
+      modal === 'transfer' ? 'Переместить на другой склад' : 'Списать СИЗ'
+    } footer={<><button className="btn btn-o" onClick={() => setModal(null)}>Отмена</button>
+      <button className={`btn ${modal==='write_off'?'btn-d':'btn-p'}`} onClick={doAction}>{modal==='write_off'?'Списать':'Выполнить'}</button></>}>
+      {modal === 'issue' && <div className="fg"><label>Сотрудник *</label>
+        <select className="fc" value={form.employee_id||''} onChange={e => setForm({...form, employee_id: e.target.value})}>
+          <option value="">Выберите...</option>
+          {employees.map(e => <option key={e.id} value={e.id}>{e.last_name} {e.first_name} {e.middle_name} {e.position_name ? `(${e.position_name})` : ''}</option>)}
+        </select>
+      </div>}
+      {modal === 'return' && <div className="fg"><label>Склад *</label>
+        <select className="fc" value={form.warehouse_id||''} onChange={e => setForm({...form, warehouse_id: e.target.value})}>
+          <option value="">Выберите...</option>
+          {warehouses.map(w => <option key={w.id} value={w.id}>{w.name}{w.res_name ? ` (${w.res_name})` : ''}</option>)}
+        </select>
+      </div>}
+      {modal === 'transfer' && <div className="fg"><label>Склад назначения *</label>
+        <select className="fc" value={form.to_warehouse_id||''} onChange={e => setForm({...form, to_warehouse_id: e.target.value})}>
+          <option value="">Выберите...</option>
+          {warehouses.filter(w => w.id !== card.warehouse_id).map(w => <option key={w.id} value={w.id}>{w.name}{w.res_name ? ` (${w.res_name})` : ''}</option>)}
+        </select>
+      </div>}
+      <div className="fr">
+        <div className="fg"><label>Дата</label><input className="fc" type="date" value={form.movement_date||''} onChange={e => setForm({...form, movement_date: e.target.value})} /></div>
+        <div className="fg"><label>Документ</label><input className="fc" value={form.document_reference||''} onChange={e => setForm({...form, document_reference: e.target.value})} /></div>
+      </div>
+      <div className="fg"><label>Примечания</label><textarea className="fc" value={form.notes||''} onChange={e => setForm({...form, notes: e.target.value})} /></div>
+    </Modal>}
+  </div>;
+};
+
 const App = () => {
   const { user, logout, isLevel } = useAuth();
   const [path, setPath] = useState(window.location.hash.replace('#', '') || '/');
@@ -1217,6 +1595,7 @@ const App = () => {
   if (!user) return <LoginPage />;
 
   const empMatch = path.match(/^\/employee\/(.+)$/);
+  const sizCardMatch = path.match(/^\/siz-card\/(.+)$/);
   let content;
   if (path === '/' || path === '') content = <Dashboard />;
   else if (path === '/org') content = <OrgStructure />;
@@ -1226,6 +1605,8 @@ const App = () => {
   else if (path === '/ton') content = <TonPage />;
   else if (path === '/employees') content = <EmployeesPage navigate={navigate} />;
   else if (empMatch) content = <EmployeeCard id={empMatch[1]} navigate={navigate} />;
+  else if (path === '/siz-cards') content = <SizCardsPage navigate={navigate} />;
+  else if (sizCardMatch) content = <SizCardDetail id={sizCardMatch[1]} navigate={navigate} />;
   else if (path === '/admin/users') content = <AdminUsers />;
   else content = <Dashboard />;
 
@@ -1246,6 +1627,7 @@ const App = () => {
         <div className="sb-section">Основное</div>
         <NL to="/" icon={IC.home}>Панель управления</NL>
         <NL to="/employees" icon={IC.users}>Карточки персонала</NL>
+        <NL to="/siz-cards" icon={IC.tag}>Карточки СИЗ</NL>
         <NL to="/warehouses" icon={IC.warehouse}>Склады</NL>
 
         <div className="sb-section">Справочники</div>
@@ -1272,7 +1654,7 @@ const App = () => {
         <button className="btn btn-o btn-sm" style={{ width: '100%', justifyContent: 'center', marginTop: 8, color: 'rgba(255,255,255,.5)', borderColor: 'rgba(255,255,255,.1)' }} onClick={logout}>
           <IC.logout style={{ width: 14, height: 14 }} /> Выйти
         </button>
-        <div style={{ fontSize: 10, color: 'rgba(255,255,255,.2)', textAlign: 'center', marginTop: 10 }}>СИЗ v3.0 — 2026</div>
+        <div style={{ fontSize: 10, color: 'rgba(255,255,255,.2)', textAlign: 'center', marginTop: 10 }}>СИЗ v4.0 — 2026</div>
       </div>
     </aside>
     <main className="main">{content}</main>
