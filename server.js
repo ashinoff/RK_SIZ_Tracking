@@ -1454,7 +1454,7 @@ async function initDB() {
 
       CREATE TABLE IF NOT EXISTS siz_categories (
         id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-        name VARCHAR(255) NOT NULL,
+        name TEXT NOT NULL,
         code VARCHAR(50),
         extra JSONB DEFAULT '{}',
         is_active BOOLEAN DEFAULT true,
@@ -1464,7 +1464,7 @@ async function initDB() {
       CREATE TABLE IF NOT EXISTS siz_items (
         id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
         category_id UUID REFERENCES siz_categories(id),
-        name VARCHAR(255) NOT NULL,
+        name TEXT NOT NULL,
         code VARCHAR(50),
         unit VARCHAR(50) DEFAULT 'шт',
         wear_period_months INTEGER DEFAULT 12,
@@ -1661,6 +1661,11 @@ async function initDB() {
 
     // === Add exploitation_months to siz_items ===
     await pool.query("ALTER TABLE siz_items ADD COLUMN IF NOT EXISTS exploitation_months INTEGER DEFAULT 12");
+
+    // === Expand name fields for long SIZ names ===
+    await pool.query("ALTER TABLE siz_items ALTER COLUMN name TYPE TEXT");
+    await pool.query("ALTER TABLE siz_categories ALTER COLUMN name TYPE TEXT");
+    await pool.query("ALTER TABLE positions ALTER COLUMN name TYPE TEXT");
 
     // === Seed default SIZ categories (only if empty) ===
     const catCount = +(await pool.query("SELECT COUNT(*) as c FROM siz_categories")).rows[0].c;
