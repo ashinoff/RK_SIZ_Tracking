@@ -465,8 +465,8 @@ app.post('/api/positions/:id/norms', auth, perm('can_create'), levelCheck(['ia',
 app.get('/api/ton', auth, async (req, res) => {
   try {
     let sql = `SELECT n.id, n.position_id, n.siz_item_id, n.quantity, n.issue_period_months,
-      p.name as position_name, p.code as position_code,
-      i.name as item_name, i.code as item_code, i.unit, i.wear_period_months,
+      p.name as position_name, p.code as position_code, p.enterprise_id, p.res_unit_id, p.department_id,
+      i.name as item_name, i.code as item_code, i.unit, i.wear_period_months, i.exploitation_months, i.exploitation_years,
       c.name as category_name
       FROM position_siz_norms n
       JOIN positions p ON n.position_id = p.id AND p.is_active = true
@@ -1663,9 +1663,10 @@ async function initDB() {
     await pool.query("ALTER TABLE siz_items ADD COLUMN IF NOT EXISTS exploitation_months INTEGER DEFAULT 12");
 
     // === Seed default SIZ categories ===
+    await pool.query("UPDATE siz_categories SET name='Спецодежда' WHERE name='Одежда'");
     const existingCats = (await pool.query("SELECT name FROM siz_categories")).rows.map(r => r.name);
     const defaultCats = [
-      ['Одежда', 'clothes'], ['Обувь', 'shoes'], ['Каски', 'helmets'],
+      ['Спецодежда', 'clothes'], ['Обувь', 'shoes'], ['Каски', 'helmets'],
       ['СИЗ', 'ppe'], ['Перчатки', 'gloves'], ['Моющие средства', 'detergents']
     ];
     for (const [name, code] of defaultCats) {
