@@ -372,7 +372,7 @@ app.put('/api/siz/categories/:id', auth, perm('can_edit'), levelCheck(['ia', 'sp
   try { res.json(await catCRUD.update(req.params.id, req.body, req.user.id, req.ip)); }
   catch (e) { res.status(500).json({ error: e.message }); }
 });
-app.delete('/api/siz/categories/:id', auth, perm('can_delete'), async (req, res) => {
+app.delete('/api/siz/categories/:id', auth, perm('can_edit'), levelCheck(['ia', 'spbipk']), async (req, res) => {
   try { res.json(await catCRUD.softDelete(req.params.id, req.user.id, req.ip)); }
   catch (e) { res.status(500).json({ error: e.message }); }
 });
@@ -396,7 +396,7 @@ app.put('/api/siz/items/:id', auth, perm('can_edit'), levelCheck(['ia', 'spbipk'
   try { res.json(await itemCRUD.update(req.params.id, req.body, req.user.id, req.ip)); }
   catch (e) { res.status(500).json({ error: e.message }); }
 });
-app.delete('/api/siz/items/:id', auth, perm('can_delete'), async (req, res) => {
+app.delete('/api/siz/items/:id', auth, perm('can_edit'), levelCheck(['ia', 'spbipk']), async (req, res) => {
   try { res.json(await itemCRUD.softDelete(req.params.id, req.user.id, req.ip)); }
   catch (e) { res.status(500).json({ error: e.message }); }
 });
@@ -1662,23 +1662,14 @@ async function initDB() {
     // === Add exploitation_months to siz_items ===
     await pool.query("ALTER TABLE siz_items ADD COLUMN IF NOT EXISTS exploitation_months INTEGER DEFAULT 12");
 
-    // === Seed default SIZ categories ===
-    // One-time: rename old 'Одежда' and remove duplicates
-    await pool.query("UPDATE siz_categories SET name='Спецодежда' WHERE name='Одежда' AND NOT EXISTS (SELECT 1 FROM siz_categories WHERE name='Спецодежда')");
-    await pool.query(`DELETE FROM siz_categories WHERE id IN (
-      SELECT id FROM (SELECT id, ROW_NUMBER() OVER (PARTITION BY name ORDER BY created_at ASC) as rn FROM siz_categories) t WHERE rn > 1
-    )`);
-    const existingCats = (await pool.query("SELECT name FROM siz_categories")).rows.map(r => r.name);
-    const defaultCats = [
-      ['Спецодежда', 'clothes'], ['Обувь', 'shoes'], ['Каски', 'helmets'],
-      ['СИЗ', 'ppe'], ['Перчатки', 'gloves'], ['Моющие средства', 'detergents']
-    ];
-    for (const [name, code] of defaultCats) {
-      if (!existingCats.includes(name)) {
-        await pool.query("INSERT INTO siz_categories (name, code) VALUES ($1, $2)", [name, code]);
-      }
+    // === Seed default SIZ categories (only if empty) ===
+    const catCount = +(await pool.query("SELECT COUNT(*) as c FROM siz_categories")).rows[0].c;
+    if (catCount === 0) {
+      await pool.query(`INSERT INTO siz_categories (name, code) VALUES
+        ('Спецодежда','clothes'),('Обувь','shoes'),('Каски','helmets'),
+        ('СИЗ','ppe'),('Перчатки','gloves'),('Моющие средства','detergents')`);
+      console.log('SIZ categories seeded');
     }
-
     // === Fix level constraint to include spbipk ===
     await pool.query(`ALTER TABLE roles DROP CONSTRAINT IF EXISTS roles_level_check`);
     await pool.query(`ALTER TABLE roles ADD CONSTRAINT roles_level_check CHECK (level IN ('ia','enterprise','spbipk','res'))`);
