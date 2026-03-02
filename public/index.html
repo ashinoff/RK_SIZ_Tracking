@@ -925,16 +925,20 @@ const Directories = () => {
   const [items, setItems] = useState([]);
   const [selCat, setSelCat] = useState('');
   const [modal, setModal] = useState(false);
+  const [catModal, setCatModal] = useState(false);
   const [form, setForm] = useState({});
+  const [catForm, setCatForm] = useState({});
   const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(true);
   const canEdit = isLevel('ia', 'spbipk');
 
-  useEffect(() => {
-    Promise.all([apiGet('/siz/categories'), apiGet('/siz/items')]).then(([cats, its]) => {
-      setCategories(cats); setItems(its); if (cats.length) setSelCat(cats[0].id); setLoading(false);
-    });
-  }, []);
+  const reload = async () => {
+    const [cats, its] = await Promise.all([apiGet('/siz/categories'), apiGet('/siz/items')]);
+    setCategories(cats); setItems(its);
+    if (cats.length && !cats.find(c => c.id === selCat)) setSelCat(cats[0].id);
+    setLoading(false);
+  };
+  useEffect(() => { reload(); }, []);
 
   const save = async () => {
     if (!form.name?.trim()) return;
@@ -944,9 +948,31 @@ const Directories = () => {
       const body = { name: form.name, code: form.code, unit: form.unit, gender: form.gender, season: form.season, exploitation_months: expMonths, exploitation_years: expYears, category_id: selCat };
       if (form.id) await apiPut(`/siz/items/${form.id}`, body);
       else await apiPost('/siz/items', body);
-      setModal(false); setForm({}); showToast('Сохранено');
-      setItems(await apiGet('/siz/items'));
+      setModal(false); setForm({}); showToast('Сохранено'); reload();
     } catch (e) { showToast(e.message, 'error'); }
+  };
+
+  const delItem = async (id, name) => {
+    if (!confirm(`Удалить «${name}»?`)) return;
+    try { await apiDel(`/siz/items/${id}`); showToast('Удалено'); reload(); }
+    catch (e) { showToast(e.message, 'error'); }
+  };
+
+  const saveCat = async () => {
+    if (!catForm.name?.trim()) return;
+    try {
+      if (catForm.id) await apiPut(`/siz/categories/${catForm.id}`, { name: catForm.name, code: catForm.code });
+      else await apiPost('/siz/categories', { name: catForm.name, code: catForm.code });
+      setCatModal(false); setCatForm({}); showToast('Сохранено'); reload();
+    } catch (e) { showToast(e.message, 'error'); }
+  };
+
+  const delCat = async (id, name) => {
+    const catItems = items.filter(i => i.category_id === id);
+    if (catItems.length) return showToast(`Нельзя удалить «${name}» — в ней ${catItems.length} позиций. Сначала удалите или перенесите их.`, 'error');
+    if (!confirm(`Удалить категорию «${name}»?`)) return;
+    try { await apiDel(`/siz/categories/${id}`); showToast('Категория удалена'); if (selCat === id) setSelCat(''); reload(); }
+    catch (e) { showToast(e.message, 'error'); }
   };
 
   const filtered = items.filter(i => i.category_id === selCat && (!search || i.name.toLowerCase().includes(search.toLowerCase())));
@@ -958,7 +984,8 @@ const Directories = () => {
   return <div>
     <div className="page-top"><div><h1>Справочники СИЗ</h1><div className="sub">Реестр средств защиты</div></div>
       <div style={{display:'flex',gap:8}}>
-        {canEdit && <button className="btn btn-p" onClick={() => { setForm({}); setModal(true); }}><IC.plus style={{ width: 16, height: 16 }} /> Добавить</button>}
+        {canEdit && <button className="btn btn-p" onClick={() => { setForm({}); setModal(true); }}><IC.plus style={{ width: 16, height: 16 }} /> Добавить СИЗ</button>}
+        {canEdit && <button className="btn btn-o btn-sm" onClick={() => { setCatForm({}); setCatModal(true); }}>+ Категория</button>}
         {canEdit && <ImportBtn label="Импорт Excel" onImport={async (rows) => {
           const mapped = rows.map(r => ({
             name: r['Наименование'] || r['name'] || '',
@@ -969,19 +996,25 @@ const Directories = () => {
             unit: r['Ед.'] || r['unit'] || 'шт',
             category_id: selCat,
           }));
-          try { const res = await apiPost('/import/siz-items', { rows: mapped }); showToast(`Импортировано: ${res.imported}`); setItems(await apiGet('/siz/items')); } catch(e) { showToast(e.message,'error'); }
+          try { const res = await apiPost('/import/siz-items', { rows: mapped }); showToast(`Импортировано: ${res.imported}`); reload(); } catch(e) { showToast(e.message,'error'); }
         }}/>}
         <button className="btn btn-o btn-sm" onClick={() => exportExcel(items.map(i => ({'Код':i.code,'Наименование':i.name,'Пол':i.gender,'Сезон':i.season,'Срок (мес.)':i.exploitation_months,'Ед.':i.unit})), 'СИЗ_справочник.xlsx', 'СИЗ')}>Экспорт Excel</button>
       </div>
     </div>
-    <div className="tabs">
-      {categories.map(c => <button key={c.id} className={`tab ${selCat === c.id ? 'active' : ''}`} onClick={() => { setSelCat(c.id); setSearch(''); }}>
-        {c.name} <span className="badge b-gray" style={{ marginLeft: 4 }}>{c.items_count || 0}</span>
-      </button>)}
+    <div className="tabs" style={{display:'flex',alignItems:'center',flexWrap:'wrap',gap:4}}>
+      {categories.map(c => <div key={c.id} style={{display:'flex',alignItems:'center',gap:0}}>
+        <button className={`tab ${selCat === c.id ? 'active' : ''}`} onClick={() => { setSelCat(c.id); setSearch(''); }}>
+          {c.name} <span className="badge b-gray" style={{ marginLeft: 4 }}>{c.items_count || 0}</span>
+        </button>
+        {canEdit && selCat === c.id && <div style={{display:'flex',gap:2,marginLeft:2}}>
+          <button className="btn-icon" title="Редактировать" onClick={(e) => { e.stopPropagation(); setCatForm({id:c.id,name:c.name,code:c.code}); setCatModal(true); }}><IC.edit style={{width:12,height:12}} /></button>
+          <button className="btn-icon" title="Удалить" onClick={(e) => { e.stopPropagation(); delCat(c.id, c.name); }}><IC.trash style={{width:12,height:12,color:'var(--red)'}} /></button>
+        </div>}
+      </div>)}
     </div>
     <div className="card"><div className="card-h"><SearchInput value={search} onChange={setSearch} /></div>
       <div className="card-body np"><div className="tbl-wrap"><table><thead><tr>
-        <th>Код</th><th>Наименование</th><th>Пол</th><th>Сезон</th><th>Срок эксп.</th><th>Ед.</th>{canEdit && <th>Действия</th>}
+        <th>Код</th><th>Наименование</th><th>Пол</th><th>Сезон</th><th>Срок эксп.</th><th>Ед.</th>{canEdit && <th style={{width:90}}>Действия</th>}
       </tr></thead><tbody>
         {filtered.length ? filtered.map(i => {
           const em = i.exploitation_months;
@@ -993,10 +1026,15 @@ const Directories = () => {
           <td><span className={`badge ${i.season === 'Зима' ? 'b-blue' : i.season === 'Лето' ? 'b-amber' : 'b-gray'}`}>{i.season || '—'}</span></td>
           <td style={{ fontFamily: 'JetBrains Mono' }}>{expLabel}</td>
           <td>{i.unit || 'шт'}</td>
-          {canEdit && <td><button className="btn-icon" onClick={() => { setForm({ id: i.id, name: i.name, code: i.code, unit: i.unit, gender: i.gender, season: i.season, exploitation_months: i.exploitation_months || (i.exploitation_years ? Math.round(i.exploitation_years * 12) : '') }); setModal(true); }}><IC.edit style={{ width: 14, height: 14 }} /></button></td>}
+          {canEdit && <td><div style={{display:'flex',gap:4}}>
+            <button className="btn-icon" onClick={() => { setForm({ id: i.id, name: i.name, code: i.code, unit: i.unit, gender: i.gender, season: i.season, exploitation_months: i.exploitation_months || (i.exploitation_years ? Math.round(i.exploitation_years * 12) : '') }); setModal(true); }}><IC.edit style={{ width: 14, height: 14 }} /></button>
+            <button className="btn-icon" onClick={() => delItem(i.id, i.name)}><IC.trash style={{ width: 14, height: 14, color: 'var(--red)' }} /></button>
+          </div></td>}
         </tr>; }) : <tr><td colSpan="7"><Empty icon={IC.shield} text="Нет записей" /></td></tr>}
       </tbody></table></div></div>
     </div>
+
+    {/* Item modal */}
     <Modal open={modal} onClose={() => setModal(false)} title={form.id ? 'Редактировать' : 'Добавить СИЗ'}
       footer={<><button className="btn btn-o" onClick={() => setModal(false)}>Отмена</button><button className="btn btn-p" onClick={save}>Сохранить</button></>}>
       <div className="fr">
@@ -1011,6 +1049,13 @@ const Directories = () => {
         </div>
       </div>
       <div className="fg"><label>Единица измерения</label><input className="fc" value={form.unit || ''} onChange={e => setForm({ ...form, unit: e.target.value })} placeholder="шт" /></div>
+    </Modal>
+
+    {/* Category modal */}
+    <Modal open={catModal} onClose={() => setCatModal(false)} title={catForm.id ? 'Редактировать категорию' : 'Новая категория'}
+      footer={<><button className="btn btn-o" onClick={() => setCatModal(false)}>Отмена</button><button className="btn btn-p" onClick={saveCat}>Сохранить</button></>}>
+      <div className="fg"><label>Название</label><input className="fc" value={catForm.name || ''} onChange={e => setCatForm({...catForm, name: e.target.value})} placeholder="Например: Респираторы" /></div>
+      <div className="fg"><label>Код (латиницей)</label><input className="fc" value={catForm.code || ''} onChange={e => setCatForm({...catForm, code: e.target.value})} placeholder="respirators" /></div>
     </Modal>
   </div>;
 };
