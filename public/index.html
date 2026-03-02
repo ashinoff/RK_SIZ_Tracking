@@ -918,7 +918,7 @@ const Directories = () => {
   };
 
   const filtered = items.filter(i => i.category_id === selCat && (!search || i.name.toLowerCase().includes(search.toLowerCase())));
-  const GENDERS = ['Мужской', 'Женский'];
+  const GENDERS = ['Мужской', 'Женский', 'Унисекс'];
   const SEASONS = ['Лето', 'Зима', 'Всесезонный'];
 
   if (loading) return <Loader />;
@@ -933,13 +933,13 @@ const Directories = () => {
             code: r['Код'] || r['code'] || '',
             gender: r['Пол'] || r['gender'] || '',
             season: r['Сезон'] || r['season'] || '',
-            exploitation_years: r['Срок эксп.'] || r['exploitation_years'] || '',
+            exploitation_months: r['Срок (мес.)'] || r['exploitation_months'] || '',
             unit: r['Ед.'] || r['unit'] || 'шт',
             category_id: selCat,
           }));
           try { const res = await apiPost('/import/siz-items', { rows: mapped }); showToast(`Импортировано: ${res.imported}`); setItems(await apiGet('/siz/items')); } catch(e) { showToast(e.message,'error'); }
         }}/>}
-        <button className="btn btn-o btn-sm" onClick={() => exportExcel(items.map(i => ({'Категория':i.category_name,'Код':i.code,'Наименование':i.name,'Пол':i.gender,'Сезон':i.season,'Срок эксп.':i.exploitation_years,'Ед.':i.unit})), 'СИЗ_справочник.xlsx', 'СИЗ')}>Экспорт Excel</button>
+        <button className="btn btn-o btn-sm" onClick={() => exportExcel(items.map(i => ({'Код':i.code,'Наименование':i.name,'Пол':i.gender,'Сезон':i.season,'Срок (мес.)':i.exploitation_months,'Ед.':i.unit})), 'СИЗ_справочник.xlsx', 'СИЗ')}>Экспорт Excel</button>
       </div>
     </div>
     <div className="tabs">
