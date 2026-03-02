@@ -405,14 +405,26 @@ app.delete('/api/siz/items/:id', auth, perm('can_delete'), async (req, res) => {
 
 app.get('/api/positions', auth, async (req, res) => {
   try {
-    res.json((await db(`SELECT p.*,
+    let sql = `SELECT p.*,
+      ent.name as enterprise_name,
       r.name as res_name, d.name as department_name,
       (SELECT COUNT(*) FROM position_siz_norms n WHERE n.position_id=p.id AND n.is_active=true) as norms_count,
       (SELECT COUNT(*) FROM employees e WHERE e.position_id=p.id AND e.is_active=true) as employees_count
       FROM positions p
+      LEFT JOIN enterprises ent ON p.enterprise_id=ent.id
       LEFT JOIN res_units r ON p.res_unit_id=r.id
       LEFT JOIN departments d ON p.department_id=d.id
-      WHERE p.is_active=true ORDER BY p.name`)).rows);
+      WHERE p.is_active=true`;
+    const params = [];
+    if (['enterprise', 'spbipk'].includes(req.user.role_level)) {
+      params.push(req.user.enterprise_id); sql += ` AND p.enterprise_id=$${params.length}`;
+    } else if (req.user.role_level === 'res') {
+      params.push(req.user.res_unit_id); sql += ` AND p.res_unit_id=$${params.length}`;
+    }
+    if (req.query.enterprise_id) { params.push(req.query.enterprise_id); sql += ` AND p.enterprise_id=$${params.length}`; }
+    if (req.query.res_unit_id) { params.push(req.query.res_unit_id); sql += ` AND p.res_unit_id=$${params.length}`; }
+    sql += ' ORDER BY p.name';
+    res.json((await db(sql, params)).rows);
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 app.post('/api/positions', auth, perm('can_create'), levelCheck(['ia', 'spbipk']), async (req, res) => {
@@ -1220,8 +1232,8 @@ app.post('/api/import/positions', auth, perm('can_create'), levelCheck(['ia', 's
     let imported = 0;
     for (const r of rows) {
       if (!r.name) continue;
-      await db(`INSERT INTO positions (name, code, res_unit_id, department_id) VALUES ($1,$2,$3,$4) ON CONFLICT DO NOTHING`,
-        [r.name, r.code||null, r.res_unit_id||null, r.department_id||null]);
+      await db(`INSERT INTO positions (name, code, enterprise_id, res_unit_id, department_id) VALUES ($1,$2,$3,$4,$5) ON CONFLICT DO NOTHING`,
+        [r.name, r.code||null, r.enterprise_id||null, r.res_unit_id||null, r.department_id||null]);
       imported++;
     }
     await audit(req.user.id, 'positions', null, 'bulk_import', { count: imported }, req.ip);
@@ -1549,9 +1561,10 @@ async function initDB() {
     await pool.query("ALTER TABLE employees ADD COLUMN IF NOT EXISTS head_size VARCHAR(10)");
     await pool.query("ALTER TABLE employees ADD COLUMN IF NOT EXISTS glove_size VARCHAR(10)");
 
-    // === Add res_unit_id and department_id to positions ===
+    // === Add res_unit_id, department_id, enterprise_id to positions ===
     await pool.query("ALTER TABLE positions ADD COLUMN IF NOT EXISTS res_unit_id UUID REFERENCES res_units(id)");
     await pool.query("ALTER TABLE positions ADD COLUMN IF NOT EXISTS department_id UUID REFERENCES departments(id)");
+    await pool.query("ALTER TABLE positions ADD COLUMN IF NOT EXISTS enterprise_id UUID REFERENCES enterprises(id)");
 
     // === Fix level constraint to include spbipk ===
     await pool.query(`ALTER TABLE roles DROP CONSTRAINT IF EXISTS roles_level_check`);
