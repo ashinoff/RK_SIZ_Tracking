@@ -695,6 +695,362 @@ app.get('/api/employee-siz/:employeeId', auth, async (req, res) => {
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
+// ============ ROUTES: SIZ CARDS ============
+
+// Get all SIZ cards with filters
+app.get('/api/siz-cards', auth, async (req, res) => {
+  try {
+    let sql = `SELECT sc.*, i.name as item_name, i.code as item_code, i.unit, i.exploitation_years,
+      i.gender as item_gender, i.season, c.name as category_name, c.code as category_code,
+      w.name as warehouse_name, w.warehouse_type,
+      e.last_name, e.first_name, e.middle_name, e.employee_number,
+      ent.name as enterprise_name, r.name as res_name, d.name as department_name
+      FROM siz_cards sc
+      JOIN siz_items i ON sc.siz_item_id = i.id
+      LEFT JOIN siz_categories c ON i.category_id = c.id
+      LEFT JOIN warehouses w ON sc.warehouse_id = w.id
+      LEFT JOIN employees e ON sc.employee_id = e.id
+      LEFT JOIN enterprises ent ON sc.enterprise_id = ent.id
+      LEFT JOIN res_units r ON sc.res_unit_id = r.id
+      LEFT JOIN departments d ON sc.department_id = d.id
+      WHERE sc.is_active = true`;
+    const p = [];
+    // Role-based filtering
+    if (['enterprise', 'spbipk'].includes(req.user.role_level)) {
+      p.push(req.user.enterprise_id); sql += ` AND sc.enterprise_id=$${p.length}`;
+    } else if (req.user.role_level === 'res') {
+      p.push(req.user.res_unit_id); sql += ` AND sc.res_unit_id=$${p.length}`;
+    }
+    // Query filters
+    if (req.query.status) { p.push(req.query.status); sql += ` AND sc.status=$${p.length}`; }
+    if (req.query.location_type) { p.push(req.query.location_type); sql += ` AND sc.location_type=$${p.length}`; }
+    if (req.query.employee_id) { p.push(req.query.employee_id); sql += ` AND sc.employee_id=$${p.length}`; }
+    if (req.query.warehouse_id) { p.push(req.query.warehouse_id); sql += ` AND sc.warehouse_id=$${p.length}`; }
+    if (req.query.enterprise_id) { p.push(req.query.enterprise_id); sql += ` AND sc.enterprise_id=$${p.length}`; }
+    if (req.query.res_unit_id) { p.push(req.query.res_unit_id); sql += ` AND sc.res_unit_id=$${p.length}`; }
+    if (req.query.siz_item_id) { p.push(req.query.siz_item_id); sql += ` AND sc.siz_item_id=$${p.length}`; }
+    if (req.query.expired === 'true') { sql += ` AND sc.exploitation_end < CURRENT_DATE AND sc.status = 'issued'`; }
+    if (req.query.search) {
+      p.push(`%${req.query.search}%`);
+      sql += ` AND (sc.card_number ILIKE $${p.length} OR i.name ILIKE $${p.length} OR e.last_name ILIKE $${p.length})`;
+    }
+    sql += ' ORDER BY sc.created_at DESC';
+    if (req.query.limit) { p.push(parseInt(req.query.limit)); sql += ` LIMIT $${p.length}`; }
+    res.json((await db(sql, p)).rows);
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// Get SIZ cards for employee (for employee card page) — must be before :id route
+app.get('/api/siz-cards/by-employee/:employeeId', auth, async (req, res) => {
+  try {
+    const sql = `SELECT sc.*, i.name as item_name, i.code as item_code, i.unit, i.exploitation_years,
+      c.name as category_name, w.name as warehouse_name
+      FROM siz_cards sc
+      JOIN siz_items i ON sc.siz_item_id = i.id
+      LEFT JOIN siz_categories c ON i.category_id = c.id
+      LEFT JOIN warehouses w ON sc.warehouse_id = w.id
+      WHERE sc.employee_id = $1 AND sc.status IN ('issued','expired') AND sc.is_active = true
+      ORDER BY c.name, i.name`;
+    res.json((await db(sql, [req.params.employeeId])).rows);
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// Get single SIZ card
+app.get('/api/siz-cards/:id', auth, async (req, res) => {
+  try {
+    const sql = `SELECT sc.*, i.name as item_name, i.code as item_code, i.unit, i.exploitation_years,
+      i.gender as item_gender, i.season, c.name as category_name,
+      w.name as warehouse_name, w.warehouse_type,
+      e.last_name, e.first_name, e.middle_name, e.employee_number,
+      ent.name as enterprise_name, r.name as res_name, d.name as department_name,
+      p.name as position_name
+      FROM siz_cards sc
+      JOIN siz_items i ON sc.siz_item_id = i.id
+      LEFT JOIN siz_categories c ON i.category_id = c.id
+      LEFT JOIN warehouses w ON sc.warehouse_id = w.id
+      LEFT JOIN employees e ON sc.employee_id = e.id
+      LEFT JOIN positions p ON e.position_id = p.id
+      LEFT JOIN enterprises ent ON sc.enterprise_id = ent.id
+      LEFT JOIN res_units r ON sc.res_unit_id = r.id
+      LEFT JOIN departments d ON sc.department_id = d.id
+      WHERE sc.id = $1`;
+    const result = await db(sql, [req.params.id]);
+    if (!result.rows.length) return res.status(404).json({ error: 'Карточка не найдена' });
+    res.json(result.rows[0]);
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// Get SIZ card movement history
+app.get('/api/siz-cards/:id/movements', auth, async (req, res) => {
+  try {
+    const sql = `SELECT m.*,
+      fw.name as from_warehouse_name, tw.name as to_warehouse_name,
+      fe.last_name as from_employee_last, fe.first_name as from_employee_first,
+      te.last_name as to_employee_last, te.first_name as to_employee_first,
+      u.full_name as moved_by_name
+      FROM siz_card_movements m
+      LEFT JOIN warehouses fw ON m.from_warehouse_id = fw.id
+      LEFT JOIN warehouses tw ON m.to_warehouse_id = tw.id
+      LEFT JOIN employees fe ON m.from_employee_id = fe.id
+      LEFT JOIN employees te ON m.to_employee_id = te.id
+      LEFT JOIN users u ON m.moved_by = u.id
+      WHERE m.siz_card_id = $1
+      ORDER BY m.movement_date DESC, m.created_at DESC`;
+    res.json((await db(sql, [req.params.id])).rows);
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// Create SIZ card (поступление на склад)
+app.post('/api/siz-cards', auth, perm('can_create'), async (req, res) => {
+  try {
+    const { siz_item_id, size_value, warehouse_id, manufacture_date, document_reference, notes, card_number } = req.body;
+    if (!siz_item_id || !warehouse_id) return res.status(400).json({ error: 'siz_item_id и warehouse_id обязательны' });
+
+    // Get warehouse info for org structure
+    const wh = await db(`SELECT w.*, sp.enterprise_id as sp_ent_id FROM warehouses w
+      LEFT JOIN spbipk sp ON w.spbipk_id = sp.id WHERE w.id = $1`, [warehouse_id]);
+    if (!wh.rows.length) return res.status(404).json({ error: 'Склад не найден' });
+    const warehouse = wh.rows[0];
+    const entId = warehouse.enterprise_id || warehouse.sp_ent_id || null;
+
+    // Get exploitation years
+    const itemR = await db('SELECT exploitation_years FROM siz_items WHERE id=$1', [siz_item_id]);
+    const expYears = itemR.rows[0]?.exploitation_years;
+
+    // Generate card number if not provided
+    let cn = card_number;
+    if (!cn) {
+      const cnt = await db("SELECT COUNT(*) as c FROM siz_cards");
+      cn = 'СИЗ-' + String(parseInt(cnt.rows[0].c) + 1).padStart(6, '0');
+    }
+
+    const r = await db(`INSERT INTO siz_cards
+      (card_number, siz_item_id, size_value, location_type, warehouse_id, enterprise_id, res_unit_id,
+       manufacture_date, receipt_date, status, document_reference, notes)
+      VALUES ($1,$2,$3,'warehouse',$4,$5,$6,$7,CURRENT_DATE,'in_stock',$8,$9) RETURNING *`,
+      [cn, siz_item_id, size_value || '', warehouse_id, entId, warehouse.res_unit_id || null,
+       manufacture_date || null, document_reference || null, notes || null]);
+
+    // Log movement
+    await db(`INSERT INTO siz_card_movements (siz_card_id, movement_type, to_warehouse_id, moved_by, movement_date, document_reference, notes)
+      VALUES ($1,'receipt',$2,$3,CURRENT_DATE,$4,$5)`,
+      [r.rows[0].id, warehouse_id, req.user.id, document_reference || null, notes || null]);
+
+    // Also update warehouse_stock for compatibility
+    await db(`INSERT INTO warehouse_stock (warehouse_id, siz_item_id, size_value, quantity)
+      VALUES ($1,$2,$3,1) ON CONFLICT (warehouse_id, siz_item_id, size_value)
+      DO UPDATE SET quantity = warehouse_stock.quantity + 1`,
+      [warehouse_id, siz_item_id, size_value || '']);
+
+    await audit(req.user.id, 'siz_cards', r.rows[0].id, 'create', req.body, req.ip);
+    res.status(201).json(r.rows[0]);
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// Batch create SIZ cards
+app.post('/api/siz-cards/batch', auth, perm('can_create'), async (req, res) => {
+  try {
+    const { siz_item_id, size_value, warehouse_id, quantity, manufacture_date, document_reference, notes } = req.body;
+    if (!siz_item_id || !warehouse_id || !quantity || quantity < 1) return res.status(400).json({ error: 'siz_item_id, warehouse_id, quantity обязательны' });
+
+    const wh = await db(`SELECT w.*, sp.enterprise_id as sp_ent_id FROM warehouses w
+      LEFT JOIN spbipk sp ON w.spbipk_id = sp.id WHERE w.id = $1`, [warehouse_id]);
+    if (!wh.rows.length) return res.status(404).json({ error: 'Склад не найден' });
+    const warehouse = wh.rows[0];
+    const entId = warehouse.enterprise_id || warehouse.sp_ent_id || null;
+
+    const cnt = await db("SELECT COUNT(*) as c FROM siz_cards");
+    let num = parseInt(cnt.rows[0].c) + 1;
+    const created = [];
+
+    for (let q = 0; q < quantity; q++) {
+      const cn = 'СИЗ-' + String(num++).padStart(6, '0');
+      const r = await db(`INSERT INTO siz_cards
+        (card_number, siz_item_id, size_value, location_type, warehouse_id, enterprise_id, res_unit_id,
+         manufacture_date, receipt_date, status, document_reference, notes)
+        VALUES ($1,$2,$3,'warehouse',$4,$5,$6,$7,CURRENT_DATE,'in_stock',$8,$9) RETURNING *`,
+        [cn, siz_item_id, size_value || '', warehouse_id, entId, warehouse.res_unit_id || null,
+         manufacture_date || null, document_reference || null, notes || null]);
+      await db(`INSERT INTO siz_card_movements (siz_card_id, movement_type, to_warehouse_id, moved_by, movement_date, document_reference)
+        VALUES ($1,'receipt',$2,$3,CURRENT_DATE,$4)`,
+        [r.rows[0].id, warehouse_id, req.user.id, document_reference || null]);
+      created.push(r.rows[0]);
+    }
+
+    // Update warehouse stock
+    await db(`INSERT INTO warehouse_stock (warehouse_id, siz_item_id, size_value, quantity)
+      VALUES ($1,$2,$3,$4) ON CONFLICT (warehouse_id, siz_item_id, size_value)
+      DO UPDATE SET quantity = warehouse_stock.quantity + $4`,
+      [warehouse_id, siz_item_id, size_value || '', quantity]);
+
+    await audit(req.user.id, 'siz_cards', null, 'batch_create', { count: quantity }, req.ip);
+    res.status(201).json({ created: created.length, cards: created });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// Issue SIZ card to employee (выдача)
+app.post('/api/siz-cards/:id/issue', auth, perm('can_create'), async (req, res) => {
+  try {
+    const { employee_id, document_reference, notes, movement_date } = req.body;
+    if (!employee_id) return res.status(400).json({ error: 'employee_id обязателен' });
+
+    const card = (await db('SELECT * FROM siz_cards WHERE id=$1 AND is_active=true', [req.params.id])).rows[0];
+    if (!card) return res.status(404).json({ error: 'Карточка не найдена' });
+    if (card.status !== 'in_stock') return res.status(400).json({ error: `Нельзя выдать карточку в статусе: ${card.status}` });
+
+    const emp = (await db('SELECT * FROM employees WHERE id=$1', [employee_id])).rows[0];
+    if (!emp) return res.status(404).json({ error: 'Сотрудник не найден' });
+
+    const itemR = await db('SELECT exploitation_years FROM siz_items WHERE id=$1', [card.siz_item_id]);
+    const expYears = itemR.rows[0]?.exploitation_years;
+    const md = movement_date || new Date().toISOString().split('T')[0];
+    const expEnd = expYears ? new Date(new Date(md).getTime() + expYears * 365.25 * 24 * 60 * 60 * 1000).toISOString().split('T')[0] : null;
+
+    await db(`UPDATE siz_cards SET
+      location_type='employee', employee_id=$1, warehouse_id=NULL,
+      enterprise_id=$2, res_unit_id=$3, department_id=$4,
+      issue_date=$5, exploitation_start=$5, exploitation_end=$6, status='issued'
+      WHERE id=$7`,
+      [employee_id, emp.enterprise_id, emp.res_unit_id, emp.department_id, md, expEnd, req.params.id]);
+
+    await db(`INSERT INTO siz_card_movements (siz_card_id, movement_type, from_warehouse_id, to_employee_id, moved_by, movement_date, document_reference, notes)
+      VALUES ($1,'issue',$2,$3,$4,$5,$6,$7)`,
+      [req.params.id, card.warehouse_id, employee_id, req.user.id, md, document_reference || null, notes || null]);
+
+    // Decrease warehouse stock
+    if (card.warehouse_id) {
+      await db('UPDATE warehouse_stock SET quantity = GREATEST(quantity - 1, 0) WHERE warehouse_id=$1 AND siz_item_id=$2 AND size_value=$3',
+        [card.warehouse_id, card.siz_item_id, card.size_value]);
+    }
+
+    // Also create employee_siz record for backward compatibility
+    await db(`INSERT INTO employee_siz (employee_id, siz_item_id, size_value, quantity, issued_date, exploitation_start, from_warehouse_id)
+      VALUES ($1,$2,$3,1,$4,$5,$6)`,
+      [employee_id, card.siz_item_id, card.size_value, md, expYears ? md : null, card.warehouse_id]);
+
+    await audit(req.user.id, 'siz_cards', req.params.id, 'issue', { employee_id }, req.ip);
+    const updated = (await db('SELECT * FROM siz_cards WHERE id=$1', [req.params.id])).rows[0];
+    res.json(updated);
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// Return SIZ card from employee (возврат)
+app.post('/api/siz-cards/:id/return', auth, perm('can_create'), async (req, res) => {
+  try {
+    const { warehouse_id, document_reference, notes, movement_date } = req.body;
+    if (!warehouse_id) return res.status(400).json({ error: 'warehouse_id обязателен' });
+
+    const card = (await db('SELECT * FROM siz_cards WHERE id=$1 AND is_active=true', [req.params.id])).rows[0];
+    if (!card) return res.status(404).json({ error: 'Карточка не найдена' });
+    if (card.status !== 'issued' && card.status !== 'expired') return res.status(400).json({ error: `Нельзя вернуть карточку в статусе: ${card.status}` });
+
+    const wh = await db(`SELECT w.*, sp.enterprise_id as sp_ent_id FROM warehouses w
+      LEFT JOIN spbipk sp ON w.spbipk_id = sp.id WHERE w.id = $1`, [warehouse_id]);
+    const warehouse = wh.rows[0];
+    const entId = warehouse?.enterprise_id || warehouse?.sp_ent_id || null;
+    const md = movement_date || new Date().toISOString().split('T')[0];
+
+    await db(`UPDATE siz_cards SET
+      location_type='warehouse', warehouse_id=$1, employee_id=NULL,
+      enterprise_id=$2, res_unit_id=$3, department_id=NULL,
+      status='in_stock', issue_date=NULL, exploitation_start=NULL, exploitation_end=NULL
+      WHERE id=$4`,
+      [warehouse_id, entId, warehouse?.res_unit_id || null, req.params.id]);
+
+    await db(`INSERT INTO siz_card_movements (siz_card_id, movement_type, from_employee_id, to_warehouse_id, moved_by, movement_date, document_reference, notes)
+      VALUES ($1,'return',$2,$3,$4,$5,$6,$7)`,
+      [req.params.id, card.employee_id, warehouse_id, req.user.id, md, document_reference || null, notes || null]);
+
+    // Increase warehouse stock
+    await db(`INSERT INTO warehouse_stock (warehouse_id, siz_item_id, size_value, quantity)
+      VALUES ($1,$2,$3,1) ON CONFLICT (warehouse_id, siz_item_id, size_value)
+      DO UPDATE SET quantity = warehouse_stock.quantity + 1`,
+      [warehouse_id, card.siz_item_id, card.size_value]);
+
+    await audit(req.user.id, 'siz_cards', req.params.id, 'return', { warehouse_id }, req.ip);
+    const updated = (await db('SELECT * FROM siz_cards WHERE id=$1', [req.params.id])).rows[0];
+    res.json(updated);
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// Transfer SIZ card between warehouses
+app.post('/api/siz-cards/:id/transfer', auth, perm('can_create'), async (req, res) => {
+  try {
+    const { to_warehouse_id, document_reference, notes, movement_date } = req.body;
+    if (!to_warehouse_id) return res.status(400).json({ error: 'to_warehouse_id обязателен' });
+
+    const card = (await db('SELECT * FROM siz_cards WHERE id=$1 AND is_active=true', [req.params.id])).rows[0];
+    if (!card) return res.status(404).json({ error: 'Карточка не найдена' });
+    if (card.location_type !== 'warehouse') return res.status(400).json({ error: 'Перемещение возможно только со склада' });
+
+    const wh = await db(`SELECT w.*, sp.enterprise_id as sp_ent_id FROM warehouses w
+      LEFT JOIN spbipk sp ON w.spbipk_id = sp.id WHERE w.id = $1`, [to_warehouse_id]);
+    const warehouse = wh.rows[0];
+    const entId = warehouse?.enterprise_id || warehouse?.sp_ent_id || null;
+    const md = movement_date || new Date().toISOString().split('T')[0];
+
+    const fromWhId = card.warehouse_id;
+    await db(`UPDATE siz_cards SET warehouse_id=$1, enterprise_id=$2, res_unit_id=$3 WHERE id=$4`,
+      [to_warehouse_id, entId, warehouse?.res_unit_id || null, req.params.id]);
+
+    await db(`INSERT INTO siz_card_movements (siz_card_id, movement_type, from_warehouse_id, to_warehouse_id, moved_by, movement_date, document_reference, notes)
+      VALUES ($1,'transfer',$2,$3,$4,$5,$6,$7)`,
+      [req.params.id, fromWhId, to_warehouse_id, req.user.id, md, document_reference || null, notes || null]);
+
+    // Update warehouse stocks
+    if (fromWhId) {
+      await db('UPDATE warehouse_stock SET quantity = GREATEST(quantity - 1, 0) WHERE warehouse_id=$1 AND siz_item_id=$2 AND size_value=$3',
+        [fromWhId, card.siz_item_id, card.size_value]);
+    }
+    await db(`INSERT INTO warehouse_stock (warehouse_id, siz_item_id, size_value, quantity)
+      VALUES ($1,$2,$3,1) ON CONFLICT (warehouse_id, siz_item_id, size_value)
+      DO UPDATE SET quantity = warehouse_stock.quantity + 1`,
+      [to_warehouse_id, card.siz_item_id, card.size_value]);
+
+    await audit(req.user.id, 'siz_cards', req.params.id, 'transfer', { from: fromWhId, to: to_warehouse_id }, req.ip);
+    const updated = (await db('SELECT * FROM siz_cards WHERE id=$1', [req.params.id])).rows[0];
+    res.json(updated);
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// Write off SIZ card (списание)
+app.post('/api/siz-cards/:id/write-off', auth, perm('can_create'), async (req, res) => {
+  try {
+    const { document_reference, notes, movement_date } = req.body;
+    const card = (await db('SELECT * FROM siz_cards WHERE id=$1 AND is_active=true', [req.params.id])).rows[0];
+    if (!card) return res.status(404).json({ error: 'Карточка не найдена' });
+    const md = movement_date || new Date().toISOString().split('T')[0];
+
+    await db(`UPDATE siz_cards SET location_type='written_off', status='written_off', warehouse_id=NULL, employee_id=NULL WHERE id=$1`, [req.params.id]);
+
+    await db(`INSERT INTO siz_card_movements (siz_card_id, movement_type, from_warehouse_id, from_employee_id, moved_by, movement_date, document_reference, notes)
+      VALUES ($1,'write_off',$2,$3,$4,$5,$6,$7)`,
+      [req.params.id, card.warehouse_id, card.employee_id, req.user.id, md, document_reference || null, notes || null]);
+
+    await audit(req.user.id, 'siz_cards', req.params.id, 'write_off', {}, req.ip);
+    res.json({ message: 'Карточка списана' });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// Stats for SIZ cards
+app.get('/api/siz-cards-stats', auth, async (req, res) => {
+  try {
+    let where = 'sc.is_active = true';
+    const p = [];
+    if (['enterprise', 'spbipk'].includes(req.user.role_level)) {
+      p.push(req.user.enterprise_id); where += ` AND sc.enterprise_id=$${p.length}`;
+    } else if (req.user.role_level === 'res') {
+      p.push(req.user.res_unit_id); where += ` AND sc.res_unit_id=$${p.length}`;
+    }
+    const total = (await db(`SELECT COUNT(*) as c FROM siz_cards sc WHERE ${where}`, p)).rows[0].c;
+    const issued = (await db(`SELECT COUNT(*) as c FROM siz_cards sc WHERE ${where} AND sc.status='issued'`, p)).rows[0].c;
+    const inStock = (await db(`SELECT COUNT(*) as c FROM siz_cards sc WHERE ${where} AND sc.status='in_stock'`, p)).rows[0].c;
+    const expired = (await db(`SELECT COUNT(*) as c FROM siz_cards sc WHERE ${where} AND sc.exploitation_end < CURRENT_DATE AND sc.status='issued'`, p)).rows[0].c;
+    const writtenOff = (await db(`SELECT COUNT(*) as c FROM siz_cards sc WHERE ${where} AND sc.status='written_off'`, p)).rows[0].c;
+    res.json({ total: +total, issued: +issued, in_stock: +inStock, expired: +expired, written_off: +writtenOff });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
 app.delete('/api/warehouses/:id', auth, perm('can_delete'), async (req, res) => {
   try {
     const stock = await db('SELECT SUM(quantity) as total FROM warehouse_stock WHERE warehouse_id=$1', [req.params.id]);
@@ -1110,6 +1466,45 @@ async function initDB() {
         status VARCHAR(20) DEFAULT 'active',
         returned_date DATE,
         from_warehouse_id UUID REFERENCES warehouses(id),
+        created_at TIMESTAMPTZ DEFAULT NOW()
+      );
+
+      CREATE TABLE IF NOT EXISTS siz_cards (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        card_number VARCHAR(50) UNIQUE NOT NULL,
+        siz_item_id UUID NOT NULL REFERENCES siz_items(id),
+        size_value VARCHAR(30) DEFAULT '',
+        location_type VARCHAR(20) NOT NULL DEFAULT 'warehouse',
+        warehouse_id UUID REFERENCES warehouses(id),
+        employee_id UUID REFERENCES employees(id),
+        enterprise_id UUID REFERENCES enterprises(id),
+        res_unit_id UUID REFERENCES res_units(id),
+        department_id UUID REFERENCES departments(id),
+        manufacture_date DATE,
+        receipt_date DATE DEFAULT CURRENT_DATE,
+        issue_date DATE,
+        exploitation_start DATE,
+        exploitation_end DATE,
+        status VARCHAR(20) DEFAULT 'in_stock',
+        document_reference VARCHAR(255),
+        notes TEXT,
+        extra JSONB DEFAULT '{}',
+        is_active BOOLEAN DEFAULT true,
+        created_at TIMESTAMPTZ DEFAULT NOW()
+      );
+
+      CREATE TABLE IF NOT EXISTS siz_card_movements (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        siz_card_id UUID NOT NULL REFERENCES siz_cards(id),
+        movement_type VARCHAR(20) NOT NULL,
+        from_warehouse_id UUID REFERENCES warehouses(id),
+        to_warehouse_id UUID REFERENCES warehouses(id),
+        from_employee_id UUID REFERENCES employees(id),
+        to_employee_id UUID REFERENCES employees(id),
+        document_reference VARCHAR(255),
+        notes TEXT,
+        moved_by UUID REFERENCES users(id),
+        movement_date DATE NOT NULL DEFAULT CURRENT_DATE,
         created_at TIMESTAMPTZ DEFAULT NOW()
       );
 
