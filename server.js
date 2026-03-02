@@ -1340,11 +1340,16 @@ app.post('/api/import/siz-items', auth, perm('can_create'), levelCheck(['ia', 's
       if (!r.name) continue;
       const expMonths = r.exploitation_months ? parseInt(r.exploitation_months) : (r.exploitation_years ? Math.round(parseFloat(r.exploitation_years) * 12) : null);
       const expYears = expMonths ? +(expMonths / 12).toFixed(2) : null;
-      await db(`INSERT INTO siz_items (name, code, category_id, gender, season, exploitation_months, exploitation_years, unit)
-        VALUES ($1,$2,$3,$4,$5,$6,$7,$8)`,
-        [r.name, r.code||null, r.category_id||null, r.gender||null, r.season||null,
-         expMonths, expYears, r.unit||'шт']);
-      imported++;
+      try {
+        await db(`INSERT INTO siz_items (name, code, category_id, gender, season, exploitation_months, exploitation_years, unit)
+          VALUES ($1,$2,$3,$4,$5,$6,$7,$8)`,
+          [r.name, r.code||null, r.category_id||null, r.gender||null, r.season||null,
+           expMonths, expYears, r.unit||'шт']);
+        imported++;
+      } catch (rowErr) {
+        console.error('Import row error:', r.name, rowErr.message);
+        throw new Error(`Ошибка в строке «${r.name}»: ${rowErr.message}`);
+      }
     }
     await audit(req.user.id, 'siz_items', null, 'bulk_import', { count: imported }, req.ip);
     res.json({ imported });
@@ -1468,8 +1473,8 @@ async function initDB() {
         code VARCHAR(50),
         unit VARCHAR(50) DEFAULT 'шт',
         wear_period_months INTEGER DEFAULT 12,
-        gender VARCHAR(10),
-        season VARCHAR(20),
+        gender VARCHAR(20),
+        season VARCHAR(30),
         exploitation_months INTEGER DEFAULT 12,
         exploitation_years NUMERIC,
         extra JSONB DEFAULT '{}',
@@ -1664,6 +1669,8 @@ async function initDB() {
 
     // === Expand name fields for long SIZ names ===
     await pool.query("ALTER TABLE siz_items ALTER COLUMN name TYPE TEXT");
+    await pool.query("ALTER TABLE siz_items ALTER COLUMN gender TYPE VARCHAR(20)");
+    await pool.query("ALTER TABLE siz_items ALTER COLUMN season TYPE VARCHAR(30)");
     await pool.query("ALTER TABLE siz_categories ALTER COLUMN name TYPE TEXT");
     await pool.query("ALTER TABLE positions ALTER COLUMN name TYPE TEXT");
 
