@@ -593,7 +593,7 @@ const Warehouses = () => {
     const it = items.find(i => i.id === itemId);
     if (!it) return null;
     const cn = (it.category_code || it.category_name || '').toLowerCase();
-    if (cn.includes('одежд') || cn === 'clothes') return 'clothing';
+    if (cn.includes('одежд') || cn.includes('спецодежд') || cn === 'clothes') return 'clothing';
     if (cn.includes('обувь') || cn === 'shoes') return 'shoes';
     if (cn.includes('каск') || cn === 'helmets') return 'head';
     if (cn.includes('перчат') || cn === 'gloves') return 'gloves';
@@ -1020,20 +1020,38 @@ const TonPage = () => {
   const { isLevel, showToast } = useAuth();
   const [positions, setPositions] = useState([]);
   const [items, setItems] = useState([]);
+  const [categories, setCategories] = useState([]);
   const [norms, setNorms] = useState([]);
   const [selPos, setSelPos] = useState('');
-  const [modal, setModal] = useState(false);
   const [selItem, setSelItem] = useState('');
+  const [tonCat, setTonCat] = useState('');
+  const [tonSearch, setTonSearch] = useState('');
+  const [posSearch, setPosSearch] = useState('');
   const [loading, setLoading] = useState(true);
   const canEdit = isLevel('ia', 'spbipk');
 
   useEffect(() => {
-    Promise.all([apiGet('/positions'), apiGet('/siz/items'), apiGet('/ton')]).then(([p, i, n]) => {
-      setPositions(p); setItems(i); setNorms(n); setLoading(false);
+    Promise.all([apiGet('/positions'), apiGet('/siz/items'), apiGet('/siz/categories'), apiGet('/ton')]).then(([p, i, c, n]) => {
+      setPositions(p); setItems(i); setCategories(c); setNorms(n); setLoading(false);
     });
   }, []);
 
   const posNorms = norms.filter(n => n.position_id === selPos);
+
+  // Фильтрованные СИЗ для добавления (исключая уже привязанные)
+  const availableItems = items.filter(i => {
+    if (posNorms.some(n => n.siz_item_id === i.id)) return false;
+    if (tonCat && i.category_id !== tonCat) return false;
+    if (tonSearch && !i.name.toLowerCase().includes(tonSearch.toLowerCase()) && !(i.code||'').toLowerCase().includes(tonSearch.toLowerCase())) return false;
+    return true;
+  });
+
+  // Фильтр должностей по поиску
+  const filteredPositions = positions.filter(p =>
+    !posSearch || p.name.toLowerCase().includes(posSearch.toLowerCase()) || (p.res_name||'').toLowerCase().includes(posSearch.toLowerCase()) || (p.department_name||'').toLowerCase().includes(posSearch.toLowerCase())
+  );
+
+  const expLabel = (m) => m ? (m >= 12 ? (m % 12 === 0 ? `${m/12} г.` : `${m} мес.`) : `${m} мес.`) : '';
 
   const addNorm = async () => {
     if (!selItem || !selPos) return;
@@ -1057,33 +1075,54 @@ const TonPage = () => {
       <button className="btn btn-o btn-sm" onClick={() => exportExcel(norms.map(n => ({'Должность':n.position_name,'Код должности':n.position_code,'Категория':n.category_name,'СИЗ':n.item_name,'Код СИЗ':n.item_code,'Ед.':n.unit})), 'ТОН.xlsx', 'ТОН')}>Экспорт Excel</button>
     </div>
     <div className="card"><div className="card-body">
-      <div className="fg"><label>Должность</label>
-        <select className="fc" value={selPos} onChange={e => setSelPos(e.target.value)} style={{ maxWidth: 500 }}>
-          <option value="">— Выберите должность —</option>
-          {positions.map(p => <option key={p.id} value={p.id}>{p.name}{p.res_name ? ` (${p.res_name})` : ''}{p.department_name ? ` → ${p.department_name}` : ''}</option>)}
+      <div className="fg" style={{marginBottom:16}}>
+        <label>Должность</label>
+        <input className="fc" placeholder="Поиск должности..." value={posSearch} onChange={e => setPosSearch(e.target.value)} style={{maxWidth:500,marginBottom:6}} />
+        <select className="fc" value={selPos} onChange={e => { setSelPos(e.target.value); setTonCat(''); setTonSearch(''); setSelItem(''); }} style={{ maxWidth: 500 }}>
+          <option value="">— Выберите должность ({filteredPositions.length}) —</option>
+          {filteredPositions.map(p => <option key={p.id} value={p.id}>{p.name}{p.enterprise_name ? ` | ${p.enterprise_name}` : ''}{p.res_name ? ` → ${p.res_name}` : ''}{p.department_name ? ` → ${p.department_name}` : ''}</option>)}
         </select>
       </div>
 
       {selPos && <>
-        {canEdit && <div style={{ display: 'flex', gap: 8, marginBottom: 16, alignItems: 'flex-end' }}>
-          <div className="fg" style={{ flex: 1, marginBottom: 0 }}>
-            <label>Добавить СИЗ</label>
-            <select className="fc" value={selItem} onChange={e => setSelItem(e.target.value)}>
-              <option value="">— Выберите СИЗ —</option>
-              {items.filter(i => !posNorms.some(n => n.siz_item_id === i.id)).map(i => <option key={i.id} value={i.id}>{i.name} ({i.category_name || '—'})</option>)}
-            </select>
+        {canEdit && <div style={{padding:14,background:'var(--blue-l)',borderRadius:10,marginBottom:16}}>
+          <div style={{fontSize:12,fontWeight:700,color:'var(--blue)',marginBottom:10}}>Добавить СИЗ в норму</div>
+
+          <div style={{display:'flex',gap:6,marginBottom:10,flexWrap:'wrap'}}>
+            {categories.map(c => <button key={c.id}
+              className={`btn btn-sm ${tonCat === c.id ? 'btn-p' : 'btn-o'}`}
+              onClick={() => { setTonCat(tonCat === c.id ? '' : c.id); setSelItem(''); }}
+              style={{fontSize:11,padding:'4px 12px'}}>
+              {c.name}
+            </button>)}
+            {tonCat && <button className="btn btn-sm btn-o" onClick={() => { setTonCat(''); setSelItem(''); }} style={{fontSize:11,padding:'4px 12px',color:'var(--red)'}}>✕ Сбросить</button>}
           </div>
-          <button className="btn btn-p" onClick={addNorm} disabled={!selItem}><IC.plus style={{ width: 14, height: 14 }} /> Добавить</button>
+
+          <div className="fg" style={{marginBottom:10}}>
+            <input className="fc" placeholder="Поиск по названию или коду СИЗ..." value={tonSearch} onChange={e => { setTonSearch(e.target.value); setSelItem(''); }} />
+          </div>
+
+          <div style={{display:'flex',gap:8,alignItems:'flex-end'}}>
+            <div className="fg" style={{ flex: 1, marginBottom: 0 }}>
+              <select className="fc" value={selItem} onChange={e => setSelItem(e.target.value)}>
+                <option value="">{availableItems.length ? `— Выберите СИЗ (${availableItems.length}) —` : '— Нет результатов —'}</option>
+                {availableItems.map(i => <option key={i.id} value={i.id}>{i.category_name ? `[${i.category_name}] ` : ''}{i.name}{i.code ? ` [${i.code}]` : ''}{expLabel(i.exploitation_months) ? ` — ${expLabel(i.exploitation_months)}` : ''}</option>)}
+              </select>
+            </div>
+            <button className="btn btn-p" onClick={addNorm} disabled={!selItem}><IC.plus style={{ width: 14, height: 14 }} /> Добавить</button>
+          </div>
         </div>}
 
-        <div className="tbl-wrap"><table><thead><tr><th>Категория</th><th>Наименование</th><th>Код</th><th>Ед.</th>{canEdit && <th>Действия</th>}</tr></thead>
+        <div style={{fontSize:13,fontWeight:700,marginBottom:8,color:'var(--tx1)'}}>Привязанные СИЗ ({posNorms.length})</div>
+        <div className="tbl-wrap"><table><thead><tr><th>Категория</th><th>Наименование</th><th>Код</th><th>Срок</th><th>Ед.</th>{canEdit && <th>Действия</th>}</tr></thead>
           <tbody>{posNorms.length ? posNorms.map(n => <tr key={n.id}>
             <td><span className="badge b-gray">{n.category_name || '—'}</span></td>
             <td style={{ fontWeight: 600 }}>{n.item_name}</td>
             <td>{n.item_code || '—'}</td>
+            <td style={{fontFamily:'JetBrains Mono',fontSize:12}}>{expLabel(n.exploitation_months) || (n.exploitation_years ? `${n.exploitation_years} г.` : '—')}</td>
             <td>{n.unit || 'шт'}</td>
             {canEdit && <td><button className="btn-icon" onClick={() => delNorm(n.id)}><IC.trash style={{ width: 14, height: 14, color: 'var(--red)' }} /></button></td>}
-          </tr>) : <tr><td colSpan="5"><Empty icon={IC.link} text="Нет привязанных СИЗ" /></td></tr>}
+          </tr>) : <tr><td colSpan="6"><Empty icon={IC.link} text="Нет привязанных СИЗ" /></td></tr>}
           </tbody>
         </table></div>
       </>}
