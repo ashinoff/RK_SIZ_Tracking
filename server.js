@@ -1663,7 +1663,11 @@ async function initDB() {
     await pool.query("ALTER TABLE siz_items ADD COLUMN IF NOT EXISTS exploitation_months INTEGER DEFAULT 12");
 
     // === Seed default SIZ categories ===
-    await pool.query("UPDATE siz_categories SET name='Спецодежда' WHERE name='Одежда'");
+    // One-time: rename old 'Одежда' and remove duplicates
+    await pool.query("UPDATE siz_categories SET name='Спецодежда' WHERE name='Одежда' AND NOT EXISTS (SELECT 1 FROM siz_categories WHERE name='Спецодежда')");
+    await pool.query(`DELETE FROM siz_categories WHERE id IN (
+      SELECT id FROM (SELECT id, ROW_NUMBER() OVER (PARTITION BY name ORDER BY created_at ASC) as rn FROM siz_categories) t WHERE rn > 1
+    )`);
     const existingCats = (await pool.query("SELECT name FROM siz_categories")).rows.map(r => r.name);
     const defaultCats = [
       ['Спецодежда', 'clothes'], ['Обувь', 'shoes'], ['Каски', 'helmets'],
