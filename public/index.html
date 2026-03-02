@@ -194,6 +194,7 @@ const apiGet = (url) => api(url);
 const apiPost = (url, body) => api(url, { method: 'POST', body: JSON.stringify(body) });
 const apiPut = (url, body) => api(url, { method: 'PUT', body: JSON.stringify(body) });
 const apiDel = (url, body) => api(url, { method: 'DELETE', body: body ? JSON.stringify(body) : undefined });
+const confirmDel = (msg) => { const p = prompt(msg + '\n\nВведите пароль для подтверждения:'); return p === '2233'; };
 
 // ═══════ EXCEL UTILS ═══════
 const exportExcel = (data, filename, sheetName = 'Данные') => {
@@ -953,7 +954,7 @@ const Directories = () => {
   };
 
   const delItem = async (id, name) => {
-    if (!confirm(`Удалить «${name}»?`)) return;
+    if (!confirmDel(`Удалить «${name}»?`)) return;
     try { await apiDel(`/siz/items/${id}`); showToast('Удалено'); reload(); }
     catch (e) { showToast(e.message, 'error'); }
   };
@@ -970,7 +971,7 @@ const Directories = () => {
   const delCat = async (id, name) => {
     const catItems = items.filter(i => i.category_id === id);
     if (catItems.length) return showToast(`Нельзя удалить «${name}» — в ней ${catItems.length} позиций. Сначала удалите или перенесите их.`, 'error');
-    if (!confirm(`Удалить категорию «${name}»?`)) return;
+    if (!confirmDel(`Удалить категорию «${name}»?`)) return;
     try { await apiDel(`/siz/categories/${id}`); showToast('Категория удалена'); if (selCat === id) setSelCat(''); reload(); }
     catch (e) { showToast(e.message, 'error'); }
   };
@@ -1109,6 +1110,7 @@ const TonPage = () => {
   };
 
   const delNorm = async (id) => {
+    if (!confirmDel('Удалить норму?')) return;
     try { await apiDel(`/ton/${id}`); showToast('Удалено'); setNorms(await apiGet('/ton')); }
     catch (e) { showToast(e.message, 'error'); }
   };
