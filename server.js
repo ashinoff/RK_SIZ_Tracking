@@ -1356,6 +1356,58 @@ app.post('/api/import/siz-items', auth, perm('can_create'), levelCheck(['ia', 's
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
+// ============ IMPORT: STOCK (Приход по реестру) ============
+
+app.post('/api/import/stock', auth, perm('can_create'), levelCheck(['ia']), async (req, res) => {
+  try {
+    const { warehouse_id, rows, document_reference } = req.body;
+    if (!warehouse_id) return res.status(400).json({ error: 'warehouse_id обязателен' });
+    if (!rows?.length) return res.status(400).json({ error: 'Нет данных для импорта' });
+
+    const wh = await db('SELECT * FROM warehouses WHERE id=$1 AND is_active=true', [warehouse_id]);
+    if (!wh.rows.length) return res.status(404).json({ error: 'Склад не найден' });
+
+    const docRef = document_reference?.trim() || `Импорт остатков ${new Date().toLocaleDateString('ru-RU')}`;
+    const today = new Date().toISOString().split('T')[0];
+    let imported = 0;
+    const skipped = [];
+    const errors = [];
+
+    for (const row of rows) {
+      const { siz_item_id, size_value, quantity } = row;
+      const qty = parseInt(quantity);
+      if (!siz_item_id || isNaN(qty) || qty <= 0) {
+        skipped.push({ siz_item_id, size_value, reason: 'qty=0 или нет id' });
+        continue;
+      }
+      const sv = (size_value || '').trim();
+      // Verify item exists
+      const itemCheck = await db('SELECT id FROM siz_items WHERE id=$1 AND is_active=true', [siz_item_id]);
+      if (!itemCheck.rows.length) {
+        errors.push({ siz_item_id, error: 'СИЗ не найден' });
+        continue;
+      }
+      try {
+        await db(`INSERT INTO warehouse_stock (warehouse_id, siz_item_id, size_value, quantity)
+          VALUES ($1,$2,$3,$4) ON CONFLICT (warehouse_id, siz_item_id, size_value)
+          DO UPDATE SET quantity = warehouse_stock.quantity + $4`,
+          [warehouse_id, siz_item_id, sv, qty]);
+        await db(`INSERT INTO stock_movements
+          (movement_type, siz_item_id, size_value, quantity, to_warehouse_id, document_reference, notes, moved_by, movement_date)
+          VALUES ('receipt',$1,$2,$3,$4,$5,'Импорт остатков по реестру',$6,$7)`,
+          [siz_item_id, sv, qty, warehouse_id, docRef, req.user.id, today]);
+        imported++;
+      } catch (rowErr) {
+        errors.push({ siz_item_id, size_value: sv, error: rowErr.message });
+      }
+    }
+
+    await audit(req.user.id, 'warehouse_stock', null, 'bulk_import',
+      { warehouse_id, count: imported, skipped: skipped.length, errors: errors.length }, req.ip);
+    res.json({ imported, skipped: skipped.length, errors });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
 // ============ HEALTH ============
 app.get('/api/health', (req, res) => res.json({ status: 'ok', timestamp: new Date().toISOString() }));
 
