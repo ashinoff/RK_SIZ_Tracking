@@ -548,6 +548,12 @@ const Warehouses = () => {
   const [editStockNotes, setEditStockNotes] = useState('');
   const [deleteStockModal, setDeleteStockModal] = useState(null); // {id, item_name, size_value}
   const [whGroupCollapsed, setWhGroupCollapsed] = useState({});
+  const [issueModal, setIssueModal] = useState(false);
+  const [issueForm, setIssueForm] = useState({});
+  const [issueCat, setIssueCat] = useState('');
+  const [issueSearch, setIssueSearch] = useState('');
+  const [whEmployees, setWhEmployees] = useState([]);
+  const [empSearch, setEmpSearch] = useState('');
   const [importPhase, setImportPhase] = useState(1);
   const [importRows, setImportRows] = useState([]);
   const [importDoc, setImportDoc] = useState('');
@@ -566,6 +572,7 @@ const Warehouses = () => {
   const loadStock = (id) => {
     apiGet(`/warehouses/${id}/stock`).then(setStock);
     apiGet(`/warehouses/${id}/movements`).then(setMovements);
+    apiGet(`/warehouses/${id}/employees`).then(setWhEmployees).catch(() => setWhEmployees([]));
   };
   useEffect(() => { if (selected) loadStock(selected); }, [selected]);
 
@@ -724,6 +731,24 @@ const Warehouses = () => {
     setImportLoading(false);
   };
 
+  const doIssueToEmployee = async () => {
+    if (!issueForm.employee_id || !issueForm.siz_item_id || !issueForm.quantity) return;
+    try {
+      const payload = {
+        employee_id: issueForm.employee_id,
+        siz_item_id: issueForm.siz_item_id,
+        warehouse_id: selected,
+        quantity: parseInt(issueForm.quantity),
+        movement_date: issueForm.movement_date || new Date().toISOString().split('T')[0],
+        document_reference: issueForm.document_reference || '',
+      };
+      await apiPost('/siz-cards/batch-issue', payload);
+      showToast('СИЗ выдано сотруднику');
+      setIssueModal(false); setIssueForm({}); setIssueCat(''); setIssueSearch(''); setEmpSearch('');
+      loadStock(selected);
+    } catch (e) { showToast(e.message, 'error'); }
+  };
+
   const doEditStock = async () => {
     if (!editStockModal) return;
     try {
@@ -743,6 +768,7 @@ const Warehouses = () => {
   const canTransfer = isLevel('ia', 'spbipk', 'res');
   const canReceipt = isLevel('ia');
   const canAdmin = isLevel('ia');
+  const canIssue = isLevel('ia', 'spbipk', 'res');
 
   const CLOTHING_SIZES = ['40-42/158-164','40-42/170-176','40-42/182-188','40-42/194-200','44-46/158-164','44-46/170-176','44-46/182-188','44-46/194-200','48-50/158-164','48-50/170-176','48-50/182-188','48-50/194-200','52-54/158-164','52-54/170-176','52-54/182-188','52-54/194-200','56-58/158-164','56-58/170-176','56-58/182-188','56-58/194-200','60-62/158-164','60-62/170-176','60-62/182-188','60-62/194-200','64-66/158-164','64-66/170-176','64-66/182-188','64-66/194-200','68-70/158-164','68-70/170-176','68-70/182-188','68-70/194-200','72-74/158-164','72-74/170-176','72-74/182-188','72-74/194-200'];
   const SHOE_SIZES = Array.from({length:15},(_,i)=>String(35+i));
@@ -841,6 +867,9 @@ const Warehouses = () => {
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
           Импорт остатков
         </button>}
+        {canIssue && stock.length > 0 && <button className="btn btn-sm" style={{background:'#F0FDF4',color:'#166534',border:'1px solid #BBF7D0'}} onClick={() => { setIssueForm({quantity:1}); setIssueCat(''); setIssueSearch(''); setEmpSearch(''); setIssueModal(true); }}>
+          <IC.user style={{width:14,height:14}}/> Выдать сотруднику
+        </button>}
         {canTransfer && <button className="btn btn-sm" style={{background:'var(--blue-l)',color:'#1E40AF',border:'1px solid var(--blue-l2)'}} onClick={() => { setTf({}); setTfCat(''); setTfSearch(''); setTransferModal(true); }}><IC.arrowRight style={{ width: 14, height: 14 }} /> Переместить</button>}
         <button className="btn btn-sm" style={{background:'#F8FAFC',color:'var(--tx2)',border:'1px solid var(--border)'}} onClick={() => exportExcel(stock.map(s => ({'Категория':s.category_name,'Наименование':s.item_name,'Код':s.item_code,'Размер':s.size_value,'Кол-во':s.quantity,'Ед.':s.unit})), 'Остатки.xlsx', 'Остатки')}>Экспорт остатков</button>
         <button className="btn btn-sm" style={{background:'#F8FAFC',color:'var(--tx2)',border:'1px solid var(--border)'}} onClick={() => exportExcel(movements.map(m => ({'Тип':m.movement_type,'СИЗ':m.item_name,'Кол-во':m.quantity,'Откуда':m.from_warehouse_name,'Куда':m.to_warehouse_name,'Дата':m.movement_date,'Кто':m.moved_by_name})), 'Перемещения.xlsx', 'Перемещения')}>Экспорт движений</button>
@@ -924,6 +953,116 @@ const Warehouses = () => {
         </tr>) : <tr><td colSpan="7"><Empty text="Нет движений" /></td></tr>}
       </tbody></table></div></div></div>}
     </>}
+
+    {/* Issue to employee modal */}
+    <Modal open={issueModal} onClose={() => setIssueModal(false)} title="Выдача СИЗ сотруднику" wide
+      footer={<>
+        <button className="btn btn-sm" style={{background:'#F1F5F9',color:'var(--tx2)',border:'1px solid var(--border)'}} onClick={() => setIssueModal(false)}>Отмена</button>
+        <button className="btn btn-sm" style={{background:'#F0FDF4',color:'#166534',border:'1px solid #BBF7D0'}} onClick={doIssueToEmployee}>Выдать</button>
+      </>}>
+
+      {/* Org hint */}
+      {(() => {
+        const wh = warehouses.find(w => w.id === selected);
+        const hint = wh?.res_name ? `сотрудники РЭС: ${wh.res_name}` : wh?.enterprise_name ? `сотрудники: ${wh.enterprise_name}` : 'все сотрудники';
+        return <div style={{padding:'8px 12px',background:'var(--blue-l)',borderRadius:8,marginBottom:14,fontSize:12,display:'flex',alignItems:'center',gap:8}}>
+          <IC.building style={{width:13,height:13,color:'var(--blue)',flexShrink:0}}/>
+          <span>Выдача привязана к оргструктуре — {hint}</span>
+        </div>;
+      })()}
+
+      {/* Employee search + select */}
+      <div className="fg">
+        <label>Сотрудник *</label>
+        <div style={{marginBottom:6}}>
+          <div className="search-box">
+            <IC.search/>
+            <input className="fc" style={{paddingLeft:36}} placeholder="Поиск по фамилии..."
+              value={empSearch} onChange={e => setEmpSearch(e.target.value)} />
+          </div>
+        </div>
+        {(() => {
+          const filtered = whEmployees.filter(e => {
+            if (!empSearch) return true;
+            const q = empSearch.toLowerCase();
+            return (e.last_name||'').toLowerCase().includes(q) || (e.first_name||'').toLowerCase().includes(q);
+          });
+          return <select className="fc" value={issueForm.employee_id||''} onChange={e => setIssueForm({...issueForm, employee_id: e.target.value})}>
+            <option value="">{filtered.length ? `— Выберите сотрудника (${filtered.length}) —` : '— Нет сотрудников —'}</option>
+            {filtered.map(e => <option key={e.id} value={e.id}>
+              {e.last_name} {e.first_name} {e.middle_name||''}{e.position_name ? ` — ${e.position_name}` : ''}{e.department_name ? ` (${e.department_name})` : ''}
+            </option>)}
+          </select>;
+        })()}
+        {!whEmployees.length && <div style={{marginTop:6,fontSize:12,color:'var(--amber)',fontWeight:600}}>Нет сотрудников, привязанных к этому подразделению</div>}
+      </div>
+
+      {/* SIZ category filter */}
+      <div style={{display:'flex',gap:6,flexWrap:'wrap',marginBottom:10}}>
+        {categories.map(c => {
+          const has = stock.some(s => s.category_name === c.name && s.quantity > 0);
+          if (!has) return null;
+          return <button key={c.id} onClick={() => { setIssueCat(issueCat===c.id?'':c.id); setIssueForm({...issueForm, siz_item_id:''}); }}
+            style={{padding:'3px 10px',borderRadius:6,fontSize:11,fontWeight:600,cursor:'pointer',border:'1px solid',transition:'all .15s',
+              background:issueCat===c.id?'var(--blue-l)':'#F8FAFC',
+              color:issueCat===c.id?'#1D4ED8':'var(--tx2)',
+              borderColor:issueCat===c.id?'var(--blue-l2)':'var(--border)'}}>
+            {c.name}
+          </button>;
+        })}
+        {issueCat && <button onClick={() => { setIssueCat(''); setIssueSearch(''); setIssueForm({...issueForm, siz_item_id:''}); }}
+          style={{padding:'3px 10px',borderRadius:6,fontSize:11,fontWeight:600,cursor:'pointer',border:'1px solid var(--red-l2)',background:'var(--red-l)',color:'#B91C1C'}}>
+          Сбросить
+        </button>}
+      </div>
+
+      {/* SIZ search + select */}
+      <div className="fg">
+        <div className="search-box" style={{marginBottom:6}}>
+          <IC.search/>
+          <input className="fc" style={{paddingLeft:36}} placeholder="Поиск по названию или коду..."
+            value={issueSearch} onChange={e => { setIssueSearch(e.target.value); setIssueForm({...issueForm, siz_item_id:''}); }} />
+        </div>
+        {(() => {
+          const filtered = stock.filter(s => {
+            if (s.quantity <= 0) return false;
+            if (issueCat && s.category_name !== categories.find(c=>c.id===issueCat)?.name) return false;
+            if (issueSearch) { const q = issueSearch.toLowerCase(); if (!s.item_name?.toLowerCase().includes(q) && !(s.item_code||'').toLowerCase().includes(q)) return false; }
+            return true;
+          });
+          return <>
+            <select className="fc" value={issueForm.siz_item_id||''} onChange={e => setIssueForm({...issueForm, siz_item_id: e.target.value, size_value: filtered.find(s=>s.siz_item_id===e.target.value)?.size_value||''})}>
+              <option value="">{filtered.length ? `— Выберите СИЗ (${filtered.length}) —` : '— Нет в наличии —'}</option>
+              {filtered.map(s => <option key={s.id} value={s.siz_item_id}>
+                {s.item_name}{s.size_value?` [${s.size_value}]`:''} — ост: {s.quantity} {s.unit||'шт'}
+              </option>)}
+            </select>
+            {issueForm.siz_item_id && (() => {
+              const chosen = filtered.find(s => s.siz_item_id === issueForm.siz_item_id);
+              if (!chosen) return null;
+              return <div style={{marginTop:6,padding:'6px 12px',background:'var(--green-l)',borderRadius:6,fontSize:12,display:'flex',alignItems:'center',gap:8}}>
+                <IC.package style={{width:13,height:13,color:'var(--green)',flexShrink:0}}/>
+                <span style={{fontWeight:600}}>{chosen.item_name}</span>
+                {chosen.category_name && <span className="badge b-blue" style={{fontSize:10}}>{chosen.category_name}</span>}
+                <span style={{marginLeft:'auto',fontFamily:'JetBrains Mono',fontWeight:700,color:'var(--green)'}}>ост: {chosen.quantity}</span>
+              </div>;
+            })()}
+          </>;
+        })()}
+      </div>
+
+      <div className="fr">
+        <div className="fg"><label>Количество *</label>
+          <input className="fc" type="number" min="1" value={issueForm.quantity||1} onChange={e => setIssueForm({...issueForm, quantity: e.target.value})} />
+        </div>
+        <div className="fg"><label>Дата выдачи</label>
+          <input className="fc" type="date" value={issueForm.movement_date||''} onChange={e => setIssueForm({...issueForm, movement_date: e.target.value})} />
+        </div>
+      </div>
+      <div className="fg"><label>Документ-основание</label>
+        <input className="fc" value={issueForm.document_reference||''} onChange={e => setIssueForm({...issueForm, document_reference: e.target.value})} placeholder="Ведомость, накладная..." />
+      </div>
+    </Modal>
 
     {/* Edit stock modal */}
     <Modal open={!!editStockModal} onClose={() => setEditStockModal(null)} title="Корректировка остатка"
@@ -1990,7 +2129,8 @@ const SizCardsPage = ({ navigate }) => {
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
   const [locationFilter, setLocationFilter] = useState('');
-  const [modal, setModal] = useState(null); // 'create' | 'batch' | 'batch_issue'
+  const [whTypeFilter, setWhTypeFilter] = useState('');
+  const [modal, setModal] = useState(null);
   const [form, setForm] = useState({});
   const [items, setItems] = useState([]);
   const [warehouses, setWarehouses] = useState([]);
@@ -2015,7 +2155,8 @@ const SizCardsPage = ({ navigate }) => {
 
   useEffect(() => { load(); }, [statusFilter, locationFilter]);
   useEffect(() => {
-    Promise.all([apiGet('/siz/items'), apiGet('/warehouses'), apiGet('/employees')]).then(([i, w, e]) => { setItems(i); setWarehouses(w); setEmployees(e); });
+    Promise.all([apiGet('/siz/items'), apiGet('/warehouses'), apiGet('/employees')])
+      .then(([i, w, e]) => { setItems(i); setWarehouses(w); setEmployees(e); });
   }, []);
 
   const handleSearch = () => load();
@@ -2023,18 +2164,23 @@ const SizCardsPage = ({ navigate }) => {
 
   const daysLeft = (card) => {
     if (!card.exploitation_end || card.status !== 'issued') return null;
-    const diff = Math.ceil((new Date(card.exploitation_end) - new Date()) / (1000*60*60*24));
-    return diff;
+    return Math.ceil((new Date(card.exploitation_end) - new Date()) / (1000*60*60*24));
   };
-
-  const daysClass = (d) => { if (d === null) return ''; if (d < 0) return 'danger'; if (d < 30) return 'warn'; return 'ok'; };
-
-  const statusLabel = { in_stock: 'На складе', issued: 'Выдано', expired: 'Просрочено', written_off: 'Списано', returned: 'Возвращено' };
-  const locationLabel = { warehouse: 'Склад', employee: 'Сотрудник', written_off: 'Списано' };
 
   const getDisplayStatus = (card) => {
     if (card.status === 'issued' && card.exploitation_end && new Date(card.exploitation_end) < new Date()) return 'expired';
     return card.status;
+  };
+
+  // Row color logic: expired=red, issued=blue(employee), in_stock+res=yellow, in_stock+ia/spbipk=green, written_off=gray
+  const getRowStyle = (card) => {
+    const ds = getDisplayStatus(card);
+    if (ds === 'expired') return { bg: '#FFF1F2', border: '#FECDD3', dot: '#F43F5E' };
+    if (ds === 'written_off') return { bg: '#F8FAFC', border: '#E2E8F0', dot: '#94A3B8' };
+    if (card.location_type === 'employee' || ds === 'issued') return { bg: '#EFF6FF', border: '#BFDBFE', dot: '#3B82F6' };
+    if (card.warehouse_type === 'res') return { bg: '#FEFCE8', border: '#FEF08A', dot: '#CA8A04' };
+    if (card.warehouse_type === 'spbipk') return { bg: '#F5F3FF', border: '#DDD6FE', dot: '#8B5CF6' };
+    return { bg: '#F0FDF4', border: '#BBF7D0', dot: '#16A34A' }; // ia / in_stock
   };
 
   const createCard = async () => {
@@ -2059,31 +2205,81 @@ const SizCardsPage = ({ navigate }) => {
 
   const selectedItem = items.find(i => i.id === form.siz_item_id);
   const expLabel = (m) => m ? (m >= 12 ? (m % 12 === 0 ? `${m/12} г.` : `${m} мес.`) : `${m} мес.`) : '—';
-
   const fioShort = (c) => c.last_name ? `${c.last_name} ${(c.first_name||'')[0]||''}.${(c.middle_name||'')[0]||''}.` : '—';
+
+  // Apply whTypeFilter client-side
+  const filteredCards = whTypeFilter
+    ? cards.filter(c => {
+        if (whTypeFilter === 'employee') return c.location_type === 'employee';
+        return c.warehouse_type === whTypeFilter;
+      })
+    : cards;
 
   if (loading && !cards.length) return <Loader />;
 
   return <div>
-    <div className="page-top"><div><h1>Карточки СИЗ</h1><div className="sub">Индивидуальный учёт средств защиты</div></div>
+    <div className="page-top">
+      <div><h1>Карточки СИЗ</h1><div className="sub">Индивидуальный учёт средств защиты</div></div>
       <div style={{display:'flex',gap:8}}>
-        {canEdit && <button className="btn btn-p" onClick={() => { setForm({}); setModal('create'); }}><IC.plus style={{width:16,height:16}} /> Создать</button>}
-        {canEdit && <button className="btn btn-g btn-sm" onClick={() => { setForm({quantity:1}); setModal('batch_issue'); }}>Пакетная выдача</button>}
+        {canEdit && <button className="btn btn-p btn-sm" onClick={() => { setForm({}); setModal('create'); }}><IC.plus style={{width:14,height:14}}/> Создать</button>}
+        {canEdit && <button className="btn btn-sm" style={{background:'#F0FDF4',color:'#166534',border:'1px solid #BBF7D0'}} onClick={() => { setForm({quantity:1}); setModal('batch_issue'); }}>Пакетная выдача</button>}
         {canEdit && <button className="btn btn-o btn-sm" onClick={() => { setForm({quantity:1}); setModal('batch'); }}>Пакетное создание</button>}
       </div>
     </div>
 
+    {/* Stats */}
     <div className="stats">
-      <div className="stat"><div className="stat-ic bl"><IC.tag style={{width:22,height:22}}/></div><div><div className="stat-val">{stats.total||0}</div><div className="stat-lbl">Всего карточек</div></div></div>
-      <div className="stat"><div className="stat-ic gr"><IC.check style={{width:22,height:22}}/></div><div><div className="stat-val">{stats.issued||0}</div><div className="stat-lbl">Выдано</div></div></div>
-      <div className="stat"><div className="stat-ic am"><IC.warehouse style={{width:22,height:22}}/></div><div><div className="stat-val">{stats.in_stock||0}</div><div className="stat-lbl">На складах</div></div></div>
-      <div className="stat" style={{cursor:'pointer'}} onClick={() => setStatusFilter('expired')}><div className="stat-ic rd"><IC.alertTriangle style={{width:22,height:22}}/></div><div><div className="stat-val">{stats.expired||0}</div><div className="stat-lbl">Просрочено</div></div></div>
+      <div className="stat" style={{cursor:'pointer'}} onClick={() => { setStatusFilter(''); setWhTypeFilter(''); }}>
+        <div className="stat-ic bl"><IC.tag style={{width:22,height:22}}/></div>
+        <div><div className="stat-val">{stats.total||0}</div><div className="stat-lbl">Всего карточек</div></div>
+      </div>
+      <div className="stat" style={{cursor:'pointer'}} onClick={() => { setStatusFilter('issued'); setWhTypeFilter(''); }}>
+        <div className="stat-ic" style={{background:'#EFF6FF',color:'#3B82F6'}}><IC.user style={{width:22,height:22}}/></div>
+        <div><div className="stat-val">{stats.issued||0}</div><div className="stat-lbl">На руках</div></div>
+      </div>
+      <div className="stat" style={{cursor:'pointer'}} onClick={() => { setStatusFilter('in_stock'); setWhTypeFilter(''); }}>
+        <div className="stat-ic" style={{background:'#F0FDF4',color:'#16A34A'}}><IC.warehouse style={{width:22,height:22}}/></div>
+        <div><div className="stat-val">{stats.in_stock||0}</div><div className="stat-lbl">На складах</div></div>
+      </div>
+      <div className="stat" style={{cursor:'pointer'}} onClick={() => { setStatusFilter('expired'); setWhTypeFilter(''); }}>
+        <div className="stat-ic rd"><IC.alertTriangle style={{width:22,height:22}}/></div>
+        <div><div className="stat-val">{stats.expired||0}</div><div className="stat-lbl">Просрочено</div></div>
+      </div>
+    </div>
+
+    {/* Color legend */}
+    <div style={{display:'flex',gap:8,flexWrap:'wrap',marginBottom:16,alignItems:'center'}}>
+      <span style={{fontSize:11,fontWeight:700,color:'var(--tx3)',textTransform:'uppercase',letterSpacing:.5}}>Обозначения:</span>
+      {[
+        {bg:'#F0FDF4',border:'#BBF7D0',dot:'#16A34A',label:'На складе ИА'},
+        {bg:'#FEFCE8',border:'#FEF08A',dot:'#CA8A04',label:'На складе РЭС'},
+        {bg:'#F5F3FF',border:'#DDD6FE',dot:'#8B5CF6',label:'На складе СПБиПК'},
+        {bg:'#EFF6FF',border:'#BFDBFE',dot:'#3B82F6',label:'Выдано сотруднику'},
+        {bg:'#FFF1F2',border:'#FECDD3',dot:'#F43F5E',label:'Просрочено'},
+        {bg:'#F8FAFC',border:'#E2E8F0',dot:'#94A3B8',label:'Списано'},
+      ].map(l => <div key={l.label}
+        style={{display:'flex',alignItems:'center',gap:5,padding:'3px 10px',borderRadius:20,border:`1px solid ${l.border}`,background:l.bg,cursor:'pointer'}}
+        onClick={() => {
+          if (l.label==='Просрочено') { setStatusFilter('expired'); setWhTypeFilter(''); }
+          else if (l.label==='Списано') { setStatusFilter('written_off'); setWhTypeFilter(''); }
+          else if (l.label==='Выдано сотруднику') { setStatusFilter('issued'); setWhTypeFilter(''); }
+          else if (l.label==='На складе ИА') { setStatusFilter('in_stock'); setWhTypeFilter('ia'); }
+          else if (l.label==='На складе РЭС') { setStatusFilter('in_stock'); setWhTypeFilter('res'); }
+          else if (l.label==='На складе СПБиПК') { setStatusFilter('in_stock'); setWhTypeFilter('spbipk'); }
+        }}>
+        <div style={{width:8,height:8,borderRadius:'50%',background:l.dot,flexShrink:0}}/>
+        <span style={{fontSize:11,fontWeight:600,color:'var(--tx1)'}}>{l.label}</span>
+      </div>)}
+      {(statusFilter || locationFilter || whTypeFilter) && <button onClick={() => { setStatusFilter(''); setLocationFilter(''); setWhTypeFilter(''); }}
+        style={{padding:'3px 10px',borderRadius:20,fontSize:11,fontWeight:600,border:'1px solid var(--red-l2)',background:'var(--red-l)',color:'#B91C1C',cursor:'pointer'}}>
+        Сбросить фильтры
+      </button>}
     </div>
 
     <div className="card">
       <div className="filter-bar">
         <SearchInput value={search} onChange={setSearch} placeholder="Поиск по номеру, названию, ФИО..." />
-        <button className="btn btn-p btn-sm" onClick={handleSearch}>Найти</button>
+        <button className="btn btn-sm" style={{background:'var(--blue-l)',color:'#1D4ED8',border:'1px solid var(--blue-l2)'}} onClick={handleSearch}>Найти</button>
         <select className="fc" style={{width:'auto',padding:'6px 28px 6px 10px',fontSize:12}} value={statusFilter} onChange={e => setStatusFilter(e.target.value)}>
           <option value="">Все статусы</option>
           <option value="in_stock">На складе</option>
@@ -2091,39 +2287,90 @@ const SizCardsPage = ({ navigate }) => {
           <option value="expired">Просрочено</option>
           <option value="written_off">Списано</option>
         </select>
-        <select className="fc" style={{width:'auto',padding:'6px 28px 6px 10px',fontSize:12}} value={locationFilter} onChange={e => setLocationFilter(e.target.value)}>
-          <option value="">Все места</option>
-          <option value="warehouse">Склад</option>
-          <option value="employee">Сотрудник</option>
-        </select>
-        {(statusFilter || locationFilter) && <button className="btn btn-o btn-sm" onClick={() => { setStatusFilter(''); setLocationFilter(''); }}>Сбросить</button>}
+        {(statusFilter || locationFilter || whTypeFilter) && <button className="btn btn-sm" style={{background:'var(--red-l)',color:'#B91C1C',border:'1px solid var(--red-l2)'}} onClick={() => { setStatusFilter(''); setLocationFilter(''); setWhTypeFilter(''); }}>Сбросить</button>}
       </div>
-      <div className="card-body np"><div className="tbl-wrap"><table><thead><tr>
-        <th>Номер</th><th>Наименование СИЗ</th><th>Размер</th><th>Статус</th><th>Местонахождение</th><th>Срок</th><th>Действия</th>
-      </tr></thead><tbody>
-        {cards.length ? cards.map(c => {
-          const ds = getDisplayStatus(c);
-          const dl = daysLeft(c);
-          return <tr key={c.id} className={ds === 'expired' ? 'row-expired' : ''}>
-            <td><span className="badge b-blue" style={{fontFamily:'JetBrains Mono',fontSize:11,cursor:'pointer'}} onClick={() => navigate('/siz-card/'+c.id)}>{c.card_number}</span></td>
-            <td style={{fontWeight:600}}>{c.item_name}</td>
-            <td>{c.size_value || '—'}</td>
-            <td><span className={`status-badge st-${ds}`}>{statusLabel[ds] || ds}</span></td>
-            <td style={{fontSize:12}}>
-              {c.location_type === 'employee' && <span style={{cursor:'pointer',color:'var(--blue)'}} onClick={() => navigate('/employee/'+c.employee_id)}>{fioShort(c)}</span>}
-              {c.location_type === 'warehouse' && <span>{c.warehouse_name || '—'}</span>}
-              {c.location_type === 'written_off' && <span style={{color:'var(--tx3)'}}>Списано</span>}
-              {c.enterprise_name && <div style={{fontSize:10,color:'var(--tx3)'}}>{c.enterprise_name}{c.res_name ? ` → ${c.res_name}` : ''}</div>}
-            </td>
-            <td>{dl !== null ? <span className={`days-badge ${daysClass(dl)}`}>{dl < 0 ? `${Math.abs(dl)} дн. просрочка` : `${dl} дн.`}</span> : '—'}</td>
-            <td><button className="btn-icon" onClick={() => navigate('/siz-card/'+c.id)}><IC.eye style={{width:16,height:16}}/></button></td>
-          </tr>;
-        }) : <tr><td colSpan="7"><Empty icon={IC.tag} text="Нет карточек СИЗ" /></td></tr>}
-      </tbody></table></div></div>
+
+      <div className="card-body np">
+        {loading && <div style={{padding:20,textAlign:'center',color:'var(--tx3)',fontSize:13}}>Загрузка...</div>}
+        {!loading && !filteredCards.length && <Empty icon={IC.tag} text="Нет карточек СИЗ" />}
+        {!loading && filteredCards.length > 0 && <div className="tbl-wrap"><table><thead><tr>
+          <th>Номер</th>
+          <th>Наименование СИЗ</th>
+          <th>Размер</th>
+          <th>Местонахождение</th>
+          <th>Срок эксплуатации</th>
+          <th>Статус</th>
+          <th></th>
+        </tr></thead><tbody>
+          {filteredCards.map(c => {
+            const ds = getDisplayStatus(c);
+            const dl = daysLeft(c);
+            const rs = getRowStyle(c);
+            const fio = c.last_name ? `${c.last_name} ${(c.first_name||'')[0]||''}.${(c.middle_name||'')[0]||''}.` : null;
+            return <tr key={c.id} style={{background:rs.bg}}>
+              <td>
+                <div style={{display:'flex',alignItems:'center',gap:6}}>
+                  <div style={{width:8,height:8,borderRadius:'50%',background:rs.dot,flexShrink:0}}/>
+                  <span style={{fontFamily:'JetBrains Mono',fontSize:11,fontWeight:700,color:'var(--blue)',cursor:'pointer',padding:'2px 6px',background:'var(--blue-l)',borderRadius:4}} onClick={() => navigate('/siz-card/'+c.id)}>{c.card_number}</span>
+                </div>
+              </td>
+              <td>
+                <div style={{fontWeight:600,fontSize:13}}>{c.item_name}</div>
+                {c.category_name && <div style={{fontSize:10,color:'var(--tx3)',marginTop:1}}>{c.category_name}</div>}
+              </td>
+              <td style={{fontSize:12,color:'var(--tx2)',fontFamily:'JetBrains Mono'}}>{c.size_value||'—'}</td>
+              <td style={{fontSize:12}}>
+                {c.location_type === 'employee' && fio && <>
+                  <div style={{fontWeight:600,color:'var(--tx1)',cursor:'pointer'}} onClick={() => navigate('/employee/'+c.employee_id)}>{fio}</div>
+                  {(c.res_name||c.enterprise_name) && <div style={{fontSize:10,color:'var(--tx3)'}}>{c.enterprise_name}{c.res_name?` / ${c.res_name}`:''}</div>}
+                </>}
+                {c.location_type === 'warehouse' && <>
+                  <div style={{fontWeight:600}}>{c.warehouse_name||'—'}</div>
+                  {c.warehouse_type && <div style={{fontSize:10,color:'var(--tx3)'}}>{c.warehouse_type==='ia'?'Центральный склад':c.warehouse_type==='res'?'Склад РЭС':'Склад СПБиПК'}</div>}
+                </>}
+                {c.location_type === 'written_off' && <span style={{color:'var(--tx3)'}}>Списано</span>}
+              </td>
+              <td>
+                {c.status === 'issued' && c.exploitation_start && <>
+                  <div style={{fontSize:11,color:'var(--tx2)'}}>
+                    <span style={{color:'var(--tx3)'}}>с </span>{c.exploitation_start}
+                    <span style={{color:'var(--tx3)'}}> по </span>
+                    <span style={{fontWeight:600,color:dl!==null&&dl<0?'#F43F5E':dl!==null&&dl<30?'#CA8A04':'var(--green)'}}>{c.exploitation_end||'—'}</span>
+                  </div>
+                  {dl !== null && <div style={{marginTop:3}}>
+                    <span style={{fontSize:11,fontWeight:700,padding:'2px 8px',borderRadius:10,
+                      background:dl<0?'#FFF1F2':dl<30?'#FEFCE8':'#F0FDF4',
+                      color:dl<0?'#F43F5E':dl<30?'#CA8A04':'#16A34A',
+                      border:`1px solid ${dl<0?'#FECDD3':dl<30?'#FEF08A':'#BBF7D0'}`}}>
+                      {dl < 0 ? `Просрочено ${Math.abs(dl)} дн.` : `Осталось ${dl} дн.`}
+                    </span>
+                  </div>}
+                </>}
+                {c.status === 'in_stock' && c.issue_date && <div style={{fontSize:11,color:'var(--tx3)'}}>пост. {c.receipt_date||'—'}</div>}
+                {c.status === 'in_stock' && !c.issue_date && <span style={{fontSize:11,color:'var(--tx3)'}}>—</span>}
+                {c.status === 'written_off' && <span style={{fontSize:11,color:'var(--tx3)'}}>—</span>}
+              </td>
+              <td>
+                {ds === 'expired' && <span style={{display:'inline-flex',alignItems:'center',gap:4,padding:'3px 10px',borderRadius:20,fontSize:11,fontWeight:700,background:'#FFF1F2',color:'#F43F5E',border:'1px solid #FECDD3'}}>Просрочено</span>}
+                {ds === 'issued' && <span style={{display:'inline-flex',alignItems:'center',gap:4,padding:'3px 10px',borderRadius:20,fontSize:11,fontWeight:700,background:'#EFF6FF',color:'#3B82F6',border:'1px solid #BFDBFE'}}>Выдано</span>}
+                {ds === 'in_stock' && c.warehouse_type === 'res' && <span style={{display:'inline-flex',alignItems:'center',gap:4,padding:'3px 10px',borderRadius:20,fontSize:11,fontWeight:700,background:'#FEFCE8',color:'#CA8A04',border:'1px solid #FEF08A'}}>Склад РЭС</span>}
+                {ds === 'in_stock' && c.warehouse_type === 'spbipk' && <span style={{display:'inline-flex',alignItems:'center',gap:4,padding:'3px 10px',borderRadius:20,fontSize:11,fontWeight:700,background:'#F5F3FF',color:'#8B5CF6',border:'1px solid #DDD6FE'}}>Склад СПБиПК</span>}
+                {ds === 'in_stock' && (!c.warehouse_type||c.warehouse_type==='ia') && <span style={{display:'inline-flex',alignItems:'center',gap:4,padding:'3px 10px',borderRadius:20,fontSize:11,fontWeight:700,background:'#F0FDF4',color:'#16A34A',border:'1px solid #BBF7D0'}}>На складе</span>}
+                {ds === 'written_off' && <span style={{display:'inline-flex',alignItems:'center',gap:4,padding:'3px 10px',borderRadius:20,fontSize:11,fontWeight:700,background:'#F8FAFC',color:'#94A3B8',border:'1px solid #E2E8F0'}}>Списано</span>}
+                {ds === 'returned' && <span style={{display:'inline-flex',alignItems:'center',gap:4,padding:'3px 10px',borderRadius:20,fontSize:11,fontWeight:700,background:'#FEFCE8',color:'#CA8A04',border:'1px solid #FEF08A'}}>Возвращено</span>}
+              </td>
+              <td><button className="btn-icon" onClick={() => navigate('/siz-card/'+c.id)}><IC.eye style={{width:16,height:16}}/></button></td>
+            </tr>;
+          })}
+        </tbody></table></div>}
+      </div>
     </div>
 
     {modal && modal !== 'batch_issue' && <Modal open onClose={() => setModal(null)} title={modal === 'batch' ? 'Пакетное создание карточек' : 'Создать карточку СИЗ'}
-      footer={<><button className="btn btn-o" onClick={() => setModal(null)}>Отмена</button><button className="btn btn-p" onClick={createCard}>Создать</button></>}>
+      footer={<>
+        <button className="btn btn-o btn-sm" onClick={() => setModal(null)}>Отмена</button>
+        <button className="btn btn-sm" style={{background:'var(--blue-l)',color:'#1D4ED8',border:'1px solid var(--blue-l2)'}} onClick={createCard}>Создать</button>
+      </>}>
       <div className="fg"><label>Наименование СИЗ *</label>
         <select className="fc" value={form.siz_item_id||''} onChange={e => setForm({...form, siz_item_id: e.target.value})}>
           <option value="">Выберите...</option>
@@ -2148,7 +2395,10 @@ const SizCardsPage = ({ navigate }) => {
     </Modal>}
 
     {modal === 'batch_issue' && <Modal open onClose={() => setModal(null)} title="Пакетная выдача СИЗ" wide
-      footer={<><button className="btn btn-o" onClick={() => setModal(null)}>Отмена</button><button className="btn btn-g" onClick={createCard}>Выдать</button></>}>
+      footer={<>
+        <button className="btn btn-o btn-sm" onClick={() => setModal(null)}>Отмена</button>
+        <button className="btn btn-sm" style={{background:'#F0FDF4',color:'#166534',border:'1px solid #BBF7D0'}} onClick={createCard}>Выдать</button>
+      </>}>
       <div style={{padding:12,background:'var(--blue-l)',borderRadius:8,marginBottom:16,fontSize:12,color:'var(--blue)'}}>
         <strong>Последовательные таймеры:</strong> при выдаче нескольких одинаковых СИЗ каждая единица начинает «тикать» по очереди. Например, 12 перчаток (срок 1 мес.) = первая истекает через 1 мес., вторая через 2 мес., ... последняя через 12 мес.
       </div>
@@ -2265,10 +2515,10 @@ const SizCardDetail = ({ id, navigate }) => {
       <div className="sub">{card.item_name}{card.category_name ? ` — ${card.category_name}` : ''}</div>
     </div>
       {canEdit && <div style={{display:'flex',gap:8,flexWrap:'wrap'}}>
-        {card.status === 'in_stock' && <button className="btn btn-p btn-sm" onClick={() => { setForm({}); setModal('issue'); }}>Выдать</button>}
-        {card.status === 'in_stock' && <button className="btn btn-o btn-sm" onClick={() => { setForm({}); setModal('transfer'); }}>Переместить</button>}
+        {card.status === 'in_stock' && <button className="btn btn-sm" style={{background:'#F0FDF4',color:'#166534',border:'1px solid #BBF7D0'}} onClick={() => { setForm({}); setModal('issue'); }}>Выдать</button>}
+        {card.status === 'in_stock' && <button className="btn btn-sm" style={{background:'var(--blue-l)',color:'#1D4ED8',border:'1px solid var(--blue-l2)'}} onClick={() => { setForm({}); setModal('transfer'); }}>Переместить</button>}
         {(card.status === 'issued' || isExpired()) && <button className="btn btn-o btn-sm" onClick={() => { setForm({}); setModal('return'); }}>Вернуть</button>}
-        {card.status !== 'written_off' && <button className="btn btn-d btn-sm" onClick={() => { setForm({}); setModal('write_off'); }}>Списать</button>}
+        {card.status !== 'written_off' && <button className="btn btn-sm" style={{background:'var(--red-l)',color:'#B91C1C',border:'1px solid var(--red-l2)'}} onClick={() => { setForm({}); setModal('write_off'); }}>Списать</button>}
       </div>}
     </div>
 
@@ -2338,8 +2588,12 @@ const SizCardDetail = ({ id, navigate }) => {
     {modal && <Modal open onClose={() => setModal(null)} title={
       modal === 'issue' ? 'Выдать СИЗ сотруднику' : modal === 'return' ? 'Вернуть СИЗ на склад' :
       modal === 'transfer' ? 'Переместить на другой склад' : 'Списать СИЗ'
-    } footer={<><button className="btn btn-o" onClick={() => setModal(null)}>Отмена</button>
-      <button className={`btn ${modal==='write_off'?'btn-d':'btn-p'}`} onClick={doAction}>{modal==='write_off'?'Списать':'Выполнить'}</button></>}>
+    } footer={<>
+      <button className="btn btn-o btn-sm" onClick={() => setModal(null)}>Отмена</button>
+      <button className="btn btn-sm" style={modal==='write_off'?{background:'var(--red-l)',color:'#B91C1C',border:'1px solid var(--red-l2)'}:modal==='issue'?{background:'#F0FDF4',color:'#166534',border:'1px solid #BBF7D0'}:{background:'var(--blue-l)',color:'#1D4ED8',border:'1px solid var(--blue-l2)'}} onClick={doAction}>
+        {modal==='write_off'?'Списать':modal==='issue'?'Выдать':'Выполнить'}
+      </button>
+    </>}>
       {modal === 'issue' && <div className="fg"><label>Сотрудник *</label>
         <select className="fc" value={form.employee_id||''} onChange={e => setForm({...form, employee_id: e.target.value})}>
           <option value="">Выберите...</option>
