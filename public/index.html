@@ -2141,11 +2141,10 @@ const SizCardsPage = ({ navigate }) => {
     setLoading(true);
     try {
       const params = new URLSearchParams();
-      if (fStatus === 'expired') { params.set('expired', 'true'); }
-      else if (fStatus === 'expiring_soon') { params.set('expiring_soon', 'true'); }
-      else if (fStatus) params.set('status', fStatus);
+      if (fStatus) params.set('status', fStatus);
       if (fRes) params.set('res_unit_id', fRes);
       if (fDept) params.set('department_id', fDept);
+      if (fWh) params.set('wh_type', fWh);
       if (search) params.set('search', search);
       const [c, s] = await Promise.all([
         apiGet('/siz-cards?' + params.toString()),
@@ -2156,7 +2155,7 @@ const SizCardsPage = ({ navigate }) => {
     setLoading(false);
   };
 
-  useEffect(() => { load(); }, [fStatus, fRes, fDept]);
+  useEffect(() => { load(); }, [fStatus, fRes, fDept, fWh]);
   useEffect(() => {
     apiGet('/org/res-units').then(setResUnits).catch(() => {});
     apiGet('/org/departments').then(setDepartments).catch(() => {});
@@ -2176,7 +2175,7 @@ const SizCardsPage = ({ navigate }) => {
     const ds = getDisplayStatus(card);
     if (ds === 'expired')     return { bg:'#FFF1F2', border:'#FECDD3', dot:'#F43F5E',  label:'Просрочено',      labelBg:'#FFF1F2', labelColor:'#F43F5E', labelBorder:'#FECDD3' };
     if (ds === 'written_off') return { bg:'#F8FAFC', border:'#E2E8F0', dot:'#94A3B8',  label:'Списано',         labelBg:'#F8FAFC', labelColor:'#94A3B8', labelBorder:'#E2E8F0' };
-    if (card.location_type === 'employee') {
+    if (card.source_type === 'employee') {
       const dl = daysLeft(card);
       if (dl !== null && dl <= 30 && dl >= 0) return { bg:'#FEFCE8', border:'#FEF08A', dot:'#CA8A04', label:'Истекает', labelBg:'#FEFCE8', labelColor:'#CA8A04', labelBorder:'#FEF08A' };
       return { bg:'#EFF6FF', border:'#BFDBFE', dot:'#3B82F6', label:'На руках', labelBg:'#EFF6FF', labelColor:'#3B82F6', labelBorder:'#BFDBFE' };
@@ -2186,10 +2185,8 @@ const SizCardsPage = ({ navigate }) => {
     return { bg:'#F0FDF4', border:'#BBF7D0', dot:'#16A34A', label:'На складе', labelBg:'#F0FDF4', labelColor:'#16A34A', labelBorder:'#BBF7D0' };
   };
 
-  // Client-side warehouse type filter
-  const filteredCards = fWh
-    ? cards.filter(c => fWh === 'employee' ? c.location_type === 'employee' : c.warehouse_type === fWh)
-    : cards;
+  // Server handles all filtering now
+  const filteredCards = cards;
 
   const fio = (c) => c.last_name
     ? `${c.last_name} ${(c.first_name||'')[0]||''}.${(c.middle_name||'')[0]||''}.`
@@ -2350,9 +2347,8 @@ const SizCardsPage = ({ navigate }) => {
         {!loading && !filteredCards.length && <Empty icon={IC.tag} text="Нет карточек по выбранным фильтрам" />}
         {!loading && filteredCards.length > 0 && <div className="tbl-wrap"><table>
           <thead><tr>
-            <th style={{width:110}}>Номер</th>
             <th>Наименование СИЗ</th>
-            <th style={{width:80}}>Размер</th>
+            <th style={{width:100}}>Размер / кол-во</th>
             <th>Местонахождение</th>
             <th>Сроки эксплуатации</th>
             <th style={{width:130}}>Статус</th>
@@ -2364,44 +2360,45 @@ const SizCardsPage = ({ navigate }) => {
               const dl = daysLeft(c);
               const empFio = fio(c);
               return <tr key={c.id} style={{background:theme.bg,borderLeft:`3px solid ${theme.dot}`}}>
-                <td>
-                  <span style={{fontFamily:'JetBrains Mono',fontSize:11,fontWeight:700,color:'#1D4ED8',cursor:'pointer',
-                    padding:'2px 7px',background:'var(--blue-l)',borderRadius:4,border:'1px solid var(--blue-l2)'}}
-                    onClick={() => navigate('/siz-card/'+c.id)}>
-                    {c.card_number}
-                  </span>
-                </td>
-                <td>
+                {/* Наименование */}
+                <td colSpan={1}>
                   <div style={{fontWeight:600,fontSize:13}}>{c.item_name}</div>
                   <div style={{fontSize:10,color:'var(--tx3)',marginTop:1}}>{c.category_name||''}</div>
                 </td>
-                <td style={{fontSize:12,color:'var(--tx2)',fontFamily:'JetBrains Mono'}}>{c.size_value||'—'}</td>
+                {/* Размер + кол-во */}
                 <td>
-                  {c.location_type === 'employee' && empFio ? <>
+                  <div style={{fontFamily:'JetBrains Mono',fontSize:12,color:'var(--tx2)'}}>{c.size_value||'—'}</div>
+                  {c.quantity > 1 && <div style={{fontSize:10,fontWeight:700,color:theme.dot}}>× {c.quantity} {c.unit||'шт'}</div>}
+                </td>
+                {/* Местонахождение */}
+                <td>
+                  {c.source_type === 'employee' && empFio ? <>
                     <div style={{fontWeight:600,fontSize:13,color:'#1D4ED8',cursor:'pointer'}} onClick={() => navigate('/employee/'+c.employee_id)}>{empFio}</div>
                     <div style={{fontSize:10,color:'var(--tx3)',marginTop:1,lineHeight:1.4}}>
                       {c.enterprise_name && <span>{c.enterprise_name}</span>}
                       {c.res_name && <span> / {c.res_name}</span>}
                       {c.department_name && <span> / {c.department_name}</span>}
+                      {c.position_name && <div style={{fontStyle:'italic'}}>{c.position_name}</div>}
                     </div>
-                  </> : c.location_type === 'warehouse' ? <>
+                  </> : <>
                     <div style={{fontWeight:600,fontSize:13}}>{c.warehouse_name||'—'}</div>
                     <div style={{fontSize:10,color:'var(--tx3)',marginTop:1}}>
                       {c.warehouse_type==='ia'?'Центральный склад':c.warehouse_type==='res'?'Склад РЭС':'Склад СПБиПК'}
                       {c.res_name ? ` — ${c.res_name}` : c.enterprise_name ? ` — ${c.enterprise_name}` : ''}
                     </div>
-                  </> : <span style={{fontSize:12,color:'var(--tx3)'}}>Списано</span>}
+                  </>}
                 </td>
+                {/* Сроки эксплуатации */}
                 <td>
-                  {c.status === 'issued' && c.exploitation_start ? <>
+                  {c.source_type === 'employee' && c.exploitation_start ? <>
                     <div style={{display:'flex',alignItems:'center',gap:4,fontSize:11,color:'var(--tx2)',marginBottom:3}}>
                       <span style={{color:'var(--tx3)'}}>с</span>
                       <span style={{fontFamily:'JetBrains Mono',fontWeight:600,color:'var(--tx1)'}}>{c.exploitation_start}</span>
-                      <span style={{color:'var(--tx3)'}}>по</span>
+                      {c.exploitation_end && <><span style={{color:'var(--tx3)'}}>по</span>
                       <span style={{fontFamily:'JetBrains Mono',fontWeight:700,
                         color:dl!==null&&dl<0?'#F43F5E':dl!==null&&dl<=30?'#CA8A04':'#16A34A'}}>
-                        {c.exploitation_end||'—'}
-                      </span>
+                        {c.exploitation_end}
+                      </span></>}
                     </div>
                     {dl !== null && <span style={{fontSize:11,fontWeight:700,padding:'2px 8px',borderRadius:10,
                       background:dl<0?'#FFF1F2':dl<=30?'#FEFCE8':'#F0FDF4',
@@ -2409,8 +2406,12 @@ const SizCardsPage = ({ navigate }) => {
                       border:`1px solid ${dl<0?'#FECDD3':dl<=30?'#FEF08A':'#BBF7D0'}`}}>
                       {dl < 0 ? `Просрочено на ${Math.abs(dl)} дн.` : dl === 0 ? 'Истекает сегодня' : `Осталось ${dl} дн.`}
                     </span>}
+                  </> : c.source_type === 'employee' && c.issued_date ? <>
+                    <div style={{fontSize:11,color:'var(--tx3)'}}>Выдано: {c.issued_date}</div>
+                    <div style={{fontSize:10,color:'var(--tx3)'}}>Срок не указан</div>
                   </> : <span style={{fontSize:11,color:'var(--tx3)'}}>—</span>}
                 </td>
+                {/* Статус */}
                 <td>
                   <span style={{display:'inline-flex',alignItems:'center',gap:4,padding:'3px 9px',borderRadius:20,fontSize:11,fontWeight:700,
                     background:theme.labelBg,color:theme.labelColor,border:`1px solid ${theme.labelBorder}`}}>
@@ -2418,10 +2419,12 @@ const SizCardsPage = ({ navigate }) => {
                     {theme.label}
                   </span>
                 </td>
+                {/* Действие */}
                 <td>
-                  <button className="btn-icon" title="Открыть карточку" onClick={() => navigate('/siz-card/'+c.id)}>
-                    <IC.eye style={{width:15,height:15}}/>
-                  </button>
+                  {c.source_type === 'employee' && c.employee_id &&
+                    <button className="btn-icon" title="Карточка сотрудника" onClick={() => navigate('/employee/'+c.employee_id)}>
+                      <IC.user style={{width:15,height:15}}/>
+                    </button>}
                 </td>
               </tr>;
             })}
