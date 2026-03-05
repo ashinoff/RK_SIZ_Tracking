@@ -569,6 +569,60 @@ app.get('/api/warehouses/:id/stock', auth, async (req, res) => {
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
+// Корректировка остатка (установить точное значение)
+app.put('/api/warehouses/:id/stock/:stockId', auth, perm('can_edit'), levelCheck(['ia']), async (req, res) => {
+  try {
+    const { quantity, reason } = req.body;
+    const qty = parseInt(quantity);
+    if (isNaN(qty) || qty < 0) return res.status(400).json({ error: 'Количество должно быть ≥ 0' });
+
+    const cur = await db('SELECT ws.*, i.name as item_name FROM warehouse_stock ws JOIN siz_items i ON ws.siz_item_id=i.id WHERE ws.id=$1 AND ws.warehouse_id=$2', [req.params.stockId, req.params.id]);
+    if (!cur.rows.length) return res.status(404).json({ error: 'Позиция не найдена' });
+    const row = cur.rows[0];
+    const diff = qty - row.quantity;
+
+    await db('UPDATE warehouse_stock SET quantity=$1 WHERE id=$2', [qty, req.params.stockId]);
+
+    // Log correction as movement
+    if (diff !== 0) {
+      const mvType = diff > 0 ? 'correction_plus' : 'correction_minus';
+      await db(`INSERT INTO stock_movements (movement_type, siz_item_id, size_value, quantity, to_warehouse_id, from_warehouse_id, document_reference, notes, moved_by, movement_date)
+        VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,CURRENT_DATE)`,
+        [mvType, row.siz_item_id, row.size_value, Math.abs(diff),
+         diff > 0 ? req.params.id : null,
+         diff < 0 ? req.params.id : null,
+         'Ручная корректировка',
+         reason || `Корректировка: было ${row.quantity}, стало ${qty}`,
+         req.user.id]);
+    }
+    await audit(req.user.id, 'warehouse_stock', req.params.stockId, 'update',
+      { old_qty: row.quantity, new_qty: qty, reason }, req.ip);
+    res.json({ id: req.params.stockId, quantity: qty });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// Удаление позиции со склада (обнулить/убрать)
+app.delete('/api/warehouses/:id/stock/:stockId', auth, perm('can_delete'), levelCheck(['ia']), async (req, res) => {
+  try {
+    const { reason } = req.body || {};
+    const cur = await db('SELECT ws.*, i.name as item_name FROM warehouse_stock ws JOIN siz_items i ON ws.siz_item_id=i.id WHERE ws.id=$1 AND ws.warehouse_id=$2', [req.params.stockId, req.params.id]);
+    if (!cur.rows.length) return res.status(404).json({ error: 'Позиция не найдена' });
+    const row = cur.rows[0];
+
+    await db('DELETE FROM warehouse_stock WHERE id=$1', [req.params.stockId]);
+
+    if (row.quantity > 0) {
+      await db(`INSERT INTO stock_movements (movement_type, siz_item_id, size_value, quantity, from_warehouse_id, document_reference, notes, moved_by, movement_date)
+        VALUES ('correction_minus',$1,$2,$3,$4,'Удаление с остатков',$5,$6,CURRENT_DATE)`,
+        [row.siz_item_id, row.size_value, row.quantity, req.params.id,
+         reason || `Удалено вручную (было ${row.quantity} шт.)`, req.user.id]);
+    }
+    await audit(req.user.id, 'warehouse_stock', req.params.stockId, 'delete',
+      { item: row.item_name, size: row.size_value, qty: row.quantity, reason }, req.ip);
+    res.json({ deleted: true });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
 // Приход
 app.post('/api/warehouses/:id/receipt', auth, perm('can_create'), async (req, res) => {
   try {
@@ -1353,58 +1407,6 @@ app.post('/api/import/siz-items', auth, perm('can_create'), levelCheck(['ia', 's
     }
     await audit(req.user.id, 'siz_items', null, 'bulk_import', { count: imported }, req.ip);
     res.json({ imported });
-  } catch (e) { res.status(500).json({ error: e.message }); }
-});
-
-// ============ IMPORT: STOCK (Приход по реестру) ============
-
-app.post('/api/import/stock', auth, perm('can_create'), levelCheck(['ia']), async (req, res) => {
-  try {
-    const { warehouse_id, rows, document_reference } = req.body;
-    if (!warehouse_id) return res.status(400).json({ error: 'warehouse_id обязателен' });
-    if (!rows?.length) return res.status(400).json({ error: 'Нет данных для импорта' });
-
-    const wh = await db('SELECT * FROM warehouses WHERE id=$1 AND is_active=true', [warehouse_id]);
-    if (!wh.rows.length) return res.status(404).json({ error: 'Склад не найден' });
-
-    const docRef = document_reference?.trim() || `Импорт остатков ${new Date().toLocaleDateString('ru-RU')}`;
-    const today = new Date().toISOString().split('T')[0];
-    let imported = 0;
-    const skipped = [];
-    const errors = [];
-
-    for (const row of rows) {
-      const { siz_item_id, size_value, quantity } = row;
-      const qty = parseInt(quantity);
-      if (!siz_item_id || isNaN(qty) || qty <= 0) {
-        skipped.push({ siz_item_id, size_value, reason: 'qty=0 или нет id' });
-        continue;
-      }
-      const sv = (size_value || '').trim();
-      // Verify item exists
-      const itemCheck = await db('SELECT id FROM siz_items WHERE id=$1 AND is_active=true', [siz_item_id]);
-      if (!itemCheck.rows.length) {
-        errors.push({ siz_item_id, error: 'СИЗ не найден' });
-        continue;
-      }
-      try {
-        await db(`INSERT INTO warehouse_stock (warehouse_id, siz_item_id, size_value, quantity)
-          VALUES ($1,$2,$3,$4) ON CONFLICT (warehouse_id, siz_item_id, size_value)
-          DO UPDATE SET quantity = warehouse_stock.quantity + $4`,
-          [warehouse_id, siz_item_id, sv, qty]);
-        await db(`INSERT INTO stock_movements
-          (movement_type, siz_item_id, size_value, quantity, to_warehouse_id, document_reference, notes, moved_by, movement_date)
-          VALUES ('receipt',$1,$2,$3,$4,$5,'Импорт остатков по реестру',$6,$7)`,
-          [siz_item_id, sv, qty, warehouse_id, docRef, req.user.id, today]);
-        imported++;
-      } catch (rowErr) {
-        errors.push({ siz_item_id, size_value: sv, error: rowErr.message });
-      }
-    }
-
-    await audit(req.user.id, 'warehouse_stock', null, 'bulk_import',
-      { warehouse_id, count: imported, skipped: skipped.length, errors: errors.length }, req.ip);
-    res.json({ imported, skipped: skipped.length, errors });
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
