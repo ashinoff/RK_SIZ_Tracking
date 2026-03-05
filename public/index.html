@@ -194,9 +194,7 @@ const apiGet = (url) => api(url);
 const apiPost = (url, body) => api(url, { method: 'POST', body: JSON.stringify(body) });
 const apiPut = (url, body) => api(url, { method: 'PUT', body: JSON.stringify(body) });
 const apiDel = (url, body) => api(url, { method: 'DELETE', body: body ? JSON.stringify(body) : undefined });
-const confirmDel = (msg) => { const p = prompt(msg + '
-
-Введите пароль для подтверждения:'); return p === '2233'; };
+const confirmDel = (msg) => { const p = prompt(msg + '\n\nВведите пароль для подтверждения:'); return p === '2233'; };
 
 // ═══════ EXCEL UTILS ═══════
 const exportExcel = (data, filename, sheetName = 'Данные') => {
