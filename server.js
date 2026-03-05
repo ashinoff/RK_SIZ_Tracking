@@ -800,6 +800,7 @@ app.get('/api/siz-cards', auth, async (req, res) => {
     if (req.query.res_unit_id) { p.push(req.query.res_unit_id); sql += ` AND sc.res_unit_id=$${p.length}`; }
     if (req.query.siz_item_id) { p.push(req.query.siz_item_id); sql += ` AND sc.siz_item_id=$${p.length}`; }
     if (req.query.expired === 'true') { sql += ` AND sc.exploitation_end < CURRENT_DATE AND sc.status = 'issued'`; }
+    if (req.query.expiring_soon === 'true') { sql += ` AND sc.exploitation_end BETWEEN CURRENT_DATE AND CURRENT_DATE + INTERVAL '30 days' AND sc.status = 'issued'`; }
     if (req.query.search) {
       p.push(`%${req.query.search}%`);
       sql += ` AND (sc.card_number ILIKE $${p.length} OR i.name ILIKE $${p.length} OR e.last_name ILIKE $${p.length})`;
@@ -1207,7 +1208,8 @@ app.get('/api/siz-cards-stats', auth, async (req, res) => {
     const inStock = (await db(`SELECT COUNT(*) as c FROM siz_cards sc WHERE ${where} AND sc.status='in_stock'`, p)).rows[0].c;
     const expired = (await db(`SELECT COUNT(*) as c FROM siz_cards sc WHERE ${where} AND sc.exploitation_end < CURRENT_DATE AND sc.status='issued'`, p)).rows[0].c;
     const writtenOff = (await db(`SELECT COUNT(*) as c FROM siz_cards sc WHERE ${where} AND sc.status='written_off'`, p)).rows[0].c;
-    res.json({ total: +total, issued: +issued, in_stock: +inStock, expired: +expired, written_off: +writtenOff });
+    const expiringSoon = (await db(`SELECT COUNT(*) as c FROM siz_cards sc WHERE ${where} AND sc.exploitation_end BETWEEN CURRENT_DATE AND CURRENT_DATE + INTERVAL '30 days' AND sc.status='issued'`, p)).rows[0].c;
+    res.json({ total: +total, issued: +issued, in_stock: +inStock, expired: +expired, written_off: +writtenOff, expiring_soon: +expiringSoon });
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
