@@ -693,6 +693,35 @@ app.get('/api/warehouses/:id/movements', auth, async (req, res) => {
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
+// Сотрудники склада — только привязанные к той же оргединице
+app.get('/api/warehouses/:id/employees', auth, async (req, res) => {
+  try {
+    const wh = (await db('SELECT * FROM warehouses WHERE id=$1', [req.params.id])).rows[0];
+    if (!wh) return res.status(404).json({ error: 'Склад не найден' });
+    let sql = `SELECT e.*, p.name as position_name, r.name as res_name, ent.name as enterprise_name, d.name as department_name
+      FROM employees e
+      LEFT JOIN positions p ON e.position_id=p.id
+      LEFT JOIN res_units r ON e.res_unit_id=r.id
+      LEFT JOIN enterprises ent ON e.enterprise_id=ent.id
+      LEFT JOIN departments d ON e.department_id=d.id
+      WHERE e.is_active=true`;
+    const p = [];
+    if (wh.res_unit_id) {
+      // Склад РЭС → только сотрудники этого РЭС
+      p.push(wh.res_unit_id); sql += ` AND e.res_unit_id=$${p.length}`;
+    } else if (wh.spbipk_id) {
+      // Склад СПБиПК → сотрудники предприятия
+      p.push(wh.enterprise_id); sql += ` AND e.enterprise_id=$${p.length}`;
+    } else if (wh.warehouse_type === 'ia') {
+      // Центральный склад ИА → все сотрудники (без фильтра)
+    } else if (wh.enterprise_id) {
+      p.push(wh.enterprise_id); sql += ` AND e.enterprise_id=$${p.length}`;
+    }
+    sql += ' ORDER BY e.last_name, e.first_name';
+    res.json((await db(sql, p)).rows);
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
 // Корректировка остатка на складе (только ia)
 app.put('/api/warehouses/:id/stock/:stockId', auth, perm('can_edit'), levelCheck(['ia']), async (req, res) => {
   try {
