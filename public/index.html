@@ -538,14 +538,15 @@ const Warehouses = () => {
   const [tf, setTf] = useState({});
   const [loading, setLoading] = useState(true);
   const [stockCollapsed, setStockCollapsed] = useState({});
+  const [allCollapsed, setAllCollapsed] = useState(false);
   const [rcptCat, setRcptCat] = useState('');
   const [rcptSearch, setRcptSearch] = useState('');
-  const [importModal, setImportModal] = useState(false);
-  const [importPhase, setImportPhase] = useState(1);
-  const [importRows, setImportRows] = useState([]);
-  const [importDoc, setImportDoc] = useState('');
-  const [importLoading, setImportLoading] = useState(false);
-  const [importResult, setImportResult] = useState(null);
+  // Корректировка
+  const [editModal, setEditModal] = useState(null); // { stockId, itemName, size, qty }
+  const [editQty, setEditQty] = useState('');
+  const [editReason, setEditReason] = useState('');
+  // Группировка складов
+  const [whGroupCollapsed, setWhGroupCollapsed] = useState({});
 
   const load = () => {
     setLoading(true);
@@ -563,6 +564,22 @@ const Warehouses = () => {
   useEffect(() => { if (selected) loadStock(selected); }, [selected]);
 
   const whTypeLabel = { ia: 'ИА', spbipk: 'СПБиПК', res: 'РЭС' };
+  const canTransfer = isLevel('ia', 'spbipk', 'res');
+  const canReceipt = isLevel('ia');
+  const canEdit = isLevel('ia');
+
+  // ── Группировка складов ──
+  const warehouseGroups = React.useMemo(() => {
+    const groups = {};
+    warehouses.forEach(w => {
+      const entKey = w.enterprise_name || (w.warehouse_type === 'ia' ? 'Исполнительный аппарат' : 'Без предприятия');
+      if (!groups[entKey]) groups[entKey] = { label: entKey, type: w.warehouse_type === 'ia' ? 'ia' : 'ent', children: {} };
+      const resKey = w.res_name || w.spbipk_name || '—';
+      if (!groups[entKey].children[resKey]) groups[entKey].children[resKey] = [];
+      groups[entKey].children[resKey].push(w);
+    });
+    return groups;
+  }, [warehouses]);
 
   const getTransferTargets = () => {
     const src = warehouses.find(w => w.id === selected);
@@ -590,135 +607,48 @@ const Warehouses = () => {
     } catch (e) { showToast(e.message, 'error'); }
   };
 
-  // ── Импорт остатков: генерация шаблона ──
-  const CLOTHING_SIZES_TMPL = ['40-42/158-164','40-42/170-176','40-42/182-188','40-42/194-200','44-46/158-164','44-46/170-176','44-46/182-188','44-46/194-200','48-50/158-164','48-50/170-176','48-50/182-188','48-50/194-200','52-54/158-164','52-54/170-176','52-54/182-188','52-54/194-200','56-58/158-164','56-58/170-176','56-58/182-188','56-58/194-200','60-62/158-164','60-62/170-176','60-62/182-188','60-62/194-200','64-66/158-164','64-66/170-176','64-66/182-188','64-66/194-200','68-70/158-164','68-70/170-176','68-70/182-188','68-70/194-200','72-74/158-164','72-74/170-176','72-74/182-188','72-74/194-200'];
-  const SHOE_SIZES_TMPL = Array.from({length:15},(_,i)=>String(35+i));
-  const getCategoryType = (item) => {
-    const cn = (item.category_code || item.category_name || '').toLowerCase();
-    if (cn.includes('одежд') || cn === 'clothes') return 'clothing';
-    if (cn.includes('обув') || cn === 'shoes') return 'shoes';
-    if (cn.includes('каск') || cn === 'helmets') return 'head';
-    if (cn.includes('перчат') || cn === 'gloves') return 'gloves';
-    return 'other';
-  };
-  const getSizesForType = (type) => {
-    if (type === 'clothing') return CLOTHING_SIZES_TMPL;
-    if (type === 'shoes') return SHOE_SIZES_TMPL;
-    if (type === 'head' || type === 'gloves') return ['Универсальный'];
-    return [''];
-  };
-
-  const downloadImportTemplate = () => {
-    if (!items.length) { showToast('Нет карточек СИЗ для формирования шаблона', 'error'); return; }
-    const rows = [];
-    // Sort items by category then name
-    const sorted = [...items].sort((a,b) => {
-      const ca = a.category_name || '', cb = b.category_name || '';
-      return ca.localeCompare(cb, 'ru') || (a.name||'').localeCompare(b.name||'','ru');
-    });
-    for (const item of sorted) {
-      const type = getCategoryType(item);
-      const sizes = getSizesForType(type);
-      for (const sz of sizes) {
-        rows.push({
-          'Категория': item.category_name || '',
-          'Наименование СИЗ': item.name || '',
-          'Код': item.code || '',
-          'Ед.изм.': item.unit || 'шт',
-          'Размер': sz,
-          'Кол-во': '',
-          'Документ-основание': '',
-          '_item_id': item.id
-        });
-      }
-    }
-    const ws = XLSX.utils.json_to_sheet(rows);
-    // Style: set column widths
-    ws['!cols'] = [
-      {wch:18},{wch:48},{wch:16},{wch:8},{wch:22},{wch:10},{wch:28},{wch:36}
-    ];
-    // Color _item_id column header gray — just set it as instruction
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, 'Остатки');
-    // Add instruction sheet
-    const instrRows = [
-      {'Инструкция': '1. Заполните колонку «Кол-во» для нужных размеров СИЗ'},
-      {'Инструкция': '2. Строки с пустым или нулевым кол-вом будут пропущены'},
-      {'Инструкция': '3. Не удаляйте колонку _item_id — она нужна для корректного импорта'},
-      {'Инструкция': '4. Можно удалять строки с ненужными размерами'},
-      {'Инструкция': '5. В колонку «Документ-основание» можно вписать № накладной'},
-    ];
-    const wsI = XLSX.utils.json_to_sheet(instrRows);
-    wsI['!cols'] = [{wch:80}];
-    XLSX.utils.book_append_sheet(wb, wsI, 'Инструкция');
-    XLSX.writeFile(wb, 'Шаблон_остатки_склада.xlsx');
-    showToast('Шаблон скачан');
-  };
-
-  const parseImportFile = async (file) => {
-    const ab = await file.arrayBuffer();
-    const wb = XLSX.read(ab, {type:'array'});
-    const ws = wb.Sheets[wb.SheetNames[0]];
-    const rows = XLSX.utils.sheet_to_json(ws, {defval:''});
-    const parsed = [];
-    for (const row of rows) {
-      const itemId = row['_item_id'] || '';
-      const qty = parseInt(row['Кол-во']);
-      if (!itemId || isNaN(qty) || qty <= 0) continue;
-      parsed.push({
-        siz_item_id: itemId,
-        item_name: row['Наименование СИЗ'] || '',
-        category_name: row['Категория'] || '',
-        size_value: String(row['Размер'] || ''),
-        quantity: qty,
-        unit: row['Ед.изм.'] || 'шт',
-        document_reference: row['Документ-основание'] || '',
-      });
-    }
-    return parsed;
-  };
-
-  const handleImportFile = async (e) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+  // ── Корректировка / удаление ──
+  const doEditStock = async () => {
+    if (!editModal) return;
     try {
-      const parsed = await parseImportFile(file);
-      if (!parsed.length) { showToast('Нет строк с заполненным кол-вом (>0)', 'error'); return; }
-      setImportRows(parsed);
-      setImportPhase(2);
-    } catch (err) { showToast('Ошибка чтения файла: ' + err.message, 'error'); }
-  };
-
-  const doImportStock = async () => {
-    if (!selected || !importRows.length) return;
-    setImportLoading(true);
-    try {
-      // Use document_reference from first row with value, or from importDoc field
-      const docRef = importDoc.trim() || importRows.find(r=>r.document_reference)?.document_reference || '';
-      const payload = importRows.map(r => ({
-        siz_item_id: r.siz_item_id,
-        size_value: r.size_value,
-        quantity: r.quantity,
-      }));
-      const result = await apiPost('/import/stock', { warehouse_id: selected, rows: payload, document_reference: docRef });
-      setImportResult(result);
-      setImportPhase(3);
-      loadStock(selected);
+      await fetch(`/api/warehouses/${selected}/stock/${editModal.stockId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${localStorage.getItem('siz_token')}` },
+        body: JSON.stringify({ quantity: parseInt(editQty), reason: editReason })
+      }).then(r => { if (!r.ok) return r.json().then(e => { throw new Error(e.error); }); return r.json(); });
+      showToast('Остаток скорректирован'); setEditModal(null); setEditQty(''); setEditReason(''); loadStock(selected);
     } catch (e) { showToast(e.message, 'error'); }
-    setImportLoading(false);
   };
 
-  const resetImport = () => {
-    setImportModal(false);
-    setImportPhase(1);
-    setImportRows([]);
-    setImportDoc('');
-    setImportResult(null);
-    setImportLoading(false);
+  const doDeleteStock = async (stockId, itemName, size) => {
+    if (!confirm(`Удалить «${itemName}${size ? ' [' + size + ']' : ''}» со склада?\n\nЭто обнулит позицию и запишет в историю движений.`)) return;
+    try {
+      await fetch(`/api/warehouses/${selected}/stock/${stockId}`, {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${localStorage.getItem('siz_token')}` },
+        body: JSON.stringify({ reason: 'Удалено вручную администратором' })
+      }).then(r => { if (!r.ok) return r.json().then(e => { throw new Error(e.error); }); return r.json(); });
+      showToast('Позиция удалена'); loadStock(selected);
+    } catch (e) { showToast(e.message, 'error'); }
   };
 
-  const canTransfer = isLevel('ia', 'spbipk', 'res');
-  const canReceipt = isLevel('ia');
+  // ── Свернуть/развернуть все ──
+  const toggleAllCollapsed = () => {
+    const cats = {};
+    stock.forEach(s => {
+      const cn = s.category_name || 'Без категории';
+      if (!cats[cn]) cats[cn] = {};
+      const key = s.siz_item_id + '|' + (s.item_name||'');
+      cats[cn][key] = true;
+    });
+    const allKeys = Object.values(cats).flatMap(c => Object.keys(c));
+    if (!allCollapsed) {
+      const collapsed = {}; allKeys.forEach(k => collapsed[k] = true);
+      setStockCollapsed(collapsed); setAllCollapsed(true);
+    } else {
+      setStockCollapsed({}); setAllCollapsed(false);
+    }
+  };
 
   const CLOTHING_SIZES = ['40-42/158-164','40-42/170-176','40-42/182-188','40-42/194-200','44-46/158-164','44-46/170-176','44-46/182-188','44-46/194-200','48-50/158-164','48-50/170-176','48-50/182-188','48-50/194-200','52-54/158-164','52-54/170-176','52-54/182-188','52-54/194-200','56-58/158-164','56-58/170-176','56-58/182-188','56-58/194-200','60-62/158-164','60-62/170-176','60-62/182-188','60-62/194-200','64-66/158-164','64-66/170-176','64-66/182-188','64-66/194-200','68-70/158-164','68-70/170-176','68-70/182-188','68-70/194-200','72-74/158-164','72-74/170-176','72-74/182-188','72-74/194-200'];
   const SHOE_SIZES = Array.from({length:15},(_,i)=>String(35+i));
@@ -734,7 +664,6 @@ const Warehouses = () => {
     return 'other';
   };
 
-  // Фильтрованные СИЗ для модалки прихода
   const filteredReceiptItems = items.filter(i => {
     if (rcptCat && i.category_id !== rcptCat) return false;
     if (rcptSearch && !i.name.toLowerCase().includes(rcptSearch.toLowerCase()) && !(i.code||'').toLowerCase().includes(rcptSearch.toLowerCase())) return false;
@@ -743,35 +672,111 @@ const Warehouses = () => {
 
   const expLabel = (m) => m ? (m >= 12 ? (m % 12 === 0 ? `${m/12} г.` : `${m} мес.`) : `${m} мес.`) : '';
 
+  // цвета типов
+  const whTypeMeta = {
+    ia: { color: '#7C3AED', bg: '#F5F3FF', label: 'ИА' },
+    spbipk: { color: '#D97706', bg: '#FFFBEB', label: 'СПБиПК' },
+    res: { color: '#059669', bg: '#ECFDF5', label: 'РЭС' },
+  };
+
+  const selectedWh = warehouses.find(w => w.id === selected);
+
   if (loading) return <Loader />;
 
   return <div>
-    <div className="page-top"><div><h1>Склады</h1><div className="sub">Управление остатками и перемещениями</div></div></div>
+    <div className="page-top">
+      <div><h1>Склады</h1><div className="sub">Управление остатками и перемещениями</div></div>
+    </div>
 
-    <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', marginBottom: 20 }}>
-      {warehouses.map(w => <div key={w.id} onClick={() => setSelected(w.id)}
-        style={{ padding: '12px 18px', borderRadius: 10, border: `2px solid ${selected === w.id ? 'var(--blue)' : 'var(--border)'}`, background: selected === w.id ? 'var(--blue-l)' : '#fff', cursor: 'pointer', minWidth: 180, transition: 'all .15s' }}>
-        <div style={{ fontWeight: 700, fontSize: 13 }}>{w.name}</div>
-        <div style={{ fontSize: 11, color: 'var(--tx2)' }}>{whTypeLabel[w.warehouse_type] || w.warehouse_type} {w.spbipk_name || w.res_name || ''}</div>
-      </div>)}
+    {/* ── Сгруппированные склады ── */}
+    <div style={{marginBottom:20}}>
       {!warehouses.length && <Empty icon={IC.warehouse} text="Нет складов. Создайте в оргструктуре." />}
+      {Object.entries(warehouseGroups).map(([entName, entGroup]) => {
+        const isEntCollapsed = whGroupCollapsed[entName];
+        const hasSelected = Object.values(entGroup.children).flat().some(w => w.id === selected);
+        return <div key={entName} style={{marginBottom:8,border:'1px solid var(--border)',borderRadius:12,overflow:'hidden',background:'#fff'}}>
+          {/* Заголовок предприятия */}
+          <div onClick={() => setWhGroupCollapsed(p=>({...p,[entName]:!p[entName]}))}
+            style={{display:'flex',alignItems:'center',gap:10,padding:'10px 16px',cursor:'pointer',
+              background: hasSelected ? 'var(--blue-l)' : 'var(--bg)',
+              borderBottom: isEntCollapsed ? 'none' : '1px solid var(--border)'}}>
+            <div style={{transition:'transform .2s',transform:isEntCollapsed?'rotate(-90deg)':'rotate(0deg)'}}>
+              <IC.chevDown style={{width:14,height:14,color:'var(--tx3)'}}/>
+            </div>
+            <IC.warehouse style={{width:16,height:16,color:entGroup.type==='ia'?'#7C3AED':'var(--blue)'}}/>
+            <span style={{fontWeight:700,fontSize:13,color:'var(--tx1)'}}>{entName}</span>
+            <span style={{marginLeft:'auto',fontSize:11,color:'var(--tx3)',fontWeight:500}}>
+              {Object.values(entGroup.children).flat().length} склад(ов)
+            </span>
+          </div>
+
+          {/* Подгруппы РЭС/Служба */}
+          {!isEntCollapsed && Object.entries(entGroup.children).map(([resName, whList]) => (
+            <div key={resName}>
+              {Object.keys(entGroup.children).length > 1 && resName !== '—' &&
+                <div style={{padding:'6px 16px 4px 38px',fontSize:11,fontWeight:700,color:'var(--tx3)',textTransform:'uppercase',letterSpacing:'0.5px',background:'#FAFBFC',borderBottom:'1px solid var(--border)'}}>
+                  {resName}
+                </div>}
+              <div style={{display:'flex',flexWrap:'wrap',gap:8,padding:'10px 14px'}}>
+                {whList.map(w => {
+                  const meta = whTypeMeta[w.warehouse_type] || {color:'var(--blue)',bg:'var(--blue-l)',label:w.warehouse_type};
+                  const isSelected = selected === w.id;
+                  return <div key={w.id} onClick={() => setSelected(w.id)}
+                    style={{padding:'8px 14px',borderRadius:8,
+                      border:`2px solid ${isSelected ? meta.color : 'var(--border)'}`,
+                      background: isSelected ? meta.bg : '#fff',
+                      cursor:'pointer',minWidth:160,transition:'all .15s',
+                      boxShadow: isSelected ? `0 0 0 3px ${meta.color}22` : 'none'}}>
+                    <div style={{display:'flex',alignItems:'center',gap:6,marginBottom:2}}>
+                      <span style={{width:6,height:6,borderRadius:'50%',background:meta.color,flexShrink:0}}/>
+                      <span style={{fontWeight:700,fontSize:13,color: isSelected ? meta.color : 'var(--tx1)'}}>{w.name}</span>
+                    </div>
+                    <div style={{fontSize:10,color:'var(--tx3)',marginLeft:12}}>
+                      <span style={{background:meta.bg,color:meta.color,padding:'1px 6px',borderRadius:4,fontWeight:600}}>{meta.label}</span>
+                      {w.spbipk_name && <span style={{marginLeft:4}}>{w.spbipk_name}</span>}
+                    </div>
+                  </div>;
+                })}
+              </div>
+            </div>
+          ))}
+        </div>;
+      })}
     </div>
 
     {selected && <>
-      <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
-        {canReceipt && <button className="btn btn-g btn-sm" onClick={() => { setTf({}); setRcptCat(''); setRcptSearch(''); setReceiptModal(true); }}><IC.plus style={{ width: 14, height: 14 }} /> Приход</button>}
-        {canReceipt && <button className="btn btn-sm" style={{background:'#7C3AED',color:'#fff',display:'inline-flex',alignItems:'center',gap:6}} onClick={() => { resetImport(); setImportModal(true); }}>
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-          Импорт остатков
-        </button>}
-        {canTransfer && <button className="btn btn-p btn-sm" onClick={() => { setTf({}); setTransferModal(true); }}><IC.arrowRight style={{ width: 14, height: 14 }} /> Переместить</button>}
-        <button className="btn btn-o btn-sm" onClick={() => exportExcel(stock.map(s => ({'Категория':s.category_name,'Наименование':s.item_name,'Код':s.item_code,'Размер':s.size_value,'Кол-во':s.quantity,'Ед.':s.unit})), 'Остатки.xlsx', 'Остатки')}>Экспорт остатков</button>
-        <button className="btn btn-o btn-sm" onClick={() => exportExcel(movements.map(m => ({'Тип':m.movement_type,'СИЗ':m.item_name,'Кол-во':m.quantity,'Откуда':m.from_warehouse_name,'Куда':m.to_warehouse_name,'Дата':m.movement_date,'Кто':m.moved_by_name})), 'Перемещения.xlsx', 'Перемещения')}>Экспорт движений</button>
+      {/* Название выбранного склада */}
+      <div style={{display:'flex',alignItems:'center',gap:10,marginBottom:14,padding:'10px 16px',background:'var(--blue-l)',borderRadius:10,border:'1px solid var(--blue-l2)'}}>
+        <IC.warehouse style={{width:18,height:18,color:'var(--blue)'}}/>
+        <span style={{fontWeight:700,fontSize:14,color:'var(--blue)'}}>{selectedWh?.name}</span>
+        {selectedWh && <span className="badge b-blue" style={{fontSize:10}}>{whTypeMeta[selectedWh.warehouse_type]?.label}</span>}
+        {selectedWh?.enterprise_name && <span style={{fontSize:12,color:'var(--tx2)'}}>{selectedWh.enterprise_name}</span>}
+        {selectedWh?.res_name && <><span style={{color:'var(--tx3)'}}>→</span><span style={{fontSize:12,color:'var(--tx2)'}}>{selectedWh.res_name}</span></>}
       </div>
 
-      <div className="tabs">
-        <button className={`tab ${tab === 'stock' ? 'active' : ''}`} onClick={() => setTab('stock')}>Остатки ({stock.length})</button>
+      <div style={{ display: 'flex', gap: 8, marginBottom: 16, flexWrap:'wrap' }}>
+        {canReceipt && <button className="btn btn-g btn-sm" onClick={() => { setTf({}); setRcptCat(''); setRcptSearch(''); setReceiptModal(true); }}><IC.plus style={{ width: 14, height: 14 }} /> Приход</button>}
+        {canTransfer && <button className="btn btn-p btn-sm" onClick={() => { setTf({}); setTransferModal(true); }}><IC.arrowRight style={{ width: 14, height: 14 }} /> Переместить</button>}
+        <button className="btn btn-o btn-sm" onClick={() => exportExcel(stock.map(s => ({'Категория':s.category_name,'Наименование':s.item_name,'Код':s.item_code,'Размер':s.size_value,'Кол-во':s.quantity,'Ед.':s.unit})), 'Остатки.xlsx', 'Остатки')}>📊 Экспорт остатков</button>
+        <button className="btn btn-o btn-sm" onClick={() => exportExcel(movements.map(m => ({'Тип':m.movement_type,'СИЗ':m.item_name,'Кол-во':m.quantity,'Откуда':m.from_warehouse_name,'Куда':m.to_warehouse_name,'Дата':m.movement_date,'Кто':m.moved_by_name})), 'Перемещения.xlsx', 'Перемещения')}>📋 Экспорт движений</button>
+      </div>
+
+      <div className="tabs" style={{position:'relative'}}>
+        <button className={`tab ${tab === 'stock' ? 'active' : ''}`} onClick={() => setTab('stock')}>
+          Остатки <span className="badge b-gray" style={{marginLeft:4,fontSize:10}}>{stock.reduce((s,x)=>s+x.quantity,0)}</span>
+        </button>
         <button className={`tab ${tab === 'moves' ? 'active' : ''}`} onClick={() => setTab('moves')}>Движения ({movements.length})</button>
+
+        {tab === 'stock' && stock.length > 0 && <button
+          onClick={toggleAllCollapsed}
+          style={{position:'absolute',right:0,top:4,display:'inline-flex',alignItems:'center',gap:5,padding:'4px 12px',borderRadius:6,border:'1px solid var(--border)',background:'#fff',cursor:'pointer',fontSize:11,fontWeight:600,color:'var(--tx2)',transition:'all .15s'}}
+          onMouseEnter={e=>e.currentTarget.style.background='var(--bg)'}
+          onMouseLeave={e=>e.currentTarget.style.background='#fff'}>
+          {allCollapsed
+            ? <><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="6 9 12 15 18 9"/></svg> Развернуть все</>
+            : <><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="18 15 12 9 6 15"/></svg> Свернуть все</>
+          }
+        </button>}
       </div>
 
       {tab === 'stock' && <div className="card"><div className="card-body">
@@ -783,61 +788,115 @@ const Warehouses = () => {
             const key = s.siz_item_id + '|' + (s.item_name||'');
             if (!cats[cn][key]) cats[cn][key] = { item_name: s.item_name, item_code: s.item_code, unit: s.unit, total: 0, sizes: [] };
             cats[cn][key].total += s.quantity;
-            if (s.size_value) cats[cn][key].sizes.push({ size: s.size_value, qty: s.quantity });
+            cats[cn][key].sizes.push({ stockId: s.id, size: s.size_value, qty: s.quantity });
           });
           const catKeys = Object.keys(cats);
           if (!catKeys.length) return <Empty icon={IC.package} text="Склад пуст" />;
-          return catKeys.map(cn => <div key={cn} style={{marginBottom:16}}>
-            <div style={{fontWeight:700,fontSize:14,marginBottom:8,display:'flex',alignItems:'center',gap:8}}>
-              <span className="badge b-blue">{cn}</span>
+
+          // Итоговое кол-во всех позиций
+          const grandTotal = stock.reduce((s,x) => s + x.quantity, 0);
+
+          return <>
+            {catKeys.map(cn => <div key={cn} style={{marginBottom:16}}>
+              <div style={{fontWeight:700,fontSize:13,marginBottom:8,display:'flex',alignItems:'center',gap:8}}>
+                <span className="badge b-blue">{cn}</span>
+                <span style={{fontSize:11,color:'var(--tx3)',fontWeight:500}}>
+                  {Object.values(cats[cn]).reduce((s,i)=>s+i.total,0)} ед.
+                </span>
+              </div>
+              {Object.entries(cats[cn]).map(([key, item]) => {
+                const isOpen = !stockCollapsed[key];
+                return <div key={key} style={{marginBottom:4,border:'1px solid var(--border)',borderRadius:8,overflow:'hidden',transition:'all .15s'}}>
+                  {/* Строка СИЗ */}
+                  <div onClick={() => setStockCollapsed(p=>({...p,[key]:!p[key]}))}
+                    style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'9px 14px',cursor:'pointer',
+                      background:isOpen?'linear-gradient(135deg,var(--blue-l),#EFF6FF)':'#fff',transition:'all .15s'}}>
+                    <div style={{display:'flex',alignItems:'center',gap:10}}>
+                      <div style={{transition:'transform .2s',transform:isOpen?'rotate(0deg)':'rotate(-90deg)'}}>
+                        <IC.chevDown style={{width:14,height:14,color:'var(--tx3)'}}/>
+                      </div>
+                      <span style={{fontWeight:600,fontSize:13}}>{item.item_name}</span>
+                      {item.item_code && <span className="badge b-gray" style={{fontSize:10}}>{item.item_code}</span>}
+                    </div>
+                    <div style={{display:'flex',alignItems:'center',gap:8}}>
+                      <span style={{fontFamily:'JetBrains Mono',fontWeight:800,fontSize:15,color:isOpen?'var(--blue)':'var(--tx1)'}}>{item.total}</span>
+                      <span style={{fontSize:11,color:'var(--tx3)'}}>{item.unit||'шт'}</span>
+                    </div>
+                  </div>
+
+                  {/* Размеры + кнопки редактирования */}
+                  {isOpen && <div style={{padding:'8px 14px 10px 38px',background:'#FAFBFC',borderTop:'1px solid var(--border)'}}>
+                    <div style={{display:'flex',flexWrap:'wrap',gap:6}}>
+                      {item.sizes.map((sz, i) => <div key={i}
+                        style={{display:'flex',alignItems:'center',gap:0,borderRadius:8,border:'1px solid var(--border)',background:'#fff',overflow:'hidden',transition:'box-shadow .15s'}}
+                        onMouseEnter={e=>e.currentTarget.style.boxShadow='0 2px 8px rgba(0,0,0,.08)'}
+                        onMouseLeave={e=>e.currentTarget.style.boxShadow='none'}>
+                        {/* Размер + кол-во */}
+                        <div style={{padding:'5px 12px',fontSize:12}}>
+                          {sz.size && <span style={{color:'var(--tx2)',marginRight:8}}>{sz.size}</span>}
+                          <span style={{fontWeight:800,fontFamily:'JetBrains Mono',fontSize:14,color:'var(--tx1)'}}>{sz.qty}</span>
+                          <span style={{fontSize:10,color:'var(--tx3)',marginLeft:3}}>{item.unit||'шт'}</span>
+                        </div>
+                        {/* Кнопки редактирования (только admin) */}
+                        {canEdit && <div style={{display:'flex',borderLeft:'1px solid var(--border)'}}>
+                          <button title="Корректировать" onClick={e=>{e.stopPropagation(); setEditModal({stockId:sz.stockId,itemName:item.item_name,size:sz.size,qty:sz.qty}); setEditQty(String(sz.qty)); setEditReason('');}}
+                            style={{padding:'5px 8px',background:'none',border:'none',cursor:'pointer',color:'var(--amber)',transition:'background .1s',lineHeight:1}}
+                            onMouseEnter={e=>e.currentTarget.style.background='var(--amber-l)'}
+                            onMouseLeave={e=>e.currentTarget.style.background='none'}>
+                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                          </button>
+                          <button title="Удалить позицию" onClick={e=>{e.stopPropagation(); doDeleteStock(sz.stockId, item.item_name, sz.size);}}
+                            style={{padding:'5px 8px',background:'none',border:'none',cursor:'pointer',color:'var(--red)',transition:'background .1s',lineHeight:1}}
+                            onMouseEnter={e=>e.currentTarget.style.background='var(--red-l)'}
+                            onMouseLeave={e=>e.currentTarget.style.background='none'}>
+                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/></svg>
+                          </button>
+                        </div>}
+                      </div>)}
+                    </div>
+                  </div>}
+                </div>;
+              })}
+            </div>)}
+
+            {/* Итог по складу */}
+            <div style={{marginTop:8,paddingTop:12,borderTop:'2px solid var(--border)',display:'flex',justifyContent:'flex-end',alignItems:'center',gap:10}}>
+              <span style={{fontSize:12,color:'var(--tx2)'}}>Итого на складе:</span>
+              <span style={{fontFamily:'JetBrains Mono',fontWeight:800,fontSize:18,color:'var(--blue)'}}>{grandTotal}</span>
+              <span style={{fontSize:12,color:'var(--tx3)'}}>единиц</span>
             </div>
-            {Object.entries(cats[cn]).map(([key, item]) => {
-              const isOpen = !stockCollapsed[key];
-              return <div key={key} style={{marginBottom:4,border:'1px solid var(--border)',borderRadius:8,overflow:'hidden'}}>
-                <div onClick={() => setStockCollapsed(p=>({...p,[key]:!p[key]}))}
-                  style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'8px 14px',cursor:'pointer',background:isOpen?'var(--blue-l)':'#fff',transition:'all .15s'}}>
-                  <div style={{display:'flex',alignItems:'center',gap:10}}>
-                    <div style={{transition:'transform .2s',transform:isOpen?'rotate(0deg)':'rotate(-90deg)'}}><IC.chevDown style={{width:14,height:14,color:'var(--tx3)'}}/></div>
-                    <span style={{fontWeight:600,fontSize:13}}>{item.item_name}</span>
-                    <span className="badge b-gray">{item.item_code||''}</span>
-                  </div>
-                  <div style={{display:'flex',alignItems:'center',gap:12}}>
-                    <span style={{fontFamily:'JetBrains Mono',fontWeight:700,fontSize:14}}>{item.total}</span>
-                    <span style={{fontSize:11,color:'var(--tx3)'}}>{item.unit||'шт'}</span>
-                  </div>
-                </div>
-                {isOpen && item.sizes.length > 0 && <div style={{padding:'6px 14px 10px 42px',background:'#FAFBFC',borderTop:'1px solid var(--border)'}}>
-                  <div style={{display:'flex',flexWrap:'wrap',gap:6}}>
-                    {item.sizes.map((sz,i) => <div key={i} style={{padding:'4px 12px',borderRadius:6,border:'1px solid var(--border)',background:'#fff',fontSize:12,display:'flex',gap:8}}>
-                      <span style={{color:'var(--tx2)'}}>{sz.size}</span>
-                      <span style={{fontWeight:700,fontFamily:'JetBrains Mono'}}>{sz.qty}</span>
-                    </div>)}
-                  </div>
-                </div>}
-              </div>;
-            })}
-          </div>);
+          </>;
         })()}
       </div></div>}
 
       {tab === 'moves' && <div className="card"><div className="card-body np"><div className="tbl-wrap"><table><thead><tr>
-        <th>Тип</th><th>СИЗ</th><th>Кол-во</th><th>Откуда</th><th>Куда</th><th>Дата</th><th>Кто</th>
+        <th>Тип</th><th>СИЗ</th><th>Размер</th><th>Кол-во</th><th>Откуда</th><th>Куда</th><th>Дата</th><th>Кто</th>
       </tr></thead><tbody>
-        {movements.length ? movements.map(m => <tr key={m.id}>
-          <td><span className={`badge ${m.movement_type === 'receipt' ? 'b-green' : m.movement_type === 'issue' ? 'b-red' : 'b-blue'}`}>
-            {m.movement_type === 'receipt' ? 'Приход' : m.movement_type === 'transfer' ? 'Перемещение' : m.movement_type === 'issue' ? 'Выдача' : m.movement_type}
-          </span></td>
-          <td style={{ fontWeight: 600 }}>{m.item_name}</td>
-          <td>{m.quantity}</td>
-          <td>{m.from_warehouse_name || '—'}</td>
-          <td>{m.to_warehouse_name || '—'}</td>
-          <td>{m.movement_date}</td>
-          <td style={{ fontSize: 12, color: 'var(--tx2)' }}>{m.moved_by_name || '—'}</td>
-        </tr>) : <tr><td colSpan="7"><Empty text="Нет движений" /></td></tr>}
+        {movements.length ? movements.map(m => {
+          const mvMeta = {
+            receipt:        { label:'Приход',        cls:'b-green' },
+            transfer:       { label:'Перемещение',   cls:'b-blue' },
+            issue:          { label:'Выдача',         cls:'b-red' },
+            return:         { label:'Возврат',        cls:'b-purple' },
+            correction_plus:  { label:'Корр. ▲',    cls:'b-amber' },
+            correction_minus: { label:'Корр. ▼',    cls:'b-red' },
+          };
+          const mv = mvMeta[m.movement_type] || { label: m.movement_type, cls: 'b-gray' };
+          return <tr key={m.id}>
+            <td><span className={`badge ${mv.cls}`} style={{fontSize:10}}>{mv.label}</span></td>
+            <td style={{ fontWeight: 600, fontSize:12 }}>{m.item_name}</td>
+            <td style={{ fontSize:11, color:'var(--tx2)' }}>{m.size_value || '—'}</td>
+            <td style={{ fontFamily:'JetBrains Mono', fontWeight:700 }}>{m.quantity}</td>
+            <td style={{fontSize:12}}>{m.from_warehouse_name || '—'}</td>
+            <td style={{fontSize:12}}>{m.to_warehouse_name || '—'}</td>
+            <td style={{fontSize:12}}>{m.movement_date}</td>
+            <td style={{ fontSize: 11, color: 'var(--tx2)' }}>{m.moved_by_name || '—'}</td>
+          </tr>;
+        }) : <tr><td colSpan="8"><Empty text="Нет движений" /></td></tr>}
       </tbody></table></div></div></div>}
     </>}
 
-    {/* Transfer modal */}
+    {/* ── Модал: Перемещение ── */}
     <Modal open={transferModal} onClose={() => setTransferModal(false)} title="Перемещение СИЗ"
       footer={<><button className="btn btn-o" onClick={() => setTransferModal(false)}>Отмена</button><button className="btn btn-p" onClick={doTransfer}>Переместить</button></>}>
       <div className="fg"><label>Куда</label>
@@ -855,24 +914,18 @@ const Warehouses = () => {
       <div className="fg"><label>Количество</label><input className="fc" type="number" min="1" value={tf.quantity || ''} onChange={e => setTf({ ...tf, quantity: e.target.value })} /></div>
     </Modal>
 
-    {/* Receipt modal */}
+    {/* ── Модал: Приход ── */}
     <Modal open={receiptModal} onClose={() => setReceiptModal(false)} title="Оприходование" wide
       footer={<><button className="btn btn-o" onClick={() => setReceiptModal(false)}>Отмена</button><button className="btn btn-g" onClick={doReceipt}>Оприходовать</button></>}>
-
       <div style={{display:'flex',gap:8,marginBottom:12,flexWrap:'wrap'}}>
-        {categories.map(c => <button key={c.id}
-          className={`btn btn-sm ${rcptCat === c.id ? 'btn-p' : 'btn-o'}`}
+        {categories.map(c => <button key={c.id} className={`btn btn-sm ${rcptCat === c.id ? 'btn-p' : 'btn-o'}`}
           onClick={() => { setRcptCat(rcptCat === c.id ? '' : c.id); setTf({...tf, siz_item_id: ''}); }}
-          style={{fontSize:11,padding:'4px 12px'}}>
-          {c.name}
-        </button>)}
-        {rcptCat && <button className="btn btn-sm btn-o" onClick={() => { setRcptCat(''); setTf({...tf, siz_item_id: ''}); }} style={{fontSize:11,padding:'4px 12px',color:'var(--red)'}}>✕ Сбросить</button>}
+          style={{fontSize:11,padding:'4px 12px'}}>{c.name}</button>)}
+        {rcptCat && <button className="btn btn-sm btn-o" onClick={() => { setRcptCat(''); setTf({...tf, siz_item_id: ''}); }} style={{fontSize:11,padding:'4px 12px',color:'var(--red)'}}>✕</button>}
       </div>
-
       <div className="fg"><label>Поиск СИЗ</label>
-        <input className="fc" placeholder="Введите название или код..." value={rcptSearch} onChange={e => { setRcptSearch(e.target.value); setTf({...tf, siz_item_id: ''}); }} />
+        <input className="fc" placeholder="Название или код..." value={rcptSearch} onChange={e => { setRcptSearch(e.target.value); setTf({...tf, siz_item_id: ''}); }} />
       </div>
-
       <div className="fg"><label>Наименование СИЗ *</label>
         <select className="fc" value={tf.siz_item_id || ''} onChange={e => {
           const id = e.target.value;
@@ -884,18 +937,16 @@ const Warehouses = () => {
           {filteredReceiptItems.map(i => <option key={i.id} value={i.id}>{i.name}{i.code ? ` [${i.code}]` : ''}{expLabel(i.exploitation_months) ? ` — ${expLabel(i.exploitation_months)}` : ''}</option>)}
         </select>
       </div>
-
       {tf.siz_item_id && <div style={{padding:8,background:'var(--green-l)',borderRadius:6,marginBottom:12,fontSize:12}}>
         <strong style={{color:'var(--green)'}}>Выбрано:</strong> {items.find(i=>i.id===tf.siz_item_id)?.name}
         {items.find(i=>i.id===tf.siz_item_id)?.category_name && <span className="badge b-blue" style={{marginLeft:6,fontSize:10}}>{items.find(i=>i.id===tf.siz_item_id)?.category_name}</span>}
       </div>}
-
       <div className="fr">
         <div className="fg"><label>Размер</label>
           {(() => {
             const cat = getSelectedItemCategory(tf.siz_item_id);
-            if (cat === 'clothing') return <select className="fc" value={tf.size_value || ''} onChange={e => setTf({...tf, size_value: e.target.value})}><option value="">-- Выберите размер --</option>{CLOTHING_SIZES.map(s => <option key={s} value={s}>{s}</option>)}</select>;
-            if (cat === 'shoes') return <select className="fc" value={tf.size_value || ''} onChange={e => setTf({...tf, size_value: e.target.value})}><option value="">-- Выберите размер --</option>{SHOE_SIZES.map(s => <option key={s} value={s}>{s}</option>)}</select>;
+            if (cat === 'clothing') return <select className="fc" value={tf.size_value || ''} onChange={e => setTf({...tf, size_value: e.target.value})}><option value="">-- Выберите --</option>{CLOTHING_SIZES.map(s => <option key={s} value={s}>{s}</option>)}</select>;
+            if (cat === 'shoes') return <select className="fc" value={tf.size_value || ''} onChange={e => setTf({...tf, size_value: e.target.value})}><option value="">-- Выберите --</option>{SHOE_SIZES.map(s => <option key={s} value={s}>{s}</option>)}</select>;
             if (cat === 'head' || cat === 'gloves') return <input className="fc" value="Универсальный" disabled onChange={() => {}} />;
             return <input className="fc" value={tf.size_value || ''} onChange={e => setTf({...tf, size_value: e.target.value})} placeholder="Введите вручную" />;
           })()}
@@ -905,157 +956,47 @@ const Warehouses = () => {
       <div className="fg"><label>Документ-основание</label><input className="fc" value={tf.doc || ''} onChange={e => setTf({ ...tf, doc: e.target.value })} placeholder="Накладная №..." /></div>
     </Modal>
 
-    {/* ─── Import Stock Modal ─── */}
-    {importModal && <div className="modal-bg" onClick={e => { if(e.target===e.currentTarget) resetImport(); }}>
-      <div className="modal wide" style={{maxWidth:820}}>
+    {/* ── Модал: Корректировка остатка ── */}
+    {editModal && <div className="modal-bg" onClick={e => { if(e.target===e.currentTarget) setEditModal(null); }}>
+      <div className="modal" style={{maxWidth:420}}>
         <div className="modal-h">
-          <h2 style={{display:'flex',alignItems:'center',gap:10}}>
-            <span style={{width:32,height:32,borderRadius:8,background:'#EDE9FE',display:'flex',alignItems:'center',justifyContent:'center'}}>
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#7C3AED" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-            </span>
-            Импорт остатков на склад
+          <h2 style={{display:'flex',alignItems:'center',gap:8}}>
+            <span style={{width:30,height:30,borderRadius:8,background:'#FEF3C7',display:'flex',alignItems:'center',justifyContent:'center',fontSize:15}}>✏️</span>
+            Корректировка остатка
           </h2>
-          <button className="btn-icon" onClick={resetImport}><IC.x style={{width:18,height:18}}/></button>
+          <button className="btn-icon" onClick={() => setEditModal(null)}><IC.x style={{width:18,height:18}}/></button>
         </div>
-
-        {/* Step indicator */}
-        <div style={{display:'flex',borderBottom:'1px solid var(--border)',background:'var(--bg)'}}>
-          {[{n:1,lbl:'Шаблон & файл'},{n:2,lbl:'Предпросмотр'},{n:3,lbl:'Результат'}].map(s=>(
-            <div key={s.n} style={{flex:1,padding:'12px 16px',display:'flex',alignItems:'center',gap:8,
-              borderBottom:`3px solid ${importPhase===s.n?'#7C3AED':'transparent'}`,
-              color:importPhase===s.n?'#7C3AED':importPhase>s.n?'var(--green)':'var(--tx3)'}}>
-              <div style={{width:22,height:22,borderRadius:'50%',display:'flex',alignItems:'center',justifyContent:'center',fontSize:11,fontWeight:700,
-                background:importPhase===s.n?'#7C3AED':importPhase>s.n?'var(--green)':'var(--border)',
-                color:importPhase>=s.n?'#fff':'var(--tx3)'}}>
-                {importPhase>s.n?'✓':s.n}
-              </div>
-              <span style={{fontWeight:600,fontSize:12}}>{s.lbl}</span>
-            </div>
-          ))}
-        </div>
-
         <div className="modal-b">
-
-          {/* Phase 1: Download template & upload */}
-          {importPhase === 1 && <div>
-            <div style={{padding:16,background:'#F5F3FF',borderRadius:10,marginBottom:20,border:'1px solid #DDD6FE'}}>
-              <div style={{fontWeight:700,fontSize:13,color:'#5B21B6',marginBottom:8}}>📋 Шаг 1: Скачайте шаблон</div>
-              <div style={{fontSize:12,color:'var(--tx2)',marginBottom:12,lineHeight:1.6}}>
-                Шаблон формируется из <strong>всех существующих карточек СИЗ</strong> с разбивкой по всем размерам.
-                Заполните колонку <strong>«Кол-во»</strong> для нужных позиций. Строки с пустым или нулевым значением будут пропущены при импорте.
-                Не удаляйте колонку <em>_item_id</em> — она нужна для корректного сопоставления.
-              </div>
-              <button className="btn btn-sm" style={{background:'#7C3AED',color:'#fff'}} onClick={downloadImportTemplate}>
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{marginRight:6}}><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-                Скачать шаблон Excel
-              </button>
-            </div>
-
-            <div style={{padding:16,background:'var(--bg)',borderRadius:10,border:'2px dashed var(--border2)'}}>
-              <div style={{fontWeight:700,fontSize:13,marginBottom:8}}>📂 Шаг 2: Загрузите заполненный файл</div>
-              <div style={{fontSize:12,color:'var(--tx2)',marginBottom:12}}>Поддерживаемые форматы: <strong>.xlsx, .xls</strong></div>
-              <label style={{display:'inline-flex',alignItems:'center',gap:8,padding:'10px 18px',borderRadius:8,background:'var(--blue)',color:'#fff',cursor:'pointer',fontSize:13,fontWeight:600}}>
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-                Выбрать файл
-                <input type="file" accept=".xlsx,.xls" style={{display:'none'}} onChange={handleImportFile} />
-              </label>
-            </div>
-          </div>}
-
-          {/* Phase 2: Preview parsed rows */}
-          {importPhase === 2 && <div>
-            <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:12}}>
-              <div>
-                <div style={{fontWeight:700,fontSize:14}}>Предпросмотр импорта</div>
-                <div style={{fontSize:12,color:'var(--tx2)',marginTop:2}}>Найдено строк с заполненным кол-вом: <strong style={{color:'var(--green)'}}>{importRows.length}</strong></div>
-              </div>
-              <button className="btn btn-o btn-sm" onClick={() => setImportPhase(1)}>← Назад</button>
-            </div>
-
-            <div className="fg"><label>Документ-основание (для всего реестра)</label>
-              <input className="fc" value={importDoc} onChange={e=>setImportDoc(e.target.value)}
-                placeholder="Накладная №... / Реестр №... (необязательно)" />
-            </div>
-
-            <div style={{maxHeight:340,overflowY:'auto',border:'1px solid var(--border)',borderRadius:8}}>
-              <table style={{width:'100%',borderCollapse:'collapse'}}>
-                <thead>
-                  <tr style={{background:'var(--bg)',position:'sticky',top:0}}>
-                    <th style={{padding:'8px 12px',textAlign:'left',fontSize:11,fontWeight:700,color:'var(--tx2)',textTransform:'uppercase',borderBottom:'2px solid var(--border)'}}>Категория</th>
-                    <th style={{padding:'8px 12px',textAlign:'left',fontSize:11,fontWeight:700,color:'var(--tx2)',textTransform:'uppercase',borderBottom:'2px solid var(--border)'}}>Наименование СИЗ</th>
-                    <th style={{padding:'8px 12px',textAlign:'left',fontSize:11,fontWeight:700,color:'var(--tx2)',textTransform:'uppercase',borderBottom:'2px solid var(--border)'}}>Размер</th>
-                    <th style={{padding:'8px 12px',textAlign:'right',fontSize:11,fontWeight:700,color:'var(--tx2)',textTransform:'uppercase',borderBottom:'2px solid var(--border)'}}>Кол-во</th>
-                    <th style={{padding:'8px 12px',textAlign:'center',fontSize:11,fontWeight:700,color:'var(--tx2)',textTransform:'uppercase',borderBottom:'2px solid var(--border)'}}></th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {importRows.map((row, idx) => (
-                    <tr key={idx} style={{borderBottom:'1px solid #F3F4F6'}}>
-                      <td style={{padding:'7px 12px',fontSize:12}}><span className="badge b-blue" style={{fontSize:10}}>{row.category_name||'—'}</span></td>
-                      <td style={{padding:'7px 12px',fontSize:13,fontWeight:500}}>{row.item_name}</td>
-                      <td style={{padding:'7px 12px',fontSize:12,color:'var(--tx2)'}}>{row.size_value||'—'}</td>
-                      <td style={{padding:'7px 12px',textAlign:'right'}}>
-                        <input type="number" min="0" value={row.quantity}
-                          style={{width:70,padding:'3px 8px',border:'1.5px solid var(--border)',borderRadius:6,fontSize:13,fontWeight:700,fontFamily:'JetBrains Mono',textAlign:'right'}}
-                          onChange={e => {
-                            const v = parseInt(e.target.value)||0;
-                            setImportRows(prev => prev.map((r,i)=>i===idx?{...r,quantity:v}:r));
-                          }} />
-                      </td>
-                      <td style={{padding:'7px 12px',textAlign:'center'}}>
-                        <button className="btn-icon" title="Удалить строку" onClick={()=>setImportRows(prev=>prev.filter((_,i)=>i!==idx))}
-                          style={{color:'var(--red)'}}>
-                          <IC.x style={{width:13,height:13}}/>
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-            <div style={{marginTop:8,fontSize:12,color:'var(--tx3)'}}>
-              Итого будет оприходовано: <strong style={{color:'var(--tx1)'}}>{importRows.filter(r=>r.quantity>0).reduce((s,r)=>s+r.quantity,0)} единиц</strong> по <strong>{importRows.filter(r=>r.quantity>0).length} позициям</strong>
-            </div>
-          </div>}
-
-          {/* Phase 3: Result */}
-          {importPhase === 3 && importResult && <div style={{textAlign:'center',padding:'20px 0'}}>
-            <div style={{width:64,height:64,borderRadius:'50%',background:'var(--green-l)',display:'flex',alignItems:'center',justifyContent:'center',margin:'0 auto 16px'}}>
-              <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="var(--green)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
-            </div>
-            <div style={{fontWeight:800,fontSize:20,marginBottom:8}}>Импорт завершён!</div>
-            <div style={{display:'flex',gap:16,justifyContent:'center',marginBottom:16}}>
-              <div style={{padding:'12px 24px',background:'var(--green-l)',borderRadius:10,textAlign:'center'}}>
-                <div style={{fontWeight:800,fontSize:28,fontFamily:'JetBrains Mono',color:'var(--green)'}}>{importResult.imported}</div>
-                <div style={{fontSize:12,color:'var(--tx2)'}}>позиций оприходовано</div>
-              </div>
-              {importResult.skipped > 0 && <div style={{padding:'12px 24px',background:'var(--amber-l)',borderRadius:10,textAlign:'center'}}>
-                <div style={{fontWeight:800,fontSize:28,fontFamily:'JetBrains Mono',color:'var(--amber)'}}>{importResult.skipped}</div>
-                <div style={{fontSize:12,color:'var(--tx2)'}}>пропущено (кол-во = 0)</div>
-              </div>}
-              {importResult.errors?.length > 0 && <div style={{padding:'12px 24px',background:'var(--red-l)',borderRadius:10,textAlign:'center'}}>
-                <div style={{fontWeight:800,fontSize:28,fontFamily:'JetBrains Mono',color:'var(--red)'}}>{importResult.errors.length}</div>
-                <div style={{fontSize:12,color:'var(--tx2)'}}>ошибок</div>
-              </div>}
-            </div>
-            {importResult.errors?.length > 0 && <div style={{textAlign:'left',background:'var(--red-l)',borderRadius:8,padding:12,fontSize:12}}>
-              <strong>Ошибки:</strong>
-              {importResult.errors.map((e,i)=><div key={i}>{e.siz_item_id} [{e.size_value}]: {e.error}</div>)}
+          <div style={{padding:12,background:'var(--bg)',borderRadius:8,marginBottom:16,fontSize:13}}>
+            <div style={{fontWeight:700}}>{editModal.itemName}</div>
+            {editModal.size && <div style={{fontSize:11,color:'var(--tx2)',marginTop:2}}>Размер: <strong>{editModal.size}</strong></div>}
+            <div style={{fontSize:11,color:'var(--tx3)',marginTop:2}}>Текущее кол-во: <strong style={{color:'var(--tx1)'}}>{editModal.qty}</strong></div>
+          </div>
+          <div className="fg">
+            <label>Новое количество *</label>
+            <input className="fc" type="number" min="0" value={editQty} onChange={e => setEditQty(e.target.value)}
+              style={{fontFamily:'JetBrains Mono',fontWeight:700,fontSize:18,textAlign:'center'}}
+              autoFocus />
+            {editQty !== '' && parseInt(editQty) !== editModal.qty && <div style={{marginTop:4,fontSize:11,fontWeight:600,
+              color: parseInt(editQty) > editModal.qty ? 'var(--green)' : 'var(--red)'}}>
+              {parseInt(editQty) > editModal.qty ? '▲' : '▼'} {Math.abs(parseInt(editQty) - editModal.qty)} ед.
+              ({parseInt(editQty) > editModal.qty ? '+' : ''}{parseInt(editQty) - editModal.qty})
             </div>}
-          </div>}
-
+          </div>
+          <div className="fg">
+            <label>Причина / примечание</label>
+            <input className="fc" value={editReason} onChange={e => setEditReason(e.target.value)} placeholder="Инвентаризация, пересчёт, ошибка..." />
+          </div>
+          <div style={{padding:10,background:'var(--amber-l)',borderRadius:8,fontSize:11,color:'var(--amber)',fontWeight:500}}>
+            ⚠ Изменение будет записано в историю движений склада
+          </div>
         </div>
-
         <div className="modal-f">
-          {importPhase === 1 && <button className="btn btn-o" onClick={resetImport}>Отмена</button>}
-          {importPhase === 2 && <>
-            <button className="btn btn-o" onClick={resetImport}>Отмена</button>
-            <button className="btn btn-sm" style={{background:'#7C3AED',color:'#fff',opacity:importLoading?0.6:1}}
-              onClick={doImportStock} disabled={importLoading||importRows.filter(r=>r.quantity>0).length===0}>
-              {importLoading ? '⏳ Импорт...' : `✓ Оприходовать ${importRows.filter(r=>r.quantity>0).length} позиций`}
-            </button>
-          </>}
-          {importPhase === 3 && <button className="btn btn-p" onClick={resetImport}>Готово</button>}
+          <button className="btn btn-o" onClick={() => setEditModal(null)}>Отмена</button>
+          <button className="btn" style={{background:'var(--amber)',color:'#fff'}}
+            onClick={doEditStock} disabled={editQty===''||parseInt(editQty)===editModal.qty}>
+            Применить корректировку
+          </button>
         </div>
       </div>
     </div>}
