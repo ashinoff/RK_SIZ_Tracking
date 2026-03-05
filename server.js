@@ -765,451 +765,107 @@ app.get('/api/employee-siz/:employeeId', auth, async (req, res) => {
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
-// ============ ROUTES: SIZ CARDS ============
+// ============ ROUTES: SIZ CARDS (v_siz_cards VIEW) ============
+// Карточки СИЗ строятся автоматически из warehouse_stock + employee_siz
+// Никакого ручного создания — всё живёт в источниках
 
-// Get all SIZ cards with filters
 app.get('/api/siz-cards', auth, async (req, res) => {
   try {
-    let sql = `SELECT sc.*, i.name as item_name, i.code as item_code, i.unit, i.exploitation_months, i.exploitation_years,
-      i.gender as item_gender, i.season, c.name as category_name, c.code as category_code,
-      w.name as warehouse_name, w.warehouse_type,
-      e.last_name, e.first_name, e.middle_name, e.employee_number,
-      ent.name as enterprise_name, r.name as res_name, d.name as department_name
-      FROM siz_cards sc
-      JOIN siz_items i ON sc.siz_item_id = i.id
-      LEFT JOIN siz_categories c ON i.category_id = c.id
-      LEFT JOIN warehouses w ON sc.warehouse_id = w.id
-      LEFT JOIN employees e ON sc.employee_id = e.id
-      LEFT JOIN enterprises ent ON sc.enterprise_id = ent.id
-      LEFT JOIN res_units r ON sc.res_unit_id = r.id
-      LEFT JOIN departments d ON sc.department_id = d.id
-      WHERE sc.is_active = true`;
     const p = [];
-    // Role-based filtering
+    const add = (v) => { p.push(v); return `$${p.length}`; };
+
+    let where = '1=1';
+
+    // Права доступа по оргструктуре
     if (['enterprise', 'spbipk'].includes(req.user.role_level)) {
-      p.push(req.user.enterprise_id); sql += ` AND sc.enterprise_id=$${p.length}`;
+      where += ` AND v.enterprise_id = ${add(req.user.enterprise_id)}`;
     } else if (req.user.role_level === 'res') {
-      p.push(req.user.res_unit_id); sql += ` AND sc.res_unit_id=$${p.length}`;
+      where += ` AND (v.res_unit_id = ${add(req.user.res_unit_id)} OR (v.source_type='warehouse' AND v.warehouse_type != 'res' AND v.enterprise_id = ${add(req.user.enterprise_id)}))`;
     }
-    // Query filters
-    if (req.query.status) { p.push(req.query.status); sql += ` AND sc.status=$${p.length}`; }
-    if (req.query.location_type) { p.push(req.query.location_type); sql += ` AND sc.location_type=$${p.length}`; }
-    if (req.query.employee_id) { p.push(req.query.employee_id); sql += ` AND sc.employee_id=$${p.length}`; }
-    if (req.query.warehouse_id) { p.push(req.query.warehouse_id); sql += ` AND sc.warehouse_id=$${p.length}`; }
-    if (req.query.enterprise_id) { p.push(req.query.enterprise_id); sql += ` AND sc.enterprise_id=$${p.length}`; }
-    if (req.query.res_unit_id) { p.push(req.query.res_unit_id); sql += ` AND sc.res_unit_id=$${p.length}`; }
-    if (req.query.siz_item_id) { p.push(req.query.siz_item_id); sql += ` AND sc.siz_item_id=$${p.length}`; }
-    if (req.query.expired === 'true') { sql += ` AND sc.exploitation_end < CURRENT_DATE AND sc.status = 'issued'`; }
-    if (req.query.expiring_soon === 'true') { sql += ` AND sc.exploitation_end BETWEEN CURRENT_DATE AND CURRENT_DATE + INTERVAL '30 days' AND sc.status = 'issued'`; }
+
+    // Фильтры
+    if (req.query.status === 'expired') {
+      where += ` AND v.status = 'expired'`;
+    } else if (req.query.status === 'expiring_soon') {
+      where += ` AND v.source_type = 'employee' AND v.exploitation_end BETWEEN CURRENT_DATE AND CURRENT_DATE + INTERVAL '30 days'`;
+    } else if (req.query.status === 'in_stock') {
+      where += ` AND v.source_type = 'warehouse'`;
+    } else if (req.query.status === 'issued') {
+      where += ` AND v.source_type = 'employee' AND v.status = 'issued'`;
+    }
+
+    if (req.query.wh_type === 'employee') {
+      where += ` AND v.source_type = 'employee'`;
+    } else if (req.query.wh_type) {
+      where += ` AND v.source_type = 'warehouse' AND v.warehouse_type = ${add(req.query.wh_type)}`;
+    }
+
+    if (req.query.res_unit_id)   { where += ` AND v.res_unit_id = ${add(req.query.res_unit_id)}`; }
+    if (req.query.department_id) { where += ` AND v.department_id = ${add(req.query.department_id)}`; }
+    if (req.query.employee_id)   { where += ` AND v.employee_id = ${add(req.query.employee_id)}`; }
+    if (req.query.warehouse_id)  { where += ` AND v.warehouse_id = ${add(req.query.warehouse_id)}`; }
+    if (req.query.siz_item_id)   { where += ` AND v.siz_item_id = ${add(req.query.siz_item_id)}`; }
     if (req.query.search) {
-      p.push(`%${req.query.search}%`);
-      sql += ` AND (sc.card_number ILIKE $${p.length} OR i.name ILIKE $${p.length} OR e.last_name ILIKE $${p.length})`;
+      const s = add(`%${req.query.search}%`);
+      where += ` AND (v.item_name ILIKE ${s} OR v.item_code ILIKE ${s} OR v.last_name ILIKE ${s})`;
     }
-    sql += ' ORDER BY sc.created_at DESC';
-    if (req.query.limit) { p.push(parseInt(req.query.limit)); sql += ` LIMIT $${p.length}`; }
+
+    const sql = `SELECT * FROM v_siz_cards v WHERE ${where} ORDER BY v.category_name, v.item_name, v.size_value`;
     res.json((await db(sql, p)).rows);
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
-// Get SIZ cards for employee (for employee card page) — must be before :id route
-app.get('/api/siz-cards/by-employee/:employeeId', auth, async (req, res) => {
-  try {
-    const sql = `SELECT sc.*, i.name as item_name, i.code as item_code, i.unit, i.exploitation_months, i.exploitation_years,
-      c.name as category_name, w.name as warehouse_name
-      FROM siz_cards sc
-      JOIN siz_items i ON sc.siz_item_id = i.id
-      LEFT JOIN siz_categories c ON i.category_id = c.id
-      LEFT JOIN warehouses w ON sc.warehouse_id = w.id
-      WHERE sc.employee_id = $1 AND sc.status IN ('issued','expired') AND sc.is_active = true
-      ORDER BY c.name, i.name`;
-    res.json((await db(sql, [req.params.employeeId])).rows);
-  } catch (e) { res.status(500).json({ error: e.message }); }
-});
-
-// Get single SIZ card
-app.get('/api/siz-cards/:id', auth, async (req, res) => {
-  try {
-    const sql = `SELECT sc.*, i.name as item_name, i.code as item_code, i.unit, i.exploitation_months, i.exploitation_years,
-      i.gender as item_gender, i.season, c.name as category_name,
-      w.name as warehouse_name, w.warehouse_type,
-      e.last_name, e.first_name, e.middle_name, e.employee_number,
-      ent.name as enterprise_name, r.name as res_name, d.name as department_name,
-      p.name as position_name
-      FROM siz_cards sc
-      JOIN siz_items i ON sc.siz_item_id = i.id
-      LEFT JOIN siz_categories c ON i.category_id = c.id
-      LEFT JOIN warehouses w ON sc.warehouse_id = w.id
-      LEFT JOIN employees e ON sc.employee_id = e.id
-      LEFT JOIN positions p ON e.position_id = p.id
-      LEFT JOIN enterprises ent ON sc.enterprise_id = ent.id
-      LEFT JOIN res_units r ON sc.res_unit_id = r.id
-      LEFT JOIN departments d ON sc.department_id = d.id
-      WHERE sc.id = $1`;
-    const result = await db(sql, [req.params.id]);
-    if (!result.rows.length) return res.status(404).json({ error: 'Карточка не найдена' });
-    res.json(result.rows[0]);
-  } catch (e) { res.status(500).json({ error: e.message }); }
-});
-
-// Get SIZ card movement history
-app.get('/api/siz-cards/:id/movements', auth, async (req, res) => {
-  try {
-    const sql = `SELECT m.*,
-      fw.name as from_warehouse_name, tw.name as to_warehouse_name,
-      fe.last_name as from_employee_last, fe.first_name as from_employee_first,
-      te.last_name as to_employee_last, te.first_name as to_employee_first,
-      u.full_name as moved_by_name
-      FROM siz_card_movements m
-      LEFT JOIN warehouses fw ON m.from_warehouse_id = fw.id
-      LEFT JOIN warehouses tw ON m.to_warehouse_id = tw.id
-      LEFT JOIN employees fe ON m.from_employee_id = fe.id
-      LEFT JOIN employees te ON m.to_employee_id = te.id
-      LEFT JOIN users u ON m.moved_by = u.id
-      WHERE m.siz_card_id = $1
-      ORDER BY m.movement_date DESC, m.created_at DESC`;
-    res.json((await db(sql, [req.params.id])).rows);
-  } catch (e) { res.status(500).json({ error: e.message }); }
-});
-
-// Create SIZ card (поступление на склад)
-app.post('/api/siz-cards', auth, perm('can_create'), async (req, res) => {
-  try {
-    const { siz_item_id, size_value, warehouse_id, manufacture_date, document_reference, notes, card_number } = req.body;
-    if (!siz_item_id || !warehouse_id) return res.status(400).json({ error: 'siz_item_id и warehouse_id обязательны' });
-
-    // Get warehouse info for org structure
-    const wh = await db(`SELECT w.*, sp.enterprise_id as sp_ent_id FROM warehouses w
-      LEFT JOIN spbipk sp ON w.spbipk_id = sp.id WHERE w.id = $1`, [warehouse_id]);
-    if (!wh.rows.length) return res.status(404).json({ error: 'Склад не найден' });
-    const warehouse = wh.rows[0];
-    const entId = warehouse.enterprise_id || warehouse.sp_ent_id || null;
-
-    // Get exploitation years
-    const itemR = await db('SELECT exploitation_years FROM siz_items WHERE id=$1', [siz_item_id]);
-    const expYears = itemR.rows[0]?.exploitation_years;
-
-    // Generate card number if not provided
-    let cn = card_number;
-    if (!cn) {
-      const cnt = await db("SELECT COUNT(*) as c FROM siz_cards");
-      cn = 'СИЗ-' + String(parseInt(cnt.rows[0].c) + 1).padStart(6, '0');
-    }
-
-    const r = await db(`INSERT INTO siz_cards
-      (card_number, siz_item_id, size_value, location_type, warehouse_id, enterprise_id, res_unit_id,
-       manufacture_date, receipt_date, status, document_reference, notes)
-      VALUES ($1,$2,$3,'warehouse',$4,$5,$6,$7,CURRENT_DATE,'in_stock',$8,$9) RETURNING *`,
-      [cn, siz_item_id, size_value || '', warehouse_id, entId, warehouse.res_unit_id || null,
-       manufacture_date || null, document_reference || null, notes || null]);
-
-    // Log movement
-    await db(`INSERT INTO siz_card_movements (siz_card_id, movement_type, to_warehouse_id, moved_by, movement_date, document_reference, notes)
-      VALUES ($1,'receipt',$2,$3,CURRENT_DATE,$4,$5)`,
-      [r.rows[0].id, warehouse_id, req.user.id, document_reference || null, notes || null]);
-
-    // Also update warehouse_stock for compatibility
-    await db(`INSERT INTO warehouse_stock (warehouse_id, siz_item_id, size_value, quantity)
-      VALUES ($1,$2,$3,1) ON CONFLICT (warehouse_id, siz_item_id, size_value)
-      DO UPDATE SET quantity = warehouse_stock.quantity + 1`,
-      [warehouse_id, siz_item_id, size_value || '']);
-
-    await audit(req.user.id, 'siz_cards', r.rows[0].id, 'create', req.body, req.ip);
-    res.status(201).json(r.rows[0]);
-  } catch (e) { res.status(500).json({ error: e.message }); }
-});
-
-// Batch create SIZ cards
-app.post('/api/siz-cards/batch', auth, perm('can_create'), async (req, res) => {
-  try {
-    const { siz_item_id, size_value, warehouse_id, quantity, manufacture_date, document_reference, notes } = req.body;
-    if (!siz_item_id || !warehouse_id || !quantity || quantity < 1) return res.status(400).json({ error: 'siz_item_id, warehouse_id, quantity обязательны' });
-
-    const wh = await db(`SELECT w.*, sp.enterprise_id as sp_ent_id FROM warehouses w
-      LEFT JOIN spbipk sp ON w.spbipk_id = sp.id WHERE w.id = $1`, [warehouse_id]);
-    if (!wh.rows.length) return res.status(404).json({ error: 'Склад не найден' });
-    const warehouse = wh.rows[0];
-    const entId = warehouse.enterprise_id || warehouse.sp_ent_id || null;
-
-    const cnt = await db("SELECT COUNT(*) as c FROM siz_cards");
-    let num = parseInt(cnt.rows[0].c) + 1;
-    const created = [];
-
-    for (let q = 0; q < quantity; q++) {
-      const cn = 'СИЗ-' + String(num++).padStart(6, '0');
-      const r = await db(`INSERT INTO siz_cards
-        (card_number, siz_item_id, size_value, location_type, warehouse_id, enterprise_id, res_unit_id,
-         manufacture_date, receipt_date, status, document_reference, notes)
-        VALUES ($1,$2,$3,'warehouse',$4,$5,$6,$7,CURRENT_DATE,'in_stock',$8,$9) RETURNING *`,
-        [cn, siz_item_id, size_value || '', warehouse_id, entId, warehouse.res_unit_id || null,
-         manufacture_date || null, document_reference || null, notes || null]);
-      await db(`INSERT INTO siz_card_movements (siz_card_id, movement_type, to_warehouse_id, moved_by, movement_date, document_reference)
-        VALUES ($1,'receipt',$2,$3,CURRENT_DATE,$4)`,
-        [r.rows[0].id, warehouse_id, req.user.id, document_reference || null]);
-      created.push(r.rows[0]);
-    }
-
-    // Update warehouse stock
-    await db(`INSERT INTO warehouse_stock (warehouse_id, siz_item_id, size_value, quantity)
-      VALUES ($1,$2,$3,$4) ON CONFLICT (warehouse_id, siz_item_id, size_value)
-      DO UPDATE SET quantity = warehouse_stock.quantity + $4`,
-      [warehouse_id, siz_item_id, size_value || '', quantity]);
-
-    await audit(req.user.id, 'siz_cards', null, 'batch_create', { count: quantity }, req.ip);
-    res.status(201).json({ created: created.length, cards: created });
-  } catch (e) { res.status(500).json({ error: e.message }); }
-});
-
-// Batch issue — выдать несколько одинаковых СИЗ одному сотруднику с последовательными таймерами
-app.post('/api/siz-cards/batch-issue', auth, perm('can_create'), async (req, res) => {
-  try {
-    const { employee_id, siz_item_id, warehouse_id, quantity, document_reference, notes, movement_date } = req.body;
-    if (!employee_id || !siz_item_id || !warehouse_id || !quantity) {
-      return res.status(400).json({ error: 'employee_id, siz_item_id, warehouse_id, quantity обязательны' });
-    }
-
-    const emp = (await db('SELECT * FROM employees WHERE id=$1', [employee_id])).rows[0];
-    if (!emp) return res.status(404).json({ error: 'Сотрудник не найден' });
-
-    const itemR = await db('SELECT exploitation_months, exploitation_years, name FROM siz_items WHERE id=$1', [siz_item_id]);
-    const item = itemR.rows[0];
-    if (!item) return res.status(404).json({ error: 'СИЗ не найдено' });
-    const expMonths = item.exploitation_months;
-
-    // Find available cards on the warehouse
-    const available = (await db(
-      `SELECT id, warehouse_id FROM siz_cards WHERE siz_item_id=$1 AND warehouse_id=$2 AND status='in_stock' AND is_active=true ORDER BY created_at ASC LIMIT $3`,
-      [siz_item_id, warehouse_id, quantity]
-    )).rows;
-
-    if (available.length < quantity) {
-      return res.status(400).json({ error: `На складе только ${available.length} шт., запрошено ${quantity}` });
-    }
-
-    const md = movement_date || new Date().toISOString().split('T')[0];
-
-    // Find the latest exploitation_end for this item+employee (to chain sequentially)
-    const lastCard = (await db(
-      `SELECT exploitation_end FROM siz_cards WHERE employee_id=$1 AND siz_item_id=$2 AND status='issued' AND exploitation_end IS NOT NULL ORDER BY exploitation_end DESC LIMIT 1`,
-      [employee_id, siz_item_id]
-    )).rows[0];
-
-    let currentStart = new Date(md);
-    if (lastCard?.exploitation_end && new Date(lastCard.exploitation_end) > currentStart) {
-      currentStart = new Date(lastCard.exploitation_end);
-    }
-
-    const issued = [];
-    for (let i = 0; i < available.length; i++) {
-      const cardId = available[i].id;
-      let startStr = currentStart.toISOString().split('T')[0];
-      let expEnd = null;
-
-      if (expMonths) {
-        const endDate = new Date(currentStart);
-        endDate.setMonth(endDate.getMonth() + expMonths);
-        expEnd = endDate.toISOString().split('T')[0];
-        currentStart = endDate; // Next card starts when this one ends
-      }
-
-      await db(`UPDATE siz_cards SET
-        location_type='employee', employee_id=$1, warehouse_id=NULL,
-        enterprise_id=$2, res_unit_id=$3, department_id=$4,
-        issue_date=$5, exploitation_start=$6, exploitation_end=$7, status='issued'
-        WHERE id=$8`,
-        [employee_id, emp.enterprise_id, emp.res_unit_id, emp.department_id, md, startStr, expEnd, cardId]);
-
-      await db(`INSERT INTO siz_card_movements (siz_card_id, movement_type, from_warehouse_id, to_employee_id, moved_by, movement_date, document_reference, notes)
-        VALUES ($1,'issue',$2,$3,$4,$5,$6,$7)`,
-        [cardId, warehouse_id, employee_id, req.user.id, md, document_reference || null, notes || null]);
-
-      issued.push({ id: cardId, exploitation_start: startStr, exploitation_end: expEnd });
-    }
-
-    // Update warehouse stock
-    await db('UPDATE warehouse_stock SET quantity = GREATEST(quantity - $1, 0) WHERE warehouse_id=$2 AND siz_item_id=$3',
-      [available.length, warehouse_id, siz_item_id]);
-
-    await audit(req.user.id, 'siz_cards', null, 'batch_issue', { employee_id, siz_item_id, count: available.length }, req.ip);
-    res.json({ issued: issued.length, cards: issued, message: `Выдано ${issued.length} шт. с последовательными сроками` });
-  } catch (e) { res.status(500).json({ error: e.message }); }
-});
-
-// Issue SIZ card to employee (выдача)
-app.post('/api/siz-cards/:id/issue', auth, perm('can_create'), async (req, res) => {
-  try {
-    const { employee_id, document_reference, notes, movement_date } = req.body;
-    if (!employee_id) return res.status(400).json({ error: 'employee_id обязателен' });
-
-    const card = (await db('SELECT * FROM siz_cards WHERE id=$1 AND is_active=true', [req.params.id])).rows[0];
-    if (!card) return res.status(404).json({ error: 'Карточка не найдена' });
-    if (card.status !== 'in_stock') return res.status(400).json({ error: `Нельзя выдать карточку в статусе: ${card.status}` });
-
-    const emp = (await db('SELECT * FROM employees WHERE id=$1', [employee_id])).rows[0];
-    if (!emp) return res.status(404).json({ error: 'Сотрудник не найден' });
-
-    const itemR = await db('SELECT exploitation_months, exploitation_years FROM siz_items WHERE id=$1', [card.siz_item_id]);
-    const expMonths = itemR.rows[0]?.exploitation_months;
-    const md = movement_date || new Date().toISOString().split('T')[0];
-
-    // Find the latest exploitation_end for the same item+employee (for sequential timing)
-    const lastCard = (await db(
-      `SELECT exploitation_end FROM siz_cards WHERE employee_id=$1 AND siz_item_id=$2 AND status='issued' AND exploitation_end IS NOT NULL ORDER BY exploitation_end DESC LIMIT 1`,
-      [employee_id, card.siz_item_id]
-    )).rows[0];
-
-    let startDate = new Date(md);
-    if (lastCard?.exploitation_end && new Date(lastCard.exploitation_end) > startDate) {
-      startDate = new Date(lastCard.exploitation_end);
-    }
-    let expEnd = null;
-    if (expMonths) {
-      const endDate = new Date(startDate);
-      endDate.setMonth(endDate.getMonth() + expMonths);
-      expEnd = endDate.toISOString().split('T')[0];
-    }
-    const startStr = startDate.toISOString().split('T')[0];
-
-    await db(`UPDATE siz_cards SET
-      location_type='employee', employee_id=$1, warehouse_id=NULL,
-      enterprise_id=$2, res_unit_id=$3, department_id=$4,
-      issue_date=$5, exploitation_start=$6, exploitation_end=$7, status='issued'
-      WHERE id=$8`,
-      [employee_id, emp.enterprise_id, emp.res_unit_id, emp.department_id, md, startStr, expEnd, req.params.id]);
-
-    await db(`INSERT INTO siz_card_movements (siz_card_id, movement_type, from_warehouse_id, to_employee_id, moved_by, movement_date, document_reference, notes)
-      VALUES ($1,'issue',$2,$3,$4,$5,$6,$7)`,
-      [req.params.id, card.warehouse_id, employee_id, req.user.id, md, document_reference || null, notes || null]);
-
-    if (card.warehouse_id) {
-      await db('UPDATE warehouse_stock SET quantity = GREATEST(quantity - 1, 0) WHERE warehouse_id=$1 AND siz_item_id=$2 AND size_value=$3',
-        [card.warehouse_id, card.siz_item_id, card.size_value]);
-    }
-
-    await db(`INSERT INTO employee_siz (employee_id, siz_item_id, size_value, quantity, issued_date, exploitation_start, from_warehouse_id)
-      VALUES ($1,$2,$3,1,$4,$5,$6)`,
-      [employee_id, card.siz_item_id, card.size_value, md, expMonths ? startStr : null, card.warehouse_id]);
-
-    await audit(req.user.id, 'siz_cards', req.params.id, 'issue', { employee_id }, req.ip);
-    const updated = (await db('SELECT * FROM siz_cards WHERE id=$1', [req.params.id])).rows[0];
-    res.json(updated);
-  } catch (e) { res.status(500).json({ error: e.message }); }
-});
-
-// Return SIZ card from employee (возврат)
-app.post('/api/siz-cards/:id/return', auth, perm('can_create'), async (req, res) => {
-  try {
-    const { warehouse_id, document_reference, notes, movement_date } = req.body;
-    if (!warehouse_id) return res.status(400).json({ error: 'warehouse_id обязателен' });
-
-    const card = (await db('SELECT * FROM siz_cards WHERE id=$1 AND is_active=true', [req.params.id])).rows[0];
-    if (!card) return res.status(404).json({ error: 'Карточка не найдена' });
-    if (card.status !== 'issued' && card.status !== 'expired') return res.status(400).json({ error: `Нельзя вернуть карточку в статусе: ${card.status}` });
-
-    const wh = await db(`SELECT w.*, sp.enterprise_id as sp_ent_id FROM warehouses w
-      LEFT JOIN spbipk sp ON w.spbipk_id = sp.id WHERE w.id = $1`, [warehouse_id]);
-    const warehouse = wh.rows[0];
-    const entId = warehouse?.enterprise_id || warehouse?.sp_ent_id || null;
-    const md = movement_date || new Date().toISOString().split('T')[0];
-
-    await db(`UPDATE siz_cards SET
-      location_type='warehouse', warehouse_id=$1, employee_id=NULL,
-      enterprise_id=$2, res_unit_id=$3, department_id=NULL,
-      status='in_stock', issue_date=NULL, exploitation_start=NULL, exploitation_end=NULL
-      WHERE id=$4`,
-      [warehouse_id, entId, warehouse?.res_unit_id || null, req.params.id]);
-
-    await db(`INSERT INTO siz_card_movements (siz_card_id, movement_type, from_employee_id, to_warehouse_id, moved_by, movement_date, document_reference, notes)
-      VALUES ($1,'return',$2,$3,$4,$5,$6,$7)`,
-      [req.params.id, card.employee_id, warehouse_id, req.user.id, md, document_reference || null, notes || null]);
-
-    // Increase warehouse stock
-    await db(`INSERT INTO warehouse_stock (warehouse_id, siz_item_id, size_value, quantity)
-      VALUES ($1,$2,$3,1) ON CONFLICT (warehouse_id, siz_item_id, size_value)
-      DO UPDATE SET quantity = warehouse_stock.quantity + 1`,
-      [warehouse_id, card.siz_item_id, card.size_value]);
-
-    await audit(req.user.id, 'siz_cards', req.params.id, 'return', { warehouse_id }, req.ip);
-    const updated = (await db('SELECT * FROM siz_cards WHERE id=$1', [req.params.id])).rows[0];
-    res.json(updated);
-  } catch (e) { res.status(500).json({ error: e.message }); }
-});
-
-// Transfer SIZ card between warehouses
-app.post('/api/siz-cards/:id/transfer', auth, perm('can_create'), async (req, res) => {
-  try {
-    const { to_warehouse_id, document_reference, notes, movement_date } = req.body;
-    if (!to_warehouse_id) return res.status(400).json({ error: 'to_warehouse_id обязателен' });
-
-    const card = (await db('SELECT * FROM siz_cards WHERE id=$1 AND is_active=true', [req.params.id])).rows[0];
-    if (!card) return res.status(404).json({ error: 'Карточка не найдена' });
-    if (card.location_type !== 'warehouse') return res.status(400).json({ error: 'Перемещение возможно только со склада' });
-
-    const wh = await db(`SELECT w.*, sp.enterprise_id as sp_ent_id FROM warehouses w
-      LEFT JOIN spbipk sp ON w.spbipk_id = sp.id WHERE w.id = $1`, [to_warehouse_id]);
-    const warehouse = wh.rows[0];
-    const entId = warehouse?.enterprise_id || warehouse?.sp_ent_id || null;
-    const md = movement_date || new Date().toISOString().split('T')[0];
-
-    const fromWhId = card.warehouse_id;
-    await db(`UPDATE siz_cards SET warehouse_id=$1, enterprise_id=$2, res_unit_id=$3 WHERE id=$4`,
-      [to_warehouse_id, entId, warehouse?.res_unit_id || null, req.params.id]);
-
-    await db(`INSERT INTO siz_card_movements (siz_card_id, movement_type, from_warehouse_id, to_warehouse_id, moved_by, movement_date, document_reference, notes)
-      VALUES ($1,'transfer',$2,$3,$4,$5,$6,$7)`,
-      [req.params.id, fromWhId, to_warehouse_id, req.user.id, md, document_reference || null, notes || null]);
-
-    // Update warehouse stocks
-    if (fromWhId) {
-      await db('UPDATE warehouse_stock SET quantity = GREATEST(quantity - 1, 0) WHERE warehouse_id=$1 AND siz_item_id=$2 AND size_value=$3',
-        [fromWhId, card.siz_item_id, card.size_value]);
-    }
-    await db(`INSERT INTO warehouse_stock (warehouse_id, siz_item_id, size_value, quantity)
-      VALUES ($1,$2,$3,1) ON CONFLICT (warehouse_id, siz_item_id, size_value)
-      DO UPDATE SET quantity = warehouse_stock.quantity + 1`,
-      [to_warehouse_id, card.siz_item_id, card.size_value]);
-
-    await audit(req.user.id, 'siz_cards', req.params.id, 'transfer', { from: fromWhId, to: to_warehouse_id }, req.ip);
-    const updated = (await db('SELECT * FROM siz_cards WHERE id=$1', [req.params.id])).rows[0];
-    res.json(updated);
-  } catch (e) { res.status(500).json({ error: e.message }); }
-});
-
-// Write off SIZ card (списание)
-app.post('/api/siz-cards/:id/write-off', auth, perm('can_create'), async (req, res) => {
-  try {
-    const { document_reference, notes, movement_date } = req.body;
-    const card = (await db('SELECT * FROM siz_cards WHERE id=$1 AND is_active=true', [req.params.id])).rows[0];
-    if (!card) return res.status(404).json({ error: 'Карточка не найдена' });
-    const md = movement_date || new Date().toISOString().split('T')[0];
-
-    await db(`UPDATE siz_cards SET location_type='written_off', status='written_off', warehouse_id=NULL, employee_id=NULL WHERE id=$1`, [req.params.id]);
-
-    await db(`INSERT INTO siz_card_movements (siz_card_id, movement_type, from_warehouse_id, from_employee_id, moved_by, movement_date, document_reference, notes)
-      VALUES ($1,'write_off',$2,$3,$4,$5,$6,$7)`,
-      [req.params.id, card.warehouse_id, card.employee_id, req.user.id, md, document_reference || null, notes || null]);
-
-    await audit(req.user.id, 'siz_cards', req.params.id, 'write_off', {}, req.ip);
-    res.json({ message: 'Карточка списана' });
-  } catch (e) { res.status(500).json({ error: e.message }); }
-});
-
-// Stats for SIZ cards
+// Статистика — тоже из VIEW
 app.get('/api/siz-cards-stats', auth, async (req, res) => {
   try {
-    let where = 'sc.is_active = true';
     const p = [];
+    const add = (v) => { p.push(v); return `$${p.length}`; };
+
+    let roleWhere = '1=1';
     if (['enterprise', 'spbipk'].includes(req.user.role_level)) {
-      p.push(req.user.enterprise_id); where += ` AND sc.enterprise_id=$${p.length}`;
+      roleWhere = `enterprise_id = ${add(req.user.enterprise_id)}`;
     } else if (req.user.role_level === 'res') {
-      p.push(req.user.res_unit_id); where += ` AND sc.res_unit_id=$${p.length}`;
+      roleWhere = `res_unit_id = ${add(req.user.res_unit_id)}`;
     }
-    const total = (await db(`SELECT COUNT(*) as c FROM siz_cards sc WHERE ${where}`, p)).rows[0].c;
-    const issued = (await db(`SELECT COUNT(*) as c FROM siz_cards sc WHERE ${where} AND sc.status='issued'`, p)).rows[0].c;
-    const inStock = (await db(`SELECT COUNT(*) as c FROM siz_cards sc WHERE ${where} AND sc.status='in_stock'`, p)).rows[0].c;
-    const expired = (await db(`SELECT COUNT(*) as c FROM siz_cards sc WHERE ${where} AND sc.exploitation_end < CURRENT_DATE AND sc.status='issued'`, p)).rows[0].c;
-    const writtenOff = (await db(`SELECT COUNT(*) as c FROM siz_cards sc WHERE ${where} AND sc.status='written_off'`, p)).rows[0].c;
-    const expiringSoon = (await db(`SELECT COUNT(*) as c FROM siz_cards sc WHERE ${where} AND sc.exploitation_end BETWEEN CURRENT_DATE AND CURRENT_DATE + INTERVAL '30 days' AND sc.status='issued'`, p)).rows[0].c;
-    res.json({ total: +total, issued: +issued, in_stock: +inStock, expired: +expired, written_off: +writtenOff, expiring_soon: +expiringSoon });
+
+    const r = (await db(`
+      SELECT
+        COUNT(*)                                                          AS total,
+        COUNT(*) FILTER (WHERE source_type = 'warehouse')                AS in_stock,
+        COUNT(*) FILTER (WHERE source_type = 'employee' AND status = 'issued')   AS issued,
+        COUNT(*) FILTER (WHERE status = 'expired')                       AS expired,
+        COUNT(*) FILTER (WHERE source_type = 'employee'
+          AND exploitation_end BETWEEN CURRENT_DATE AND CURRENT_DATE + INTERVAL '30 days') AS expiring_soon
+      FROM v_siz_cards WHERE ${roleWhere}
+    `, p)).rows[0];
+
+    res.json({
+      total:         +r.total,
+      in_stock:      +r.in_stock,
+      issued:        +r.issued,
+      expired:       +r.expired,
+      expiring_soon: +r.expiring_soon,
+    });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// СИЗ конкретного сотрудника (для карточки сотрудника) — из employee_siz напрямую
+app.get('/api/siz-cards/by-employee/:employeeId', auth, async (req, res) => {
+  try {
+    const sql = `SELECT es.*, i.name as item_name, i.code as item_code, i.unit,
+      i.exploitation_months, c.name as category_name, w.name as warehouse_name,
+      CASE
+        WHEN es.exploitation_start IS NOT NULL AND i.exploitation_months IS NOT NULL
+        THEN (es.exploitation_start + i.exploitation_months * INTERVAL '1 month')::date
+        ELSE NULL
+      END AS exploitation_end
+      FROM employee_siz es
+      JOIN siz_items i ON es.siz_item_id = i.id
+      LEFT JOIN siz_categories c ON i.category_id = c.id
+      LEFT JOIN warehouses w ON es.from_warehouse_id = w.id
+      WHERE es.employee_id = $1 AND es.status = 'active'
+      ORDER BY c.name, i.name`;
+    res.json((await db(sql, [req.params.employeeId])).rows);
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
@@ -1855,6 +1511,106 @@ async function initDB() {
     }
 
     console.log('DB initialization complete');
+
+    // ── Создаём или обновляем VIEW v_siz_cards ──
+    await db(`CREATE OR REPLACE VIEW v_siz_cards AS
+      -- Остатки на складах
+      SELECT
+        ws.id::text                                         AS id,
+        'warehouse'                                         AS source_type,
+        i.id::text                                          AS siz_item_id,
+        i.name                                              AS item_name,
+        i.code                                              AS item_code,
+        i.unit,
+        i.exploitation_months,
+        c.name                                              AS category_name,
+        ws.size_value,
+        ws.quantity,
+        'in_stock'                                          AS status,
+        w.id::text                                          AS warehouse_id,
+        w.name                                              AS warehouse_name,
+        w.warehouse_type,
+        w.enterprise_id,
+        w.res_unit_id,
+        COALESCE(ent_w.id, ent_sp.id)                       AS enterprise_fk,
+        COALESCE(ent_w.name, ent_sp.name)                   AS enterprise_name,
+        r_w.name                                            AS res_name,
+        NULL::uuid                                          AS employee_id,
+        NULL::text                                          AS last_name,
+        NULL::text                                          AS first_name,
+        NULL::text                                          AS middle_name,
+        NULL::text                                          AS position_name,
+        NULL::text                                          AS department_name,
+        NULL::uuid                                          AS department_id,
+        NULL::date                                          AS issued_date,
+        NULL::date                                          AS exploitation_start,
+        NULL::date                                          AS exploitation_end
+      FROM warehouse_stock ws
+      JOIN siz_items i       ON ws.siz_item_id = i.id
+      LEFT JOIN siz_categories c   ON i.category_id = c.id
+      JOIN warehouses w            ON ws.warehouse_id = w.id
+      LEFT JOIN enterprises ent_w  ON w.enterprise_id = ent_w.id
+      LEFT JOIN spbipk sp          ON w.spbipk_id = sp.id
+      LEFT JOIN enterprises ent_sp ON sp.enterprise_id = ent_sp.id
+      LEFT JOIN res_units r_w      ON w.res_unit_id = r_w.id
+      WHERE ws.quantity > 0
+
+      UNION ALL
+
+      -- СИЗ у сотрудников
+      SELECT
+        es.id::text                                         AS id,
+        'employee'                                          AS source_type,
+        i.id::text                                          AS siz_item_id,
+        i.name                                              AS item_name,
+        i.code                                              AS item_code,
+        i.unit,
+        i.exploitation_months,
+        c.name                                              AS category_name,
+        es.size_value,
+        es.quantity,
+        CASE
+          WHEN es.exploitation_start IS NOT NULL
+           AND i.exploitation_months IS NOT NULL
+           AND (es.exploitation_start + i.exploitation_months * INTERVAL '1 month') < CURRENT_DATE
+          THEN 'expired'
+          ELSE 'issued'
+        END                                                 AS status,
+        wf.id::text                                         AS warehouse_id,
+        wf.name                                             AS warehouse_name,
+        wf.warehouse_type,
+        e.enterprise_id,
+        e.res_unit_id,
+        ent.id                                              AS enterprise_fk,
+        ent.name                                            AS enterprise_name,
+        r.name                                              AS res_name,
+        e.id                                                AS employee_id,
+        e.last_name,
+        e.first_name,
+        e.middle_name,
+        pos.name                                            AS position_name,
+        d.name                                              AS department_name,
+        e.department_id,
+        es.issued_date,
+        es.exploitation_start,
+        CASE
+          WHEN es.exploitation_start IS NOT NULL AND i.exploitation_months IS NOT NULL
+          THEN (es.exploitation_start + i.exploitation_months * INTERVAL '1 month')::date
+          ELSE NULL
+        END                                                 AS exploitation_end
+      FROM employee_siz es
+      JOIN siz_items i          ON es.siz_item_id = i.id
+      LEFT JOIN siz_categories c ON i.category_id = c.id
+      JOIN employees e           ON es.employee_id = e.id
+      LEFT JOIN enterprises ent  ON e.enterprise_id = ent.id
+      LEFT JOIN res_units r      ON e.res_unit_id = r.id
+      LEFT JOIN departments d    ON e.department_id = d.id
+      LEFT JOIN positions pos    ON e.position_id = pos.id
+      LEFT JOIN warehouses wf    ON es.from_warehouse_id = wf.id
+      WHERE es.status = 'active'
+    `);
+    console.log('v_siz_cards VIEW ready');
+
   } catch (e) {
     console.error('DB init error:', e.message);
   }
