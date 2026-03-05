@@ -710,12 +710,13 @@ app.get('/api/warehouses/:id/employees', auth, async (req, res) => {
       // Склад РЭС → только сотрудники этого РЭС
       p.push(wh.res_unit_id); sql += ` AND e.res_unit_id=$${p.length}`;
     } else if (wh.spbipk_id) {
-      // Склад СПБиПК → сотрудники предприятия
-      p.push(wh.enterprise_id); sql += ` AND e.enterprise_id=$${p.length}`;
+      // Склад СПБиПК → только сотрудники предприятия БЕЗ привязки к конкретному РЭС (аппарат)
+      p.push(wh.enterprise_id); sql += ` AND e.enterprise_id=$${p.length} AND e.res_unit_id IS NULL`;
     } else if (wh.warehouse_type === 'ia') {
-      // Центральный склад ИА → все сотрудники (без фильтра)
+      // Центральный склад ИА → только сотрудники без привязки к предприятию (центральный аппарат)
+      sql += ` AND e.enterprise_id IS NULL`;
     } else if (wh.enterprise_id) {
-      p.push(wh.enterprise_id); sql += ` AND e.enterprise_id=$${p.length}`;
+      p.push(wh.enterprise_id); sql += ` AND e.enterprise_id=$${p.length} AND e.res_unit_id IS NULL`;
     }
     sql += ' ORDER BY e.last_name, e.first_name';
     res.json((await db(sql, p)).rows);
