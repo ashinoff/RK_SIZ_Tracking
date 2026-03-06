@@ -194,7 +194,9 @@ const apiGet = (url) => api(url);
 const apiPost = (url, body) => api(url, { method: 'POST', body: JSON.stringify(body) });
 const apiPut = (url, body) => api(url, { method: 'PUT', body: JSON.stringify(body) });
 const apiDel = (url, body) => api(url, { method: 'DELETE', body: body ? JSON.stringify(body) : undefined });
-const confirmDel = (msg) => { const p = prompt(msg + '\n\nВведите пароль для подтверждения:'); return p === '2233'; };
+const confirmDel = (msg) => { const p = prompt(msg + '
+
+Введите пароль для подтверждения:'); return p === '2233'; };
 
 // ═══════ EXCEL UTILS ═══════
 const exportExcel = (data, filename, sheetName = 'Данные') => {
@@ -737,12 +739,12 @@ const Warehouses = () => {
       const payload = {
         employee_id: issueForm.employee_id,
         siz_item_id: issueForm.siz_item_id,
-        warehouse_id: selected,
+        size_value: issueForm.size_value || '',
         quantity: parseInt(issueForm.quantity),
         movement_date: issueForm.movement_date || new Date().toISOString().split('T')[0],
         document_reference: issueForm.document_reference || '',
       };
-      await apiPost('/siz-cards/batch-issue', payload);
+      await apiPost(`/warehouses/${selected}/issue`, payload);
       showToast('СИЗ выдано сотруднику');
       setIssueModal(false); setIssueForm({}); setIssueCat(''); setIssueSearch(''); setEmpSearch('');
       loadStock(selected);
@@ -2005,7 +2007,7 @@ const EmployeeCard = ({ id, navigate }) => {
       {cards.map(c => {
         const dl = daysLeft(c);
         return <tr key={c.id} className={dl !== null && dl < 0 ? 'row-expired' : ''}>
-          <td><span className="badge b-blue" style={{fontFamily:'JetBrains Mono',fontSize:11,cursor:'pointer'}} onClick={() => navigate('/siz-card/'+c.id)}>{c.card_number}</span></td>
+          <td><span className="badge b-blue" style={{fontFamily:'JetBrains Mono',fontSize:11,cursor:'pointer'}} onClick={() => navigate('/siz-cards')}>{c.card_number || c.id?.slice(0,8)}</span></td>
           <td><span className="badge b-gray">{c.category_name || '—'}</span></td>
           <td style={{ fontWeight: 600 }}>{c.item_name}</td>
           <td>{c.size_value || '—'}</td>
@@ -2435,182 +2437,6 @@ const SizCardsPage = ({ navigate }) => {
   </div>;
 };
 
-
-// ═══════ SIZ CARD DETAIL ═══════
-const SizCardDetail = ({ id, navigate }) => {
-  const { user, isLevel, showToast } = useAuth();
-  const [card, setCard] = useState(null);
-  const [movements, setMovements] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [modal, setModal] = useState(null); // 'issue' | 'return' | 'transfer' | 'write_off'
-  const [form, setForm] = useState({});
-  const [employees, setEmployees] = useState([]);
-  const [warehouses, setWarehouses] = useState([]);
-  const canEdit = isLevel('ia', 'spbipk', 'res');
-
-  const load = async () => {
-    try {
-      const [c, m] = await Promise.all([apiGet(`/siz-cards/${id}`), apiGet(`/siz-cards/${id}/movements`)]);
-      setCard(c); setMovements(m); setLoading(false);
-    } catch(e) { showToast(e.message, 'error'); setLoading(false); }
-  };
-  useEffect(() => { load(); Promise.all([apiGet('/employees'), apiGet('/warehouses')]).then(([e, w]) => { setEmployees(e); setWarehouses(w); }); }, [id]);
-
-  const daysLeft = () => {
-    if (!card?.exploitation_end || card.status !== 'issued') return null;
-    return Math.ceil((new Date(card.exploitation_end) - new Date()) / (1000*60*60*24));
-  };
-
-  const isExpired = () => {
-    const dl = daysLeft();
-    return dl !== null && dl < 0;
-  };
-
-  const statusLabel = { in_stock: 'На складе', issued: 'Выдано', expired: 'Просрочено', written_off: 'Списано' };
-  const moveLabel = { receipt: 'Поступление', issue: 'Выдача', return: 'Возврат', transfer: 'Перемещение', write_off: 'Списание' };
-
-  const doAction = async () => {
-    try {
-      if (modal === 'issue') {
-        if (!form.employee_id) return showToast('Выберите сотрудника', 'error');
-        await apiPost(`/siz-cards/${id}/issue`, form);
-        showToast('СИЗ выдано сотруднику');
-      } else if (modal === 'return') {
-        if (!form.warehouse_id) return showToast('Выберите склад', 'error');
-        await apiPost(`/siz-cards/${id}/return`, form);
-        showToast('СИЗ возвращено на склад');
-      } else if (modal === 'transfer') {
-        if (!form.to_warehouse_id) return showToast('Выберите склад назначения', 'error');
-        await apiPost(`/siz-cards/${id}/transfer`, form);
-        showToast('СИЗ перемещено');
-      } else if (modal === 'write_off') {
-        await apiPost(`/siz-cards/${id}/write-off`, form);
-        showToast('СИЗ списано');
-      }
-      setModal(null); setForm({}); load();
-    } catch(e) { showToast(e.message, 'error'); }
-  };
-
-  if (loading) return <Loader />;
-  if (!card) return <div><button className="btn btn-o" onClick={() => navigate('/siz-cards')}><IC.arrowLeft style={{width:16,height:16}}/> Назад</button><Empty icon={IC.tag} text="Карточка не найдена" /></div>;
-
-  const dl = daysLeft();
-  const dispStatus = isExpired() ? 'expired' : card.status;
-  const fio = card.last_name ? `${card.last_name} ${card.first_name || ''} ${card.middle_name || ''}`.trim() : null;
-
-  return <div>
-    <div className="breadcrumb"><span onClick={() => navigate('/siz-cards')}>Карточки СИЗ</span> / <span style={{color:'var(--tx1)',cursor:'default'}}>{card.card_number}</span></div>
-    <div className="page-top"><div>
-      <h1 style={{display:'flex',alignItems:'center',gap:12}}>{card.card_number} <span className={`status-badge st-${dispStatus}`}>{statusLabel[dispStatus] || card.status}</span></h1>
-      <div className="sub">{card.item_name}{card.category_name ? ` — ${card.category_name}` : ''}</div>
-    </div>
-      {canEdit && <div style={{display:'flex',gap:8,flexWrap:'wrap'}}>
-        {card.status === 'in_stock' && <button className="btn btn-sm" style={{background:'#F0FDF4',color:'#166534',border:'1px solid #BBF7D0'}} onClick={() => { setForm({}); setModal('issue'); }}>Выдать</button>}
-        {card.status === 'in_stock' && <button className="btn btn-sm" style={{background:'var(--blue-l)',color:'#1D4ED8',border:'1px solid var(--blue-l2)'}} onClick={() => { setForm({}); setModal('transfer'); }}>Переместить</button>}
-        {(card.status === 'issued' || isExpired()) && <button className="btn btn-o btn-sm" onClick={() => { setForm({}); setModal('return'); }}>Вернуть</button>}
-        {card.status !== 'written_off' && <button className="btn btn-sm" style={{background:'var(--red-l)',color:'#B91C1C',border:'1px solid var(--red-l2)'}} onClick={() => { setForm({}); setModal('write_off'); }}>Списать</button>}
-      </div>}
-    </div>
-
-    <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:16,marginBottom:20}}>
-      <div className="card"><div className="card-h"><h3>Информация о СИЗ</h3></div><div className="card-body">
-        {[['Номер карточки', card.card_number],['Наименование', card.item_name],['Категория', card.category_name],['Код', card.item_code],['Размер', card.size_value || '—'],['Пол', card.item_gender || '—'],['Сезон', card.season || '—'],['Срок эксплуатации', card.exploitation_years ? (card.exploitation_years >= 1 ? `${card.exploitation_years} г.` : `${Math.round(card.exploitation_years * 12)} мес.`) : '—']].map(([l,v],i) =>
-          <div key={i} style={{display:'flex',justifyContent:'space-between',padding:'6px 0',borderBottom:i<7?'1px solid var(--border)':'none'}}>
-            <span style={{fontSize:12,color:'var(--tx2)',fontWeight:600}}>{l}</span>
-            <span style={{fontSize:13,fontWeight:600}}>{v || '—'}</span>
-          </div>)}
-      </div></div>
-      <div className="card"><div className="card-h"><h3>Местонахождение</h3></div><div className="card-body">
-        {[
-          ['Статус', <span className={`status-badge st-${dispStatus}`}>{statusLabel[dispStatus] || card.status}</span>],
-          ['Тип расположения', card.location_type === 'employee' ? 'У сотрудника' : card.location_type === 'warehouse' ? 'На складе' : 'Списано'],
-          card.location_type === 'employee' ? ['Сотрудник', fio ? <span style={{cursor:'pointer',color:'var(--blue)',fontWeight:600}} onClick={() => navigate('/employee/'+card.employee_id)}>{fio}</span> : '—'] : null,
-          card.location_type === 'employee' ? ['Должность', card.position_name || '—'] : null,
-          card.location_type === 'warehouse' ? ['Склад', card.warehouse_name || '—'] : null,
-          ['Предприятие', card.enterprise_name || '—'],
-          ['РЭС / Служба', card.res_name || '—'],
-          ['Подразделение', card.department_name || '—'],
-        ].filter(Boolean).map(([l,v],i) =>
-          <div key={i} style={{display:'flex',justifyContent:'space-between',padding:'6px 0',borderBottom:'1px solid var(--border)',alignItems:'center'}}>
-            <span style={{fontSize:12,color:'var(--tx2)',fontWeight:600}}>{l}</span>
-            <span style={{fontSize:13,fontWeight:600}}>{v || '—'}</span>
-          </div>)}
-        {card.status === 'issued' && <div style={{marginTop:12,padding:12,borderRadius:8,background:isExpired()?'var(--red-l)':dl!==null&&dl<30?'var(--amber-l)':'var(--green-l)'}}>
-          <div style={{fontSize:11,fontWeight:700,color:'var(--tx2)',marginBottom:4}}>СРОКИ ЭКСПЛУАТАЦИИ</div>
-          <div style={{display:'flex',justifyContent:'space-between',fontSize:12,marginBottom:2}}>
-            <span>Дата выдачи:</span><span style={{fontWeight:700}}>{card.issue_date || '—'}</span></div>
-          <div style={{display:'flex',justifyContent:'space-between',fontSize:12,marginBottom:2}}>
-            <span>Начало эксплуатации:</span><span style={{fontWeight:700}}>{card.exploitation_start || '—'}</span></div>
-          <div style={{display:'flex',justifyContent:'space-between',fontSize:12,marginBottom:2}}>
-            <span>Конец эксплуатации:</span><span style={{fontWeight:700}}>{card.exploitation_end || '—'}</span></div>
-          <div style={{display:'flex',justifyContent:'space-between',fontSize:12,marginTop:6,paddingTop:6,borderTop:'1px solid rgba(0,0,0,.1)'}}>
-            <span style={{fontWeight:700}}>Осталось:</span>
-            <span className={`days-badge ${dl<0?'danger':dl<30?'warn':'ok'}`} style={{fontSize:12}}>
-              {dl < 0 ? `Просрочено на ${Math.abs(dl)} дн.` : `${dl} дн.`}
-            </span>
-          </div>
-        </div>}
-      </div></div>
-    </div>
-
-    <div className="card"><div className="card-h"><h3>История перемещений</h3></div><div className="card-body np"><div className="tbl-wrap"><table><thead><tr>
-      <th>Дата</th><th>Тип</th><th>Откуда</th><th>Куда</th><th>Кем</th><th>Документ</th><th>Примечания</th>
-    </tr></thead><tbody>
-      {movements.length ? movements.map(m => <tr key={m.id}>
-        <td style={{fontFamily:'JetBrains Mono',fontSize:12}}>{m.movement_date}</td>
-        <td><span className="badge b-blue">{moveLabel[m.movement_type] || m.movement_type}</span></td>
-        <td style={{fontSize:12}}>
-          {m.from_warehouse_name && <span>{m.from_warehouse_name}</span>}
-          {m.from_employee_last && <span>{m.from_employee_last} {(m.from_employee_first||'')[0]}.</span>}
-          {!m.from_warehouse_name && !m.from_employee_last && '—'}
-        </td>
-        <td style={{fontSize:12}}>
-          {m.to_warehouse_name && <span>{m.to_warehouse_name}</span>}
-          {m.to_employee_last && <span>{m.to_employee_last} {(m.to_employee_first||'')[0]}.</span>}
-          {!m.to_warehouse_name && !m.to_employee_last && '—'}
-        </td>
-        <td style={{fontSize:12,color:'var(--tx2)'}}>{m.moved_by_name || '—'}</td>
-        <td style={{fontSize:12}}>{m.document_reference || '—'}</td>
-        <td style={{fontSize:12,color:'var(--tx2)'}}>{m.notes || '—'}</td>
-      </tr>) : <tr><td colSpan="7"><Empty icon={IC.clock} text="Нет записей о перемещениях" /></td></tr>}
-    </tbody></table></div></div></div>
-
-    {modal && <Modal open onClose={() => setModal(null)} title={
-      modal === 'issue' ? 'Выдать СИЗ сотруднику' : modal === 'return' ? 'Вернуть СИЗ на склад' :
-      modal === 'transfer' ? 'Переместить на другой склад' : 'Списать СИЗ'
-    } footer={<>
-      <button className="btn btn-o btn-sm" onClick={() => setModal(null)}>Отмена</button>
-      <button className="btn btn-sm" style={modal==='write_off'?{background:'var(--red-l)',color:'#B91C1C',border:'1px solid var(--red-l2)'}:modal==='issue'?{background:'#F0FDF4',color:'#166534',border:'1px solid #BBF7D0'}:{background:'var(--blue-l)',color:'#1D4ED8',border:'1px solid var(--blue-l2)'}} onClick={doAction}>
-        {modal==='write_off'?'Списать':modal==='issue'?'Выдать':'Выполнить'}
-      </button>
-    </>}>
-      {modal === 'issue' && <div className="fg"><label>Сотрудник *</label>
-        <select className="fc" value={form.employee_id||''} onChange={e => setForm({...form, employee_id: e.target.value})}>
-          <option value="">Выберите...</option>
-          {employees.map(e => <option key={e.id} value={e.id}>{e.last_name} {e.first_name} {e.middle_name} {e.position_name ? `(${e.position_name})` : ''}</option>)}
-        </select>
-      </div>}
-      {modal === 'return' && <div className="fg"><label>Склад *</label>
-        <select className="fc" value={form.warehouse_id||''} onChange={e => setForm({...form, warehouse_id: e.target.value})}>
-          <option value="">Выберите...</option>
-          {warehouses.map(w => <option key={w.id} value={w.id}>{w.name}{w.res_name ? ` (${w.res_name})` : ''}</option>)}
-        </select>
-      </div>}
-      {modal === 'transfer' && <div className="fg"><label>Склад назначения *</label>
-        <select className="fc" value={form.to_warehouse_id||''} onChange={e => setForm({...form, to_warehouse_id: e.target.value})}>
-          <option value="">Выберите...</option>
-          {warehouses.filter(w => w.id !== card.warehouse_id).map(w => <option key={w.id} value={w.id}>{w.name}{w.res_name ? ` (${w.res_name})` : ''}</option>)}
-        </select>
-      </div>}
-      <div className="fr">
-        <div className="fg"><label>Дата</label><input className="fc" type="date" value={form.movement_date||''} onChange={e => setForm({...form, movement_date: e.target.value})} /></div>
-        <div className="fg"><label>Документ</label><input className="fc" value={form.document_reference||''} onChange={e => setForm({...form, document_reference: e.target.value})} /></div>
-      </div>
-      <div className="fg"><label>Примечания</label><textarea className="fc" value={form.notes||''} onChange={e => setForm({...form, notes: e.target.value})} /></div>
-    </Modal>}
-  </div>;
-};
-
 const App = () => {
   const { user, logout, isLevel } = useAuth();
   const [path, setPath] = useState(window.location.hash.replace('#', '') || '/');
@@ -2625,7 +2451,6 @@ const App = () => {
   if (!user) return <LoginPage />;
 
   const empMatch = path.match(/^\/employee\/(.+)$/);
-  const sizCardMatch = path.match(/^\/siz-card\/(.+)$/);
   let content;
   if (path === '/' || path === '') content = <Dashboard />;
   else if (path === '/org') content = <OrgStructure />;
@@ -2636,7 +2461,6 @@ const App = () => {
   else if (path === '/employees') content = <EmployeesPage navigate={navigate} />;
   else if (empMatch) content = <EmployeeCard id={empMatch[1]} navigate={navigate} />;
   else if (path === '/siz-cards') content = <SizCardsPage navigate={navigate} />;
-  else if (sizCardMatch) content = <SizCardDetail id={sizCardMatch[1]} navigate={navigate} />;
   else if (path === '/admin/users') content = <AdminUsers />;
   else content = <Dashboard />;
 
